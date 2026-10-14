@@ -245,3 +245,11 @@ Existing React app (unchanged screens)        Telegram Mini App            Teleg
 | C | Companies | How many companies are in use? One → single-company schema with a `company` table kept for later; several → `company` FK on every company-owned table. |
 | D | Existing data | Is there a real `data/` folder (erp.sqlite + companies/) in daily use? If yes, the importer and validation report in §8 are part of this phase. |
 | E | SQL logins | Confirm the runtime login name (`taskmanagement_app`) and that a separate migration login (or a DBA-run `migrate`) is acceptable. |
+
+### Decisions recorded (15 Oct 2026)
+
+- **A — Scope:** Task Management core only. CRM, Operations and Finance modules are switched off; Groups and Google Sheets are hidden (not migrated in this phase).
+- **B — API:** Django serves the existing `/api/state`, `/api/changes`, `/api/command` contract plus REST resource endpoints using the same permission services.
+- **C — Companies:** one company. Single-company schema; the `/c/default/` URL prefix keeps working.
+- **D — Data:** no live data. SQL Server starts empty; Django migrations create the schema. The SQLite importer is deferred.
+- **E — SQL logins:** still to confirm (see §10 item 1).
