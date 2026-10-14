@@ -1,0 +1,12 @@
+{
+  "name": "task-management-sqlserver-check",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "check": "node --env-file-if-exists=.env check.mjs",
+    "test": "node --test config.test.mjs"
+  },
+  "dependencies": { "mssql": "12.7.6" }
+}
