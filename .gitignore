@@ -1,0 +1,5 @@
+# Secrets and local environments are never committed
+.env
+*.env.local
+backend/.env
+backend/.venv/
