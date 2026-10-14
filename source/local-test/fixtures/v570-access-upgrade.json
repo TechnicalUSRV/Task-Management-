@@ -1,0 +1,1980 @@
+{
+  "schema_version": 17,
+  "token": "4ded51929a7f17c740a34849b5ced708eaa4ea14c4b0d07fc8a91ab8213c0663",
+  "admin": {
+    "id": "USER-000001",
+    "staff_id": "STAFF-000001",
+    "username": "Owner",
+    "role_id": "ROLE-ADMIN"
+  },
+  "member": {
+    "id": "USER-000002",
+    "staff_id": "STAFF-000002",
+    "username": "owner (STAFF-000002)",
+    "role_id": "ROLE-MEMBER"
+  },
+  "tables": {
+    "access_users": [
+      {
+        "id": "USER-000001",
+        "staff_id": "STAFF-000001",
+        "email": "owner@fixture.test",
+        "role_id": "ROLE-ADMIN",
+        "password_hash": "scrypt:164dd117a1f12fa5ca750e7f60b6688d:8be8402c2ee852d4bc04974198ad921c4980e12173bf2d5129285a659b5e2ad742cce277c2b5b60a433daa86d066c611136357558267033b13d2336f66fe266f",
+        "active": 1,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.800Z",
+        "updated_at": "2026-10-13T05:25:36.800Z",
+        "username": "Owner",
+        "username_key": "owner"
+      },
+      {
+        "id": "USER-000002",
+        "staff_id": "STAFF-000002",
+        "email": "other@fixture.test",
+        "role_id": "ROLE-MEMBER",
+        "password_hash": "scrypt:bb4d5556ff6ffeb5b238ba267e79eaff:18fbe1cb5324807b2a4ad1b739bac8fc4521a9d3a79e41e0bca6c97b83e54069b4426c43763a0b1be19541a3c5b3497ca30f35572d721d50223c916ce1b8fd61",
+        "active": 1,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.837Z",
+        "updated_at": "2026-10-13T05:25:36.837Z",
+        "username": "owner (STAFF-000002)",
+        "username_key": "owner (staff-000002)"
+      }
+    ],
+    "access_sessions": [
+      {
+        "token_hash": "6eedfa4ca340d70348e0e9162238896490a3c683875328ff92c1c2b3f607435c",
+        "user_id": "USER-000001",
+        "expires_at": "2026-10-13T22:59:20.154Z",
+        "created_at": "2026-10-13T14:59:20.154Z"
+      }
+    ],
+    "access_user_permissions": [
+      {
+        "user_id": "USER-000002",
+        "resource": "tasks.reports",
+        "action": "view",
+        "effect": "DENY"
+      }
+    ],
+    "access_roles": [
+      {
+        "id": "ROLE-ADMIN",
+        "name": "Administrator",
+        "description": "Full system access. At least one active administrator is required.",
+        "protected": 1,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.757Z",
+        "updated_at": "2026-10-13T05:25:36.757Z"
+      },
+      {
+        "id": "ROLE-MANAGER",
+        "name": "Manager",
+        "description": "Starting manager permissions; customize as needed.",
+        "protected": 0,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.760Z",
+        "updated_at": "2026-10-13T05:25:36.760Z"
+      },
+      {
+        "id": "ROLE-MEMBER",
+        "name": "Team Member",
+        "description": "Starting team member permissions; customize as needed.",
+        "protected": 0,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.760Z",
+        "updated_at": "2026-10-13T05:25:36.760Z"
+      },
+      {
+        "id": "ROLE-VIEWER",
+        "name": "Viewer",
+        "description": "Starting viewer permissions; customize as needed.",
+        "protected": 0,
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.761Z",
+        "updated_at": "2026-10-13T05:25:36.761Z"
+      }
+    ],
+    "access_permissions": [
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "dashboard",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.contacts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.contacts",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.contacts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.contacts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.campaigns",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.campaigns",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.campaigns",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.campaigns",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.leads",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.leads",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.leads",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.leads",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.opportunities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.opportunities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.opportunities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.opportunities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.quotations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.quotations",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.quotations",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.quotations",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.quotations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.accounts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.accounts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.accounts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.activities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.activities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.activities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.activities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.documents",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.documents",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "crm.documents",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.organization",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.workspace",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.workspace",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.workspace",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.workspace",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.workspace",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.users",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.users",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.users",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.users",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.tasks",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.tasks",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.tasks",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.tasks",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.tasks",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.company",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.groups",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.timesheets",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.timesheets",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.timesheets",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.timesheets",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.timesheets",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.meetings",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.meetings",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.meetings",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.meetings",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.reports",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "tasks.reports",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.quotation",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.quotation",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.quotation",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.quotation",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.quotation",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.po",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.po",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.po",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.po",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.po",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.job",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.job",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.job",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.job",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.job",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.dn",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.dn",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.dn",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.dn",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.dn",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.pr",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.pr",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.pr",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.pr",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.pr",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.legacy",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.legacy",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.legacy",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.finance",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.finance",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.finance",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "ops.finance",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.crm",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.crm",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.operations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.operations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.central",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "reports.central",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.roles",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.roles",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.roles",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.roles",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.users",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.users",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.users",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.users",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.users",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.modules",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.modules",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.companies",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.companies",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.telegram",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.telegram",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.integrations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "admin.integrations",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "settings",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-ADMIN",
+        "resource": "settings",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "dashboard",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.contacts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.contacts",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.contacts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.contacts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.campaigns",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.campaigns",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.campaigns",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.campaigns",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.leads",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.leads",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.leads",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.leads",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.opportunities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.opportunities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.opportunities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.opportunities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.quotations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.quotations",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.quotations",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.quotations",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.quotations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.accounts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.accounts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.accounts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.activities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.activities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.activities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.activities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.documents",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.documents",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "crm.documents",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.organization",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.workspace",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.workspace",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.workspace",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.workspace",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.workspace",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.users",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.users",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.users",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.users",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.tasks",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.tasks",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.tasks",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.tasks",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.tasks",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.groups",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.groups",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.groups",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.groups",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.groups",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.timesheets",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.timesheets",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.timesheets",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.timesheets",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.timesheets",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.meetings",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.meetings",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.meetings",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.meetings",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.reports",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "tasks.reports",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.quotation",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.quotation",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.quotation",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.quotation",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.quotation",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.po",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.po",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.po",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.po",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.po",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.job",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.job",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.job",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.job",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.job",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.dn",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.dn",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.dn",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.dn",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.dn",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.pr",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.pr",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.pr",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.pr",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.pr",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.legacy",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.legacy",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.legacy",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.finance",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.finance",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.finance",
+        "action": "approve"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "ops.finance",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.crm",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.crm",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.operations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.operations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.central",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MANAGER",
+        "resource": "reports.central",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "dashboard",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.contacts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.contacts",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.contacts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.contacts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.campaigns",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.campaigns",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.campaigns",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.campaigns",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.leads",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.leads",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.leads",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.leads",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.opportunities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.opportunities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.opportunities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.opportunities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.quotations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.quotations",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.quotations",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.quotations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.accounts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.accounts",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.accounts",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.activities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.activities",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.activities",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.activities",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.documents",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.documents",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "crm.documents",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.organization",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.workspace",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.workspace",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.workspace",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.workspace",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.users",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.users",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.users",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.users",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.tasks",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.tasks",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.tasks",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.tasks",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.groups",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.groups",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.groups",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.groups",
+        "action": "delete"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.groups",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.timesheets",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.timesheets",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.timesheets",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.timesheets",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.meetings",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.meetings",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.meetings",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.meetings",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.reports",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "tasks.reports",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.quotation",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.quotation",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.quotation",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.quotation",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.po",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.po",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.po",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.po",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.job",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.job",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.job",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.job",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.dn",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.dn",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.dn",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.dn",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.pr",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.pr",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.pr",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.pr",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.legacy",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.legacy",
+        "action": "create"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.legacy",
+        "action": "update"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "ops.finance",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.crm",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.crm",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.operations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.operations",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.central",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-MEMBER",
+        "resource": "reports.central",
+        "action": "export"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "dashboard",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.contacts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.campaigns",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.leads",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.opportunities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.quotations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.accounts",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.activities",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "crm.documents",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.organization",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.workspace",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.users",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.tasks",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.groups",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.timesheets",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.meetings",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "tasks.reports",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.quotation",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.po",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.job",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.dn",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.pr",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.legacy",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "ops.finance",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "reports.crm",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "reports.operations",
+        "action": "view"
+      },
+      {
+        "role_id": "ROLE-VIEWER",
+        "resource": "reports.central",
+        "action": "view"
+      }
+    ],
+    "company": [
+      {
+        "id": 1,
+        "name": "Migration Test",
+        "address": "",
+        "phone": "",
+        "email": "",
+        "tax_id": "",
+        "currency": "USD",
+        "timezone": ""
+      }
+    ],
+    "lookups": [
+      {
+        "id": "STAFF-000001",
+        "kind": "staff",
+        "name": "Owner",
+        "unit": "",
+        "active": 1
+      },
+      {
+        "id": "STAFF-000002",
+        "kind": "staff",
+        "name": "owner (STAFF-000002)",
+        "unit": "",
+        "active": 1
+      }
+    ],
+    "tm_profiles": [
+      {
+        "staff_id": "STAFF-000001",
+        "email": "owner@fixture.test",
+        "phone": "",
+        "position": "",
+        "department": "",
+        "active": 1,
+        "version": 0,
+        "manager_id": null,
+        "timezone": "",
+        "sidebar_theme": "",
+        "org_level": null,
+        "nickname": ""
+      },
+      {
+        "staff_id": "STAFF-000002",
+        "email": "other@fixture.test",
+        "phone": "",
+        "position": "",
+        "department": "",
+        "active": 1,
+        "version": 0,
+        "manager_id": null,
+        "timezone": "",
+        "sidebar_theme": "",
+        "org_level": null,
+        "nickname": ""
+      }
+    ],
+    "tm_tasks": [
+      {
+        "id": "TASK-000001",
+        "workspace_id": "WS-000001",
+        "activity_id": null,
+        "contact_id": null,
+        "related_type": "",
+        "related_id": null,
+        "title": "Historical blank expectation",
+        "description": "",
+        "start_date": "2026-10-01",
+        "due_date": "2026-10-10",
+        "status": "NOT_STARTED",
+        "priority": "MEDIUM",
+        "progress": 0,
+        "estimate_minutes": 0,
+        "reason": "",
+        "created_by": "STAFF-000001",
+        "completed_at": null,
+        "version": 0,
+        "creation_key": null,
+        "created_at": "2026-10-13T05:25:36.842Z",
+        "updated_at": "2026-10-13T05:25:36.842Z",
+        "pic_id": "STAFF-000001",
+        "reviewer_id": "STAFF-000001",
+        "department": "",
+        "department_note": "",
+        "accepted_at": "2026-10-13T05:25:36.842Z",
+        "declined_at": null,
+        "declined_reason": "",
+        "stuck_at": null,
+        "stuck_by": null,
+        "stuck_reason": "",
+        "submitted_to": null,
+        "submitted_by": null,
+        "submitted_at": null,
+        "submit_note": "",
+        "closed_by": null,
+        "request_id": null,
+        "source": "WEB",
+        "reviewer_status": "ACCEPTED",
+        "reviewer_responded_at": "2026-10-13T05:25:36.842Z",
+        "reviewer_note": "",
+        "recurrence": "",
+        "recurrence_until": null,
+        "series_id": null,
+        "next_task_id": null,
+        "scheduled_due": null,
+        "series_anchor": null,
+        "assigned_by": "STAFF-000001",
+        "reminder_days": "[1]",
+        "recurrence_rule": "{}"
+      }
+    ],
+    "tm_timesheets": [
+      {
+        "id": "TIME-000001",
+        "task_id": "TASK-000001",
+        "workspace_id": "WS-000001",
+        "activity": "",
+        "staff_id": "STAFF-000001",
+        "work_date": "2026-10-01",
+        "minutes": 120,
+        "notes": "Existing time",
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.844Z",
+        "updated_at": "2026-10-13T05:25:36.844Z"
+      }
+    ],
+    "tm_workspaces": [
+      {
+        "id": "WS-000001",
+        "name": "Existing work",
+        "description": "",
+        "department": "",
+        "owner_id": "STAFF-000001",
+        "color": "BLUE",
+        "status": "ACTIVE",
+        "version": 0,
+        "created_at": "2026-10-13T05:25:36.839Z",
+        "updated_at": "2026-10-13T05:25:36.839Z",
+        "kind": "LEGACY",
+        "governing_manager_id": null,
+        "origin_workspace_id": null,
+        "owner_grant_id": null,
+        "joinable": 0,
+        "created_by": "STAFF-000001",
+        "deleted_at": null,
+        "deleted_by": null,
+        "deleted_from_status": null
+      }
+    ],
+    "tm_members": [
+      {
+        "workspace_id": "WS-000001",
+        "staff_id": "STAFF-000001",
+        "approved_by": null,
+        "approval_id": null,
+        "member_role": "MEMBER",
+        "joined_at": null
+      }
+    ],
+    "tg_links": [
+      {
+        "tg_user_id": 7100571,
+        "staff_id": "STAFF-000002",
+        "chat_id": 7100571,
+        "username": "",
+        "first_name": "Upgrade fixture",
+        "notify": 1,
+        "linked_at": "2026-10-13T14:59:20.154Z",
+        "last_seen_at": "2026-10-13T14:59:20.154Z"
+      }
+    ],
+    "org_settings": [
+      {
+        "id": 1,
+        "enabled": 0,
+        "revision": 0,
+        "initialized_by": null,
+        "initialized_at": null
+      }
+    ],
+    "org_grants": [],
+    "org_requests": []
+  }
+}

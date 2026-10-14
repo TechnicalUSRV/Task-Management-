@@ -1,0 +1,206 @@
+{
+  "access_users": [
+    {
+      "id": "USER-000001",
+      "staff_id": "STAFF-000001",
+      "email": "owner@fixture.test",
+      "role_id": "ROLE-ADMIN",
+      "password_hash": "scrypt:164dd117a1f12fa5ca750e7f60b6688d:8be8402c2ee852d4bc04974198ad921c4980e12173bf2d5129285a659b5e2ad742cce277c2b5b60a433daa86d066c611136357558267033b13d2336f66fe266f",
+      "active": 1,
+      "version": 0,
+      "created_at": "2026-10-13T05:25:36.800Z",
+      "updated_at": "2026-10-13T05:25:36.800Z"
+    },
+    {
+      "id": "USER-000002",
+      "staff_id": "STAFF-000002",
+      "email": "other@fixture.test",
+      "role_id": "ROLE-MEMBER",
+      "password_hash": "scrypt:bb4d5556ff6ffeb5b238ba267e79eaff:18fbe1cb5324807b2a4ad1b739bac8fc4521a9d3a79e41e0bca6c97b83e54069b4426c43763a0b1be19541a3c5b3497ca30f35572d721d50223c916ce1b8fd61",
+      "active": 1,
+      "version": 0,
+      "created_at": "2026-10-13T05:25:36.837Z",
+      "updated_at": "2026-10-13T05:25:36.837Z"
+    }
+  ],
+  "tm_tasks": [
+    {
+      "id": "TASK-000001",
+      "workspace_id": "WS-000001",
+      "activity_id": null,
+      "contact_id": null,
+      "related_type": "",
+      "related_id": null,
+      "title": "Historical blank expectation",
+      "description": "",
+      "start_date": "2026-10-01",
+      "due_date": "2026-10-10",
+      "status": "NOT_STARTED",
+      "priority": "MEDIUM",
+      "progress": 0,
+      "estimate_minutes": 0,
+      "reason": "",
+      "created_by": "STAFF-000001",
+      "completed_at": null,
+      "version": 0,
+      "creation_key": null,
+      "created_at": "2026-10-13T05:25:36.842Z",
+      "updated_at": "2026-10-13T05:25:36.842Z",
+      "pic_id": "STAFF-000001",
+      "reviewer_id": "STAFF-000001",
+      "department": "",
+      "department_note": "",
+      "accepted_at": "2026-10-13T05:25:36.842Z",
+      "declined_at": null,
+      "declined_reason": "",
+      "stuck_at": null,
+      "stuck_by": null,
+      "stuck_reason": "",
+      "submitted_to": null,
+      "submitted_by": null,
+      "submitted_at": null,
+      "submit_note": "",
+      "closed_by": null,
+      "request_id": null,
+      "source": "WEB",
+      "reviewer_status": "ACCEPTED",
+      "reviewer_responded_at": "2026-10-13T05:25:36.842Z",
+      "reviewer_note": "",
+      "recurrence": "",
+      "recurrence_until": null,
+      "series_id": null,
+      "next_task_id": null,
+      "scheduled_due": null,
+      "series_anchor": null,
+      "assigned_by": "STAFF-000001",
+      "reminder_days": "[1]"
+    }
+  ],
+  "tm_timesheets": [
+    {
+      "id": "TIME-000001",
+      "task_id": "TASK-000001",
+      "staff_id": "STAFF-000001",
+      "work_date": "2026-10-01",
+      "minutes": 120,
+      "notes": "Existing time",
+      "version": 0,
+      "created_at": "2026-10-13T05:25:36.844Z",
+      "updated_at": "2026-10-13T05:25:36.844Z"
+    }
+  ],
+  "tm_files": [
+    {
+      "id": "FILE-000001",
+      "task_id": "TASK-000001",
+      "name": "retained.txt",
+      "mime": "text/plain",
+      "size": 24,
+      "content": {
+        "0": 75,
+        "1": 101,
+        "2": 101,
+        "3": 112,
+        "4": 32,
+        "5": 101,
+        "6": 120,
+        "7": 97,
+        "8": 99,
+        "9": 116,
+        "10": 108,
+        "11": 121,
+        "12": 32,
+        "13": 116,
+        "14": 104,
+        "15": 101,
+        "16": 115,
+        "17": 101,
+        "18": 32,
+        "19": 98,
+        "20": 121,
+        "21": 116,
+        "22": 101,
+        "23": 115
+      },
+      "uploaded_by": "STAFF-000001",
+      "source": "WEB",
+      "created_at": "2026-10-13T05:25:36.845Z"
+    }
+  ],
+  "tm_workspaces": [
+    {
+      "id": "WS-000001",
+      "name": "Existing work",
+      "description": "",
+      "department": "",
+      "owner_id": "STAFF-000001",
+      "color": "BLUE",
+      "status": "ACTIVE",
+      "version": 0,
+      "created_at": "2026-10-13T05:25:36.839Z",
+      "updated_at": "2026-10-13T05:25:36.839Z",
+      "kind": "LEGACY",
+      "governing_manager_id": null,
+      "origin_workspace_id": null,
+      "owner_grant_id": null,
+      "joinable": 0,
+      "created_by": "STAFF-000001",
+      "deleted_at": null,
+      "deleted_by": null,
+      "deleted_from_status": null
+    }
+  ],
+  "tm_assignees": [
+    {
+      "task_id": "TASK-000001",
+      "staff_id": "STAFF-000001",
+      "status": "ACCEPTED",
+      "invited_by": "STAFF-000001",
+      "invited_at": "2026-10-13T05:25:36.842Z",
+      "responded_at": null,
+      "response_note": ""
+    }
+  ],
+  "tm_events": [
+    {
+      "id": 1,
+      "entity_type": "workspace",
+      "entity_id": "WS-000001",
+      "workspace_id": "WS-000001",
+      "action": "Workspace created",
+      "detail": "Existing work",
+      "actor_id": "STAFF-000001",
+      "created_at": "2026-10-13T05:25:36.839Z"
+    },
+    {
+      "id": 2,
+      "entity_type": "task",
+      "entity_id": "TASK-000001",
+      "workspace_id": "WS-000001",
+      "action": "Task created",
+      "detail": "Historical blank expectation · Not started · 0% · in charge Owner",
+      "actor_id": "STAFF-000001",
+      "created_at": "2026-10-13T05:25:36.842Z"
+    },
+    {
+      "id": 3,
+      "entity_type": "timesheet",
+      "entity_id": "TIME-000001",
+      "workspace_id": "WS-000001",
+      "action": "Time logged",
+      "detail": "TASK-000001 · STAFF-000001 · 2026-10-01 · 120 minutes",
+      "actor_id": "STAFF-000001",
+      "created_at": "2026-10-13T05:25:36.844Z"
+    },
+    {
+      "id": 4,
+      "entity_type": "task",
+      "entity_id": "TASK-000001",
+      "workspace_id": "WS-000001",
+      "action": "File attached",
+      "detail": "Historical blank expectation · retained.txt",
+      "actor_id": "STAFF-000001",
+      "created_at": "2026-10-13T05:25:36.845Z"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+node_modules/
+local-test/data/
+local-test/public/
+local-test/tools/

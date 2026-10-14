@@ -1,0 +1,213 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../vendor/shadcn-tailwind-4.13.0.css";
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
+}
+
+/*
+ * Sunny ERP design tokens.
+ * Refined enterprise style: soft neutral canvas, white surfaces, hairline borders,
+ * one blue accent, restrained shadows. Status colors are reserved for state and
+ * always ship with a text label (and usually an icon), never color alone.
+ */
+:root {
+  color-scheme: light;
+
+  /* Neutrals */
+  --c-bg: #f4f6f9;
+  --c-surface: #ffffff;
+  --c-surface-2: #f8f9fb;
+  --c-surface-3: #eef1f5;
+  --c-hover: #f3f5f8;
+  --c-border: #e3e7ee;
+  --c-border-strong: #c9d0da;
+  --c-text: #101828;
+  --c-text-2: #344054;
+  --c-text-3: #5d6b82;
+  --c-text-4: #6b778b;
+
+  /* Accent */
+  --c-accent: #2451d6;
+  --c-accent-hover: #1f47bd;
+  --c-accent-press: #1a3da3;
+  --c-accent-soft: #eef3ff;
+  --c-accent-soft-2: #dce6ff;
+  --c-accent-text: #1d43b5;
+  --c-focus: rgb(36 81 214 / 0.35);
+
+  /* Status (fg / bg / border) */
+  --c-success: #0b7a4b;
+  --c-success-bg: #e9f7ef;
+  --c-success-border: #bfe5cf;
+  --c-warning: #8a5a00;
+  --c-warning-bg: #fff4dc;
+  --c-warning-border: #f3d99a;
+  --c-danger: #b42336;
+  --c-danger-bg: #fdedef;
+  --c-danger-border: #f5c6cd;
+  --c-info: #1f5fbf;
+  --c-info-bg: #eaf2ff;
+  --c-info-border: #c8dafa;
+  --c-neutral: #475467;
+  --c-neutral-bg: #eef1f5;
+  --c-neutral-border: #dce1e8;
+  --c-purple: #6b3fbf;
+  --c-purple-bg: #f3eefc;
+  --c-purple-border: #ddcff5;
+
+  /* Charts: single-hue marks (bars) use the accent; the unfilled track is a lighter step */
+  --c-chart-1: #2a64e0;
+  --c-chart-track: #e8eefb;
+
+  /* Type */
+  --font-ui: "Inter Variable", "Noto Sans Khmer Variable", "Khmer OS Battambang", "Leelawadee UI", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 17px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 28px;
+
+  /* Space, size, shape */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --h-sm: 32px;
+  --h-md: 36px;
+  --h-lg: 40px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-full: 999px;
+  --sh-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --sh-sm: 0 1px 3px rgb(16 24 40 / 0.07), 0 1px 2px rgb(16 24 40 / 0.04);
+  --sh-md: 0 6px 16px -4px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.05);
+  --sh-lg: 0 18px 40px -8px rgb(16 24 40 / 0.18), 0 4px 10px -4px rgb(16 24 40 / 0.08);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur: 140ms;
+
+  /* shadcn / Tailwind mapping */
+  --background: var(--c-bg);
+  --foreground: var(--c-text);
+  --card: var(--c-surface);
+  --card-foreground: var(--c-text);
+  --popover: var(--c-surface);
+  --popover-foreground: var(--c-text);
+  --primary: var(--c-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--c-accent-soft);
+  --secondary-foreground: var(--c-accent-text);
+  --muted: var(--c-surface-3);
+  --muted-foreground: var(--c-text-3);
+  --accent: var(--c-hover);
+  --accent-foreground: var(--c-text);
+  --destructive: var(--c-danger);
+  --border: var(--c-border);
+  --input: var(--c-border-strong);
+  --ring: var(--c-accent);
+  --chart-1: #2a64e0;
+  --chart-2: #0f8f7e;
+  --chart-3: #6b3fbf;
+  --chart-4: #c27c0e;
+  --chart-5: #c2417a;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--c-text-2);
+  --sidebar-primary: var(--c-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--c-hover);
+  --sidebar-accent-foreground: var(--c-text);
+  --sidebar-border: var(--c-border);
+  --sidebar-ring: var(--c-accent);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-ui);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Element defaults sit in the base layer so component utilities (e.g. text-white on a primary button) always win. */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-ui);
+    font-size: var(--fs-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+::selection {
+  background: color-mix(in srgb, var(--c-accent) 22%, transparent);
+}

@@ -1,0 +1,14 @@
+.day-preview { z-index: 45; display: flex; flex-direction: column; gap: 10px; width: 360px; max-width: calc(100vw - 24px); max-height: min(440px, var(--radix-popover-content-available-height)); padding: 14px; border: 1px solid var(--c-border, var(--line)); border-radius: var(--r-lg, 14px); background: var(--c-surface, var(--section)); color: var(--c-text, var(--text)); box-shadow: var(--sh-lg, 0 8px 28px #0002); outline: none; }
+.day-preview-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex: none; }
+.day-preview-head h3 { margin: 0; font-size: 14px; font-weight: 650; line-height: 1.4; }
+.day-preview-head p, .day-preview-empty { margin: 3px 0 0; font-size: 12px; color: var(--c-text-3, var(--hint)); }
+.day-preview-close { flex: none; min-height: 28px; padding: 4px 9px; border: 1px solid var(--c-border, var(--line)); border-radius: 4px; background: none; color: inherit; font-size: 12px; font-weight: 600; line-height: 1.4; cursor: pointer; }
+.day-preview-close:hover { background: var(--c-hover, var(--bg)); }
+.day-preview-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.day-preview-list ul { display: flex; flex-direction: column; gap: 6px; padding: 2px; margin: 0; list-style: none; }
+.day-preview-list .cal-item { align-items: flex-start; padding: 8px; font-size: var(--fs-sm, 13px); }
+.day-preview-list .cal-item > svg { margin-top: 2px; }
+.day-preview-event { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.day-preview-event .cal-item-title { white-space: normal; overflow-wrap: anywhere; }
+.day-preview-event small { color: var(--c-text-3, var(--hint)); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.day-preview-list .cal-row { padding: 10px 4px; }

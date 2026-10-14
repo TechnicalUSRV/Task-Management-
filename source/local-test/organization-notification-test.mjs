@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import {openStore} from './service.mjs';
+import {seedDemo} from './seed.mjs';
+import {organizationFixture} from './organization-fixture.mjs';
+import {createTelegramRuntime} from './telegram-bot.mjs';
+const s=openStore();seedDemo(s);
+const {ids:{A,B,C,D,E,X,Y},cmd,rev,createWorkspace,task,wsB}=organizationFixture(s);
+const TOKEN='123456789:AAHtestTokenForSunnyErpLocalChecks00',APP='https://review.example.test/c/default/tg/',sent=[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const wait=async fn=>{const end=Date.now()+15000;while(!fn()){if(Date.now()>end)throw Error('Notification delivery timed out');await sleep(40);}};
+let runtime,mock,checks=0;
+const pass=name=>{checks++;console.log('PASS '+name);};
+try{
+ s.run('UPDATE tg_settings SET enabled=1,bot_token=? WHERE id=1',TOKEN);
+ for(const [i,id] of [A,B,C,D,E,X,Y].entries())s.telegram.connectSignedIn(id,{id:7900+i,first_name:id},7900+i);
+ cmd('org.delegation.request',{beneficiary_id:C,reason:'Notification fixture owner'},B);
+ const ws=createWorkspace(C,'Notification fixture','ORGANIZATIONAL',{joinable:true});
+ const start=s.get('SELECT COALESCE(MAX(id),0) n FROM tm_notifications').n;
+ s.run('UPDATE tg_settings SET last_notification_id=? WHERE id=1',start);
+ const q=cmd('org.membership.request',{workspace_id:ws,beneficiary_id:Y,reason:'Outside join',request_key:'notify-join'},Y);
+ const old=s.get('SELECT * FROM tm_workspaces WHERE id=?',ws);
+ cmd('org.workspace.save',{...old,expected_version:old.version,expected_revision:rev(),acknowledged:true,owner_id:X,governing_manager_id:X,owner_grant_id:null,reason:'Transfer governance'},A);
+ const privateWs=createWorkspace(E,'Private note space','PERSONAL'),privateTask=task(E,privateWs,'Never notify an ancestor');
+ s.run("INSERT INTO tm_notifications(staff_id,kind,task_id,title,body,created_at) VALUES(?,'task_assigned',?,'Private injected backlog','Must be skipped',?)",B,privateTask,new Date().toISOString());
+ const blocked=s.get('SELECT MAX(id) id FROM tm_notifications').id;
+ s.run('UPDATE tm_workspaces SET joinable=1 WHERE id=?',wsB);
+ const permissionRequest=cmd('org.membership.request',{workspace_id:wsB,beneficiary_id:E,reason:'Queued before permission removal'},E);
+ const permissionNotice=s.get('SELECT id FROM tm_notifications WHERE org_request_id=? AND staff_id=?',permissionRequest.id,B).id;
+ const bUser=s.access.publicUser(s.access.accountFor(B).id);
+ cmd('admin.user.save',{...bUser,expected_version:bUser.version,function_settings:{'tasks.organization':{view:'DENY'}}});
+ mock=http.createServer(async(req,res)=>{
+  const chunks=[];for await(const c of req)chunks.push(c);const payload=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):{},method=req.url.split('/').pop();
+  let result=true;
+  if(method==='getMe')result={id:999,is_bot:true,first_name:'Review bot',username:'review_bot'};
+  if(method==='getUpdates'){await sleep(100);result=[];}
+  if(method==='sendMessage'){sent.push(payload);result={message_id:sent.length,chat:{id:payload.chat_id,type:'private'},date:Math.floor(Date.now()/1000),text:payload.text};}
+  res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,result}));
+ });await new Promise(r=>mock.listen(0,'127.0.0.1',r));
+ runtime=createTelegramRuntime({companies:{list:()=>[{id:'default'}],get:()=>s},apiBase:`http://127.0.0.1:${mock.address().port}`,supervisorMs:80,outboxMs:80,pollTimeout:1,logger:{error:()=>{}},appUrlFor:()=>APP}).start();
+ await wait(()=>s.get("SELECT 1 FROM tm_notification_deliveries WHERE notification_id=? AND status='SKIPPED'",blocked));
+ await wait(()=>s.get("SELECT 1 FROM tm_notification_deliveries WHERE notification_id=? AND status='SKIPPED'",permissionNotice));
+ assert.ok(!sent.some(m=>(m.reply_markup?.inline_keyboard||[]).flat().some(b=>b.web_app?.url===`${APP}?org_request=${permissionRequest.id}`)&&m.chat_id===7901));
+ pass('Queued organization notification is skipped after the recipient loses the function permission');
+ const requestMessages=()=>sent.filter(m=>(m.reply_markup?.inline_keyboard||[]).flat().some(b=>b.web_app?.url===`${APP}?org_request=${q.id}`));
+ assert.deepEqual(requestMessages().map(m=>m.chat_id),[7905]);
+ const original=s.get("SELECT n.id FROM tm_notifications n WHERE n.org_request_id=? AND n.staff_id=? ORDER BY id LIMIT 1",q.id,B);
+ assert.equal(s.get('SELECT status FROM tm_notification_deliveries WHERE notification_id=?',original.id).status,'SKIPPED');
+ pass('Queued approvals recheck the current governor: former manager skipped; only the new manager gets the request deep link');
+ assert.ok(!sent.some(m=>m.chat_id===7901&&m.text.includes('Private injected backlog')));
+ assert.ok(!sent.some(m=>m.chat_id===7900));
+ pass('Private task backlog is skipped and hierarchy visibility creates no ancestor/Level 1 notification subscription');
+ s.run('UPDATE tg_settings SET last_notification_id=? WHERE id=1',start);await sleep(350);
+ assert.equal(requestMessages().length,1);pass('Reprocessing the outbox never redelivers completed or skipped notifications');
+ cmd('org.request.decide',{id:q.id,decision:'APPROVE'},X);
+ await wait(()=>requestMessages().some(m=>m.chat_id===7906));
+ assert.deepEqual(requestMessages().map(m=>m.chat_id),[7905,7906]);
+ pass('Approval outcome reaches the requester/affected user once; old notification links cannot decide');
+ console.log(`\n${checks} Organizational notification checks passed. Telegram transport simulated locally.`);
+}finally{await runtime?.stop();if(mock)await new Promise(r=>mock.close(r));s.db.close();}

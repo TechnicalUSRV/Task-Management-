@@ -1,0 +1,44 @@
+{
+  "name": "task-controlling-management",
+  "version": "5.7.7",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "vite build --config local-test/vite.config.ts",
+    "start": "node local-test/server.mjs --open",
+    "share": "node local-test/share.mjs",
+    "test": "npm run test:release",
+    "typecheck": "tsc --noEmit",
+    "test:organization": "node local-test/organization-test.mjs && node local-test/organization-api-test.mjs && node local-test/organization-migration-test.mjs && node local-test/organization-notification-test.mjs && node local-test/organization-flow-test.mjs && node local-test/organization-flow-api-test.mjs && node local-test/workspace-management-test.mjs && node local-test/workspace-management-api-test.mjs && node local-test/empty-start-test.mjs && node local-test/v568-review-test.mjs && node local-test/v569-test.mjs",
+    "review:organization": "node local-test/organization-review.mjs",
+    "test:historical": "node local-test/test.mjs && node local-test/operations-test.mjs && node local-test/tasks-access-test.mjs && node local-test/erp-test.mjs && node local-test/fixes-test.mjs && node local-test/telegram-test.mjs && node local-test/v53-test.mjs && node local-test/v54-test.mjs && node local-test/v54-security-test.mjs && node local-test/share-test.mjs && node local-test/admin-access-test.mjs && node local-test/v55-test.mjs && node local-test/v55-security-test.mjs && node local-test/v551-test.mjs && node local-test/task-visibility-test.mjs && npm run test:organization",
+    "test:release": "node local-test/test.mjs && node local-test/operations-test.mjs && node local-test/organization-test.mjs && node local-test/v569-test.mjs && node local-test/v570-test.mjs && node local-test/v570-migration-test.mjs && node local-test/v570-sync-test.mjs && node local-test/v571-test.mjs && node local-test/v571-migration-test.mjs && node local-test/empty-start-test.mjs && node local-test/v577-access-test.mjs && node local-test/v577-migration-test.mjs",
+    "test:browser": "node local-test/v570-browser-test.mjs && node local-test/v571-browser-test.mjs && node local-test/v576-mini-app-test.mjs && node local-test/v577-browser-test.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/noto-sans-khmer": "5.3.0",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.31.0",
+    "radix-ui": "1.6.7",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.6.0",
+    "tw-animate-css": "1.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vite": "8.0.13"
+  }
+}
