@@ -11,6 +11,8 @@ class Company(models.Model):
     email = models.CharField(max_length=200, blank=True, default='')
     tax_id = models.CharField(max_length=100, blank=True, default='')
     currency = models.CharField(max_length=3, default='USD')
+    # V5.5: the company's time zone for everyone who has not chosen their own ('' = Asia/Phnom_Penh).
+    timezone = models.CharField(max_length=64, blank=True, default='')
 
     class Meta:
         db_table = 'company'
@@ -65,3 +67,32 @@ class ChangeCounter(models.Model):
     class Meta:
         db_table = 'change_counter'
         constraints = [models.CheckConstraint(condition=models.Q(id=1), name='change_counter_single_row')]
+
+
+REFERENCE_KINDS = ['branch', 'material', 'opportunity_class', 'contact_class', 'lead_class', 'campaign_class', 'partner']
+
+
+class ReferenceItem(models.Model):
+    """Reference lists other than staff (V5.7.7 `lookups` rows of the other kinds), shown under Company settings."""
+    id = models.CharField(max_length=60, primary_key=True)
+    kind = models.CharField(max_length=40)
+    name = models.CharField(max_length=200)
+    unit = models.CharField(max_length=30, blank=True, default='')
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'reference_items'
+        constraints = [
+            models.UniqueConstraint(fields=['kind', 'name'], name='reference_kind_name_unique'),
+            models.CheckConstraint(condition=models.Q(kind__in=REFERENCE_KINDS), name='reference_kind_valid'),
+        ]
+
+
+class ApprovalStep(models.Model):
+    """The company's approval chain (V5.7.7 `approval_steps`), edited on the Company settings page."""
+    step = models.PositiveSmallIntegerField(primary_key=True)
+    approver = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+
+    class Meta:
+        db_table = 'approval_steps'
+        constraints = [models.CheckConstraint(condition=models.Q(step__gte=1, step__lte=5), name='approval_step_range')]

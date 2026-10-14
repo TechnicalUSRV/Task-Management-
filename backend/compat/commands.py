@@ -13,7 +13,8 @@ from accounts import services as access
 from core.errors import fail
 from core.services import active_staff, changed
 from organization.governance import Governance
-from workspaces import services as workspaces
+from core import company
+from tasks.services import TaskService
 
 SOURCES = ('WEB', 'TELEGRAM', 'MINIAPP')
 
@@ -36,11 +37,17 @@ def apply(gov, action, d, actor, user, meta):
     if action == 'admin.modules.save':
         return access.save_modules(d, actor)
     if action == 'me.sessions.end':
+        if user is None:
+            fail('Sign in to continue.', 401)
         count = access.sign_out_everywhere(user, telegram=d.get('telegram') is True)
-        return {'message': f"Signed out of {count} session{'' if count == 1 else 's'}{' and Telegram' if d.get('telegram') is True else ''}."}
-    if action.startswith('tm.workspace.'):
-        return workspaces.handle(gov, action, d, actor)
-    fail('Unknown Task Management action.', 404)
+        return {'message': f"Signed out of {count} session{'' if count == 1 else 's'}{' and Telegram' if d.get('telegram') is True else ''}. Sign in again to continue."}
+    if action.startswith('tm.') or action.startswith('me.'):
+        return TaskService(gov).handle(action, d, actor, meta)
+    if action == 'settings.save':
+        return company.save_settings(d, actor)
+    if action == 'lookup.save':
+        return company.save_lookup(d, actor)
+    fail('Unknown action.', 404)
 
 
 def run(user, action, data, source='WEB'):

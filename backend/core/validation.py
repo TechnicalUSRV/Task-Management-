@@ -27,18 +27,53 @@ def choice(value, options, label):
     fail(f'Choose a valid {label}.')
 
 
-def integer(value, minimum, maximum, label):
+_DECIMAL = re.compile(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$')
+_RADIX = re.compile(r'^0([xXoObB])([0-9a-fA-F]+)$')
+MAX_SAFE_INTEGER = 9007199254740991
+
+
+def js_number(value):
+    """JavaScript Number(value) for JSON values; float('nan') where JavaScript gives NaN."""
+    if value is None:
+        return 0
     if isinstance(value, bool):
+        return 1 if value else 0
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, list):
+        if not value:
+            return 0
+        return js_number(value[0] if not isinstance(value[0], (list, dict)) and value[0] is not None else '') if len(value) == 1 else float('nan')
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return 0
+        if _DECIMAL.match(s):
+            n = float(s)
+            return int(n) if n.is_integer() and abs(n) <= MAX_SAFE_INTEGER else n
+        m = _RADIX.match(s)
+        if m:
+            try:
+                return int(m.group(2), {'x': 16, 'o': 8, 'b': 2}[m.group(1).lower()])
+            except ValueError:
+                return float('nan')
+        if s in ('Infinity', '+Infinity'):
+            return float('inf')
+        if s == '-Infinity':
+            return float('-inf')
+    return float('nan')
+
+
+def integer(value, minimum, maximum, label):
+    """V5.7.7 integer(): Number.isSafeInteger(Number(v)) within the range, else 'Invalid <label>.'."""
+    n = js_number(value)
+    if isinstance(n, float):
+        if n != n or n in (float('inf'), float('-inf')) or not n.is_integer():
+            fail(f'Invalid {label}.')
+        n = int(n)
+    if abs(n) > MAX_SAFE_INTEGER or n < minimum or n > maximum:
         fail(f'Invalid {label}.')
-    try:
-        number = int(value) if isinstance(value, int) or (isinstance(value, str) and re.fullmatch(r'-?\d+', value.strip())) else None
-    except (TypeError, ValueError):
-        number = None
-    if number is None and isinstance(value, float) and value.is_integer():
-        number = int(value)
-    if number is None or number < minimum or number > maximum:
-        fail(f'Invalid {label}.')
-    return number
+    return n
 
 
 _DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')

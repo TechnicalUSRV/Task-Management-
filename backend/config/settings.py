@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     'workspaces',
     'audit',
     'notifications',
+    'tasks',
+    'timesheets',
+    'meetings',
     'compat',
 ]
 

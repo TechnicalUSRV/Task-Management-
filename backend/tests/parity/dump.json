@@ -1,0 +1,33 @@
+{
+  "masked": ["_at", "joined_at"],
+  "tables": {
+    "staff": {"cols": ["id", "name", "active"], "order": "id", "node_from": "lookups", "node_where": "kind='staff'"},
+    "access_users": {"cols": ["id", "staff_id", "email", "role_id", "active", "version", "username", "username_key"], "order": "id"},
+    "tm_profiles": {"cols": ["staff_id", "email", "phone", "position", "department", "active", "version", "manager_id", "timezone", "sidebar_theme", "nickname", "org_level"], "order": "staff_id"},
+    "staff_photos": {"cols": ["staff_id", "mime", "size", "version", "updated_by"], "order": "staff_id"},
+    "tm_workspaces": {"cols": ["id", "name", "description", "department", "owner_id", "color", "status", "version", "kind", "governing_manager_id", "origin_workspace_id", "owner_grant_id", "joinable", "created_by", "deleted_at", "deleted_by", "deleted_from_status", "visibility"], "order": "id"},
+    "tm_members": {"cols": ["workspace_id", "staff_id", "approved_by", "approval_id", "member_role", "joined_at"], "order": "workspace_id,staff_id"},
+    "tm_tasks": {"cols": ["id", "workspace_id", "activity_id", "contact_id", "related_type", "related_id", "title", "description", "start_date", "due_date", "status", "priority", "progress", "estimate_minutes", "reason", "created_by", "completed_at", "version", "creation_key", "pic_id", "reviewer_id", "department", "department_note", "accepted_at", "declined_at", "declined_reason", "stuck_at", "stuck_by", "stuck_reason", "submitted_to", "submitted_by", "submitted_at", "submit_note", "closed_by", "request_id", "source", "reviewer_status", "reviewer_responded_at", "reviewer_note", "recurrence", "recurrence_until", "series_id", "next_task_id", "scheduled_due", "series_anchor", "assigned_by", "reminder_days", "recurrence_rule"], "order": "id"},
+    "tm_assignees": {"cols": ["task_id", "staff_id", "status", "invited_by", "invited_at", "responded_at", "response_note"], "order": "task_id,staff_id"},
+    "tm_task_history": {"cols": ["task_id", "kind", "from_status", "to_status", "progress", "stuck", "due_date", "note", "actor_id", "source"], "order": "id"},
+    "tm_notifications": {"cols": ["staff_id", "kind", "task_id", "request_id", "due_request_id", "org_request_id", "meeting_id", "note_id", "title", "body", "actor_id", "read_at"], "order": "id"},
+    "tm_events": {"cols": ["entity_type", "entity_id", "workspace_id", "action", "detail", "actor_id"], "order": "id"},
+    "tm_requests": {"cols": ["id", "workspace_id", "title", "description", "department", "department_note", "priority", "proposed_due_date", "requested_by", "manager_id", "status", "decision_note", "decided_by", "decided_at", "task_id", "source", "version", "creation_key", "doer"], "order": "id"},
+    "tm_due_requests": {"cols": ["id", "task_id", "requested_by", "decide_by", "current_due_date", "proposed_due_date", "reason", "status", "decision_note", "decided_by", "decided_at", "source", "version"], "order": "id"},
+    "tm_change_requests": {"cols": ["id", "task_id", "kind", "requested_by", "requester_side", "approver_id", "status", "changes_json", "payload_json", "note", "base_version", "decision_note", "decided_by", "decided_at", "source", "decision_source", "version"], "order": "id"},
+    "tm_checklist": {"cols": ["id", "task_id", "position", "title", "done", "done_by", "done_at", "created_by"], "order": "id"},
+    "tm_files": {"cols": ["id", "task_id", "name", "mime", "size", "uploaded_by", "source"], "order": "id"},
+    "tm_timesheets": {"cols": ["id", "task_id", "workspace_id", "activity", "staff_id", "work_date", "minutes", "notes", "version"], "order": "id"},
+    "tm_reminders": {"cols": ["task_id", "staff_id", "kind", "due_date"], "order": "task_id,staff_id,kind"},
+    "tm_meetings": {"cols": ["id", "workspace_id", "task_id", "activity_id", "contact_id", "title", "agenda", "organizer_id", "start_at", "end_at", "location", "url", "status", "minutes_notes", "reason", "version", "creation_key", "share_scope", "reminder_offsets", "created_by"], "order": "id"},
+    "tm_attendees": {"cols": ["meeting_id", "staff_id"], "order": "meeting_id,staff_id"},
+    "tm_meeting_shares": {"cols": ["meeting_id", "staff_id"], "order": "meeting_id,staff_id"},
+    "tm_meeting_followers": {"cols": ["meeting_id", "staff_id"], "order": "meeting_id,staff_id"},
+    "tm_meeting_changes": {"cols": ["id", "meeting_id", "requested_by", "approver_id", "base_version", "payload_json", "source", "status", "note", "decision_note", "decided_by", "decided_at", "version"], "order": "id"},
+    "tm_calendar_notes": {"cols": ["id", "staff_id", "title", "body", "all_day", "day", "start_at", "end_at", "reminder_offsets", "done", "version"], "order": "id"},
+    "tm_event_reminders": {"cols": ["kind", "ref_id", "staff_id", "offset_min", "start_at"], "order": "kind,ref_id,staff_id,offset_min"},
+    "org_audit": {"cols": ["actor_id", "action", "employee_id", "workspace_id", "before_json", "after_json", "reason", "approval_id"], "order": "id"},
+    "org_requests": {"cols": ["id", "kind", "workspace_id", "beneficiary_id", "requester_id", "approver_id", "payload_json", "reason", "status", "decision_by", "decision_note", "request_key", "version"], "order": "id"},
+    "access_audit": {"cols": ["actor_id", "action", "target_id", "detail"], "order": "id"}
+  }
+}

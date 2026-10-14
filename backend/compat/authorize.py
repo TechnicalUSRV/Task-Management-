@@ -95,6 +95,8 @@ def authorize(user, action, d):
         if area == 'profile':
             _authorize_profile(user, d)
         _crm_links(user, d)
+    elif action in ('settings.save', 'lookup.save'):
+        resource, verb = 'settings', 'update'
     elif re.match(r'^admin\.telegram\.(save|group|unlink)$', action):
         resource, verb = 'admin.telegram', 'update'
     elif re.match(r'^tg\.link\.(code|unlink|notify)$', action):

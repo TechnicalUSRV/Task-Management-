@@ -159,3 +159,17 @@ class OrgAudit(models.Model):
             models.Index(fields=['employee', 'created_at'], name='org_audit_employee'),
             models.Index(fields=['workspace', 'created_at'], name='org_audit_workspace'),
         ]
+
+
+class StaffPhoto(models.Model):
+    """Profile photos (V5.7.7 staff_photos). Removing keeps an empty row so the version keeps counting up."""
+    staff = models.OneToOneField(Staff, on_delete=models.PROTECT, primary_key=True, related_name='photo')
+    mime = models.CharField(max_length=40)
+    size = models.IntegerField()
+    content = models.BinaryField()
+    version = models.IntegerField(default=1)
+    updated_by = models.ForeignKey(Staff, on_delete=models.PROTECT, null=True, blank=True, related_name='+', db_column='updated_by')
+    updated_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'staff_photos'
