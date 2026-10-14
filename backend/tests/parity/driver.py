@@ -109,12 +109,39 @@ class Scenario:
                 with transaction.atomic():
                     n = MeetingService(TaskService(Governance())).event_reminders(at)
                 return {'ok': True, 'result': n}
+            if 'read' in step:
+                return {'ok': True, 'result': json.loads(json.dumps(self.read(step), default=str))}
             actor = self.resolve(step['as'])
             data = self.resolve(step.get('data') or {})
             user = User.objects.select_related('staff', 'role').filter(staff_id=actor).first() if isinstance(actor, str) else None
             return {'ok': True, 'result': run(user, step['do'], data, step.get('source') or 'WEB')}
         except InputError as e:
             return {'ok': False, 'status': e.status, 'message': e.message}
+
+    def read(self, step):
+        from compat import reports
+        from compat.state import filter_state, full_state, scoped_state
+        actor = self.resolve(step['as'])
+        user = User.objects.select_related('staff', 'role').filter(staff_id=actor, active=True).first()
+        if user is None:
+            raise InputError('Sign in to continue.', 401)
+        data = self.resolve(step.get('input') or {})
+        kind = step['read']
+        if kind == 'state':
+            return filter_state(full_state(), user)
+        if kind == 'report':
+            return reports.build_task_report(scoped_state(user), data)
+        if kind == 'dashboard':
+            return reports.build_dashboard(user, data)
+        if kind == 'erp':
+            return reports.build_erp_report(user, data, bool(step.get('exporting')))
+        if kind == 'options':
+            return reports.report_options(user)
+        if kind == 'source':
+            return reports.source_records(user, data)
+        if kind == 'mini':
+            return reports.mini_state(user, '')
+        raise ValueError(kind)
 
     def play(self, scenario):
         for step in scenario['steps']:

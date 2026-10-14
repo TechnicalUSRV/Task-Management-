@@ -146,7 +146,8 @@ def _no_escalation(user, d):
             return user.role_id == ADMIN_ROLE
         if user.role_id == ADMIN_ROLE or access.can(user, 'admin.roles', 'update', perms):
             return True
-        return all(access.can(user, r, a, perms) for r, actions in access.effective(role_id, settings).items() for a in actions)
+        hidden = access.hidden_functions()
+        return all(access.can(user, r, a, perms) for r, actions in access.effective(role_id, settings).items() if r not in hidden for a in actions)
     previous = access.user_settings(User.objects.get(id=existing['id'])) if existing else {}
     proposed = access.normalize_settings(d.get('function_settings'))
     proposed = previous if proposed is None else proposed

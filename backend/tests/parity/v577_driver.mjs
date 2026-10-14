@@ -14,7 +14,10 @@ import {pathToFileURL} from 'node:url';
 
 const source = path.resolve(process.argv[2] || '../../../source/local-test');
 const {openStore} = await import(pathToFileURL(path.join(source, 'service.mjs')).href);
-const {taskToday, addDays} = await import(pathToFileURL(path.join(source, 'task-domain.mjs')).href);
+const {taskToday, addDays, buildTaskReport} = await import(pathToFileURL(path.join(source, 'task-domain.mjs')).href);
+const {buildDashboard} = await import(pathToFileURL(path.join(source, 'dashboard.mjs')).href);
+const {buildERPReport, reportOptions, sourceRecords} = await import(pathToFileURL(path.join(source, 'erp-sources.mjs')).href);
+const {miniState} = await import(pathToFileURL(path.join(source, 'telegram-gateway.mjs')).href);
 const spec = JSON.parse(readFileSync(new URL('./dump.json', import.meta.url), 'utf8'));
 const scenario = JSON.parse(readFileSync(0, 'utf8'));
 const s = openStore(':memory:');
@@ -71,9 +74,18 @@ for (const step of scenario.steps) {
     if (step.bootstrap) results.push({ok: true, result: s.access.bootstrap(resolve(step.bootstrap))});
     else if (step.reminders) results.push({ok: true, result: s.reminders(new Date(resolve(step.reminders)))});
     else if (step.event_reminders) results.push({ok: true, result: s.eventReminders(new Date(resolve(step.event_reminders)))});
+    else if (step.read) {
+      // What a signed-in person reads: the state, a task report, the dashboard, custom reports or the Mini App state.
+      const account = s.access.accountFor(resolve(step.as)), user = account ? s.access.publicUser(account.id) : null, input = resolve(step.input || {});
+      if (!user) throw Object.assign(new Error('Sign in to continue.'), {status: 401});
+      const read = {state: () => s.access.filterState(s.state(), user), report: () => buildTaskReport(s.scopedState(user), input),
+        dashboard: () => buildDashboard(s, user, input), erp: () => buildERPReport(s, user, input, !!step.exporting),
+        options: () => reportOptions(s, user), source: () => sourceRecords(s, user, input), mini: () => miniState(s, user, '')}[step.read];
+      results.push({ok: true, result: JSON.parse(JSON.stringify(read()))});
+    }
     else {
       const actor = resolve(step.as), data = resolve(step.data || {});
-      const user = s.access.accountFor(actor);
+      const account = s.access.accountFor(actor), user = account ? s.access.publicUser(account.id) : undefined;
       s.access.authorize(user, step.do, data);
       results.push({ok: true, result: s.command(step.do, data, actor, step.source ? {source: step.source} : {})});
     }

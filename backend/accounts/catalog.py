@@ -47,8 +47,16 @@ _EXPORTABLE = {'crm.contacts', 'crm.leads', 'crm.opportunities', 'crm.accounts',
                'crm.campaigns', 'tasks.workspace', 'tasks.users', 'tasks.tasks', 'tasks.timesheets', 'tasks.meetings',
                'ops.finance', 'admin.users'}
 
-RESOURCES = [(key, label, actions + (['export'] if key in _EXPORTABLE and 'export' not in actions else []))
-             for key, label, actions in _BASE]
+_AREA_ORDER = ['dashboard', 'crm', 'tasks', 'ops', 'finance', 'reports', 'admin', 'system']
+
+
+def _area(key):
+    return 'dashboard' if key == 'dashboard' else 'system' if key == 'settings' else 'finance' if key == 'ops.finance' else key.split('.')[0]
+
+
+# Grouped by module, as erp-registry.mjs FUNCTIONS lists them (this order is the permission screens' and the seed's).
+RESOURCES = sorted([(key, label, actions + (['export'] if key in _EXPORTABLE and 'export' not in actions else []))
+                    for key, label, actions in _BASE], key=lambda r: _AREA_ORDER.index(_area(r[0])))
 CATALOG = {key: actions for key, _, actions in RESOURCES}
 LABELS = {key: label for key, label, _ in RESOURCES}
 ACTION_LABELS = {'view': 'View', 'create': 'Create', 'update': 'Update', 'delete': 'Delete / archive',
@@ -111,3 +119,47 @@ BUILT_IN_ROLES = [
     ('ROLE-VIEWER', 'Viewer', 'VIEWER'),
 ]
 ADMIN_ROLE = 'ROLE-ADMIN'
+
+
+# ---------------------------------------------------------------- the module catalog the screens receive (erp-registry.mjs)
+# Report sources and dashboard widgets each module contributes. CRM, Operations and Finance keep their descriptors so the
+# catalog is identical to V5.7.7; their modules are off in this deployment.
+_CONTRIBUTIONS = {
+    'crm': (['contacts', 'leads', 'opportunities', 'quotations', 'accounts', 'campaigns', 'crm_activities', 'documents'], [
+        {'id': 'crm-pipeline', 'kind': 'kpi', 'title': 'Open pipeline', 'source': 'opportunities', 'metric': 'amount', 'status': ['OPEN'], 'format': 'money'},
+        {'id': 'crm-customers', 'kind': 'kpi', 'title': 'Active customers', 'source': 'accounts', 'metric': 'count', 'status': ['ACTIVE']},
+        {'id': 'crm-stages', 'kind': 'bar', 'title': 'Sales by stage', 'source': 'opportunities', 'group': 'status'},
+        {'id': 'crm-followups', 'kind': 'list', 'title': 'CRM follow-ups', 'source': 'crm_activities', 'status': ['OPEN'], 'sort': 'date', 'limit': 5}]),
+    'tasks': (['workspaces', 'staff', 'tasks', 'timesheets', 'meetings'], [
+        {'id': 'task-open', 'kind': 'kpi', 'title': 'Open tasks', 'source': 'tasks', 'metric': 'count', 'exclude': ['COMPLETED', 'CANCELLED']},
+        {'id': 'time-recorded', 'kind': 'kpi', 'title': 'Time recorded', 'source': 'timesheets', 'metric': 'minutes', 'format': 'duration'},
+        {'id': 'task-stages', 'kind': 'bar', 'title': 'Task progress', 'source': 'tasks', 'group': 'status'},
+        {'id': 'team-work', 'kind': 'list', 'title': 'Tasks needing attention', 'source': 'tasks', 'exclude': ['COMPLETED', 'CANCELLED'], 'sort': 'date', 'limit': 5},
+        {'id': 'team-meetings', 'kind': 'list', 'title': 'Meeting schedule', 'source': 'meetings', 'status': ['SCHEDULED'], 'sort': 'date', 'limit': 5}]),
+    'ops': (['ops_requests', 'shipments'], [
+        {'id': 'ops-approval', 'kind': 'kpi', 'title': 'Requests awaiting approval', 'source': 'ops_requests', 'metric': 'count', 'status': ['SUBMITTED']},
+        {'id': 'ops-shipment', 'kind': 'bar', 'title': 'Shipment stages', 'source': 'shipments', 'group': 'status'},
+        {'id': 'ops-inbox', 'kind': 'list', 'title': 'My approval inbox', 'source': 'ops_requests', 'status': ['SUBMITTED'], 'assignee': 'current', 'limit': 6}]),
+    'finance': (['receivables', 'payables'], [
+        {'id': 'finance-ar', 'kind': 'kpi', 'title': 'Outstanding receivables', 'source': 'receivables', 'metric': 'amount', 'format': 'money'},
+        {'id': 'finance-ap', 'kind': 'kpi', 'title': 'Outstanding payables', 'source': 'payables', 'metric': 'amount', 'format': 'money'}]),
+    'admin': (['users'], [
+        {'id': 'admin-active', 'kind': 'kpi', 'title': 'Active user accounts', 'source': 'users', 'metric': 'count', 'status': ['ACTIVE']},
+        {'id': 'admin-roles', 'kind': 'bar', 'title': 'People by role', 'source': 'users', 'group': 'category'}]),
+}
+ERP_MODULES = [{'id': mid, 'label': label, 'required': required, 'dependencies': deps,
+                'functions': [{'key': key, 'label': flabel, 'actions': actions} for key, flabel, actions in RESOURCES if resource_module(key) == mid],
+                'sources': _CONTRIBUTIONS.get(mid, ([], []))[0], 'widgets': _CONTRIBUTIONS.get(mid, ([], []))[1]}
+               for mid, label, required, deps in MODULES]
+MODULE_ORDER = {m[0]: i for i, m in enumerate(MODULES)}
+
+
+def module_for_source(source):
+    return next((m['id'] for m in ERP_MODULES if source in m['sources']), None)
+
+
+def catalog_for(enabled, hidden=()):
+    """erp-registry.mjs catalogFor(): every module with its functions, sources, widgets and whether it is on.
+
+    `hidden`: functions this deployment does not offer (they are left out of the permission screens)."""
+    return [{**m, 'functions': [f for f in m['functions'] if f['key'] not in hidden], 'enabled': bool(enabled(m['id']))} for m in ERP_MODULES]

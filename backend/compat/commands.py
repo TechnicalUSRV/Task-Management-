@@ -14,6 +14,7 @@ from core.errors import fail
 from core.services import active_staff, changed
 from organization.governance import Governance
 from core import company
+from telegram import services as telegram
 from tasks.services import TaskService
 
 SOURCES = ('WEB', 'TELEGRAM', 'MINIAPP')
@@ -25,7 +26,7 @@ def apply(gov, action, d, actor, user, meta):
     if action == 'admin.integrations.save':
         fail('This action is not available.', 403)
     if action.startswith('admin.telegram.') or action.startswith('tg.'):
-        fail('Telegram is connected in a later step of this migration.', 501)
+        return telegram.handle(gov, action, d, actor)
     if action == 'admin.user.save':
         return access.save_user(d, actor)
     if action == 'admin.user.disable':

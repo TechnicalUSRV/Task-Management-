@@ -30,14 +30,14 @@ def reports_under(staff, links):
     for s, m in links:
         if m and s != m:
             children.setdefault(m, []).append(s)
-    out, queue = set(), list(children.get(staff, []))
+    out, queue = {}, list(children.get(staff, []))   # a dict keeps the order people were reached in (a JavaScript Set)
     while queue:
         s = queue.pop(0)
         if s == staff or s in out:
             continue
-        out.add(s)
+        out[s] = True
         queue.extend(children.get(s, []))
-    return out
+    return out.keys()
 
 
 def managers_of(staff, links):
@@ -66,7 +66,7 @@ class TaskScope:
 
     # ------------------------------------------------------------ basics
     def links(self):
-        return list(Profile.objects.filter(manager__isnull=False).values_list('staff_id', 'manager_id'))
+        return list(Profile.objects.filter(manager__isnull=False).order_by('staff_id').values_list('staff_id', 'manager_id'))
 
     def company_wide(self, staff):
         return bool(staff) and (self.gov.can_staff(staff, 'tasks.company', 'view') or self.gov.global_workspaces(staff))
@@ -245,5 +245,5 @@ class TaskScope:
         company_all = ctx['company'] and (not gov.settings()['enabled'] or gov.global_workspaces(staff) or
                                           not any(w.get('kind') and w['kind'] != 'LEGACY' and not w.get('deleted_at') for w in s.get('tm_workspaces', [])))
         out['task_scope'] = {'company': bool(company_all), 'company_legacy': bool(ctx['company'] and not company_all),
-                             'team': sorted(ctx['team']), 'involved': len(ctx['involved']), 'revision': revision}
+                             'team': list(ctx['team']), 'involved': len(ctx['involved']), 'revision': revision}
         return out

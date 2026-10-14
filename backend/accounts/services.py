@@ -172,7 +172,16 @@ def permissions(user):
                 out[resource] = ['view']
     if user.role_id != ADMIN_ROLE:
         out['admin.workspaces'] = []
+    # Decision A (Stage 1): Groups and the Google Sheets connection are not part of this deployment.
+    for resource in hidden_functions():
+        if resource in out:
+            out[resource] = []
     return out
+
+
+def hidden_functions():
+    from django.conf import settings
+    return getattr(settings, 'HIDDEN_FUNCTIONS', ())
 
 
 def can(user, resource, action='view', perms=None):

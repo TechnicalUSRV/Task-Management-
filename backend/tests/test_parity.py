@@ -344,3 +344,88 @@ def test_meetings_calendar_notes_and_reminders(db):
         {'as': SOPHEA, 'do': 'tm.workspace.archive', 'data': {'id': f'${{{base}.id}}', 'expected_version': 0, 'status': 'ARCHIVED'}},
     ]
     compare({'steps': steps})
+
+
+VOLATILE = {'generated_at', 'today', 'change_seq', 'app_build'}
+
+
+def unvolatile(value):
+    if isinstance(value, dict) and isinstance(value.get('task_scope'), dict):
+        # The scope revision is a cache key that includes a per-process random value in V5.7.7.
+        value = {**value, 'task_scope': {**value['task_scope'], 'revision': '<v>'}}
+    if isinstance(value, dict) and isinstance(value.get('recent'), list):
+        # Newest first: events written in the same millisecond tie, and timing differs between the two servers.
+        # Which eight are newest then depends on timing, so only their number is compared.
+        value = {**value, 'recent': len(value['recent'])}
+    if isinstance(value, dict):
+        return {k: ('<v>' if k in VOLATILE or (k.endswith('_at') and v is not None) or k == 'since' else unvolatile(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [unvolatile(v) for v in value]
+    return value
+
+
+HIDDEN = ('tasks.groups', 'admin.integrations')
+
+
+def as_deployed(value):
+    """V5.7.7 output as this deployment shows it: Groups and the Google Sheets connection are not offered (decision A)."""
+    if isinstance(value, dict):
+        out = {}
+        for k, v in value.items():
+            if k == 'permissions' and isinstance(v, dict):
+                v = {r: ([] if r in HIDDEN else a) for r, a in v.items()}
+            elif k == 'erp_catalog':
+                v = [{**m, 'functions': [f for f in m['functions'] if f['key'] not in HIDDEN]} for m in v]
+            elif k == 'tm_group_workspaces':
+                v = []
+            out[k] = as_deployed(v)
+        return out
+    if isinstance(value, list):
+        return [as_deployed(v) for v in value]
+    return value
+
+
+def compare_reads(scenario):
+    """Like compare(), for steps that read the state, reports or the dashboard: compares them key by key."""
+    expected, actual = node_run(scenario), Scenario().play(scenario)
+    for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
+        want, got = unvolatile(as_deployed(want)), unvolatile(got)
+        if want == got:
+            continue
+        step = scenario['steps'][i]
+        if want.get('ok') and got.get('ok') and isinstance(want['result'], dict) and isinstance(got['result'], dict):
+            w, g = want['result'], got['result']
+            diffs = [k for k in sorted(set(w) | set(g)) if w.get(k, '<missing>') != g.get(k, '<missing>')]
+            detail = []
+            for k in diffs[:6]:
+                a, b = w.get(k, '<missing>'), g.get(k, '<missing>')
+                if isinstance(a, list) and isinstance(b, list):
+                    for x, y in zip(a, b):
+                        if x != y:
+                            a, b = x, y
+                            break
+                    else:
+                        a, b = f'{len(a)} rows', f'{len(b)} rows'
+                detail.append(f'  {k}:\n   V5.7.7: {json.dumps(a, ensure_ascii=False)[:1500]}\n   Django: {json.dumps(b, ensure_ascii=False)[:1500]}')
+            pytest.fail(f"step {i} {json.dumps(step)[:200]}: keys differ {diffs}\n" + '\n'.join(detail))
+        pytest.fail(f'step {i} {json.dumps(step)[:300]}\n V5.7.7: {json.dumps(want)[:2000]}\n Django: {json.dumps(got)[:2000]}')
+
+
+@pytest.mark.parametrize('seed', [3, 11])
+def test_state_reports_and_dashboard_match_v577(db, seed):
+    walk = random_walk(seed, length=120)['steps']
+    # Reporting lines: Kosal reports to Dara, who reports to Sophea (managers see their team's tasks).
+    walk += [{'as': ADMIN, 'do': 'tm.profile.manager', 'data': {'staff_id': KOSAL, 'manager_id': DARA}},
+             {'as': ADMIN, 'do': 'tm.profile.manager', 'data': {'staff_id': DARA, 'manager_id': SOPHEA}},
+             {'as': ADMIN, 'do': 'tm.profile.manager', 'data': {'staff_id': NEARY, 'manager_id': SOPHEA}}]
+    reads = []
+    for who in (ADMIN, SOPHEA, DARA, KOSAL, NEARY):
+        reads += [{'read': 'state', 'as': who}, {'read': 'mini', 'as': who}, {'read': 'dashboard', 'as': who},
+                  {'read': 'report', 'as': who, 'input': {'report': 'tasks'}}, {'read': 'report', 'as': who, 'input': {'report': 'workload'}},
+                  {'read': 'report', 'as': who, 'input': {'report': 'time'}}, {'read': 'report', 'as': who, 'input': {'report': 'workspace'}},
+                  {'read': 'report', 'as': who, 'input': {'report': 'meetings'}}, {'read': 'report', 'as': who, 'input': {'report': 'monthly'}},
+                  {'read': 'report', 'as': who, 'input': {'report': 'monthly_overdue', 'user': DARA}},
+                  {'read': 'options', 'as': who}, {'read': 'erp', 'as': who, 'input': {'title': 'All my data'}},
+                  {'read': 'erp', 'as': who, 'input': {'sources': ['tasks'], 'fields': ['id', 'title', 'users', 'department', 'minutes']}, 'exporting': True},
+                  {'read': 'source', 'as': who, 'input': {'sources': ['tasks'], 'statuses': ['IN_PROGRESS']}}]
+    compare_reads({'steps': walk + reads})

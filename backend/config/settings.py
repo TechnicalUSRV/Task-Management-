@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'tasks',
     'timesheets',
     'meetings',
+    'telegram',
     'compat',
 ]
 
@@ -57,6 +58,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'core.middleware.CompanyScopeMiddleware',
+    'core.middleware.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -117,6 +119,10 @@ SESSION_COOKIE_SECURE_FLAG = env_bool('SESSION_COOKIE_SECURE', False)
 ALLOW_REMOTE_SETUP = env_bool('DJANGO_ALLOW_REMOTE_SETUP', False)
 # The only company in this deployment. URLs keep the existing /c/<company>/ form.
 COMPANY_ID = env('COMPANY_ID', 'default')
+# Functions this deployment does not offer (Stage 1 decision A): Groups and the Google Sheets connection.
+HIDDEN_FUNCTIONS = tuple(x.strip() for x in env('HIDDEN_FUNCTIONS', 'tasks.groups,admin.integrations').split(',') if x.strip())
+# The public https:// address of this server when it is published (Telegram opens the Mini App there). Empty locally.
+PUBLIC_URL = env('PUBLIC_URL', '').rstrip('/')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['accounts.authentication.SessionTokenAuthentication'],
