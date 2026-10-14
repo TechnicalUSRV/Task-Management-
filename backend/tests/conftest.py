@@ -41,3 +41,11 @@ def admin_api(db):
     assert response.status_code == 200, response.content
     client.user = response.json()['user']
     return client
+
+
+@pytest.fixture(autouse=True)
+def fresh_rate_limits():
+    """Each test starts with full command allowances (the limiter is per process, like V5.7.7)."""
+    from compat.commands import limiter
+    limiter.buckets.clear()
+    yield

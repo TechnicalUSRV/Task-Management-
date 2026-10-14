@@ -252,4 +252,4 @@ Existing React app (unchanged screens)        Telegram Mini App            Teleg
 - **B — API:** Django serves the existing `/api/state`, `/api/changes`, `/api/command` contract plus REST resource endpoints using the same permission services.
 - **C — Companies:** one company. Single-company schema; the `/c/default/` URL prefix keeps working.
 - **D — Data:** no live data. SQL Server starts empty; Django migrations create the schema. The SQLite importer is deferred.
-- **E — SQL logins:** still to confirm (see §10 item 1).
+- **E — SQL logins:** done by the DBA (15 Oct 2026) using `sqlserver-logins.sql`: `taskmanagement_migrator` for migrations, `taskmanagement_app` for the running application.

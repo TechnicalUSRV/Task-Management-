@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.urls import path
 
 from accounts import views as auth
+from compat import views as compat
 
 urlpatterns = [
     path('api/auth/setup', auth.SetupView.as_view()),
@@ -12,6 +13,8 @@ urlpatterns = [
     path('api/version', auth.VersionView.as_view()),
     path('api/companies', auth.CompaniesView.as_view()),
     path('api/changes', auth.ChangesView.as_view()),
+    path('api/command', compat.CommandView.as_view()),
+    path('api/organization', compat.OrganizationView.as_view()),
 ]
 
 

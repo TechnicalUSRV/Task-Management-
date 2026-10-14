@@ -44,6 +44,10 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'organization',
+    'workspaces',
+    'audit',
+    'notifications',
+    'compat',
 ]
 
 MIDDLEWARE = [
@@ -73,6 +77,8 @@ if DB_ENGINE == 'mssql':
             'PASSWORD': env('DB_PASSWORD', required=True),
             'ATOMIC_REQUESTS': False,
             'CONN_MAX_AGE': int(env('DB_CONN_MAX_AGE', '60')),
+            # Do not enable 'return_rows_bulk_insert': it inserts with OUTPUT INSERTED, which SQL Server refuses on
+            # tables with triggers (tm_members, tm_workspaces, org_audit). The default SCOPE_IDENTITY() is trigger-safe.
             'OPTIONS': {
                 'driver': env('DB_DRIVER', 'ODBC Driver 18 for SQL Server'),
                 'extra_params': ';'.join(extra),
