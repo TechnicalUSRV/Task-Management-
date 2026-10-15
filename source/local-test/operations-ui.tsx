@@ -1,4 +1,4 @@
-import { apiFetch, apiPath } from './api-client';
+import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import {
   ArrowRight, Bell, CheckCheck, CheckCircle2, ChevronDown, Download, Eye, FileText, Pencil, Plus, Printer, Send, Settings2, Trash2, Truck, Undo2, Upload, XCircle,
@@ -39,7 +39,7 @@ function draftRequest(w: Workspace, type: string, sourceId = '', existing?: Row)
   if (existing) return { ...existing.payload, id: existing.id, type: existing.type, source_id: existing.source_id, contact_id: existing.contact_id, crm_quote_id: existing.crm_quote_id, expected_version: existing.version, containers: existing.payload.containers?.join('\n') || '', commission: String((existing.payload.commission_cents || 0) / 100) };
   const source = w.data.ops_requests.find((r: Row) => r.id === sourceId), p = source?.payload || {};
   return {
-    request_key: crypto.randomUUID(), type, source_id: sourceId, contact_id: source?.contact_id || '', crm_quote_id: '', document_date: today(), valid_until: datePlus(30), due_date: datePlus(30), booking_date: today(), booking_confirmed: false,
+    request_key: uuid(), type, source_id: sourceId, contact_id: source?.contact_id || '', crm_quote_id: '', document_date: today(), valid_until: datePlus(30), due_date: datePlus(30), booking_date: today(), booking_confirmed: false,
     commodity_type: p.commodity_type || 'GENERAL', commodity: p.commodity || '', terms: p.terms || '', consignee: '', quantity: '1', unit: 'unit', service_type: '', scope_of_services: '',
     containers: '', container_size: '20FT', eta: datePlus(7), etd: today(), extra_lines: [], lines: [newCharge()], notes: '', commission: '0', closing_date: today(),
   };
@@ -495,8 +495,8 @@ function RequestDetail({ w, r, finance, next, action, create, upload, uploading,
             <p className="inline-note mt-3">Net = Selling − (Costing − Cash disbursement). A/F verified: {dn.af_verified}. This is a transaction register, not a general ledger.</p>
             <div className="finance-actions">
               {finance ? <>
-                {w.can('ops.finance', 'update') && dn.ar_cents > 0 && <Button variant="outline" size="sm" onClick={() => action('ops.receipt', 'Record AR receipt', { id: r.id, amount: '', settlement_date: today(), reference: '', request_key: crypto.randomUUID() })}>Record receipt</Button>}
-                {w.can('ops.finance', 'approve') && dn.af_verified === 'No' && <Button variant="outline" size="sm" onClick={() => action('ops.af.verify', 'A/F verification', { id: r.id, settlement_date: today(), reference: '', file_id: '', request_key: crypto.randomUUID() })}>Verify A/F · clear AR</Button>}
+                {w.can('ops.finance', 'update') && dn.ar_cents > 0 && <Button variant="outline" size="sm" onClick={() => action('ops.receipt', 'Record AR receipt', { id: r.id, amount: '', settlement_date: today(), reference: '', request_key: uuid() })}>Record receipt</Button>}
+                {w.can('ops.finance', 'approve') && dn.af_verified === 'No' && <Button variant="outline" size="sm" onClick={() => action('ops.af.verify', 'A/F verification', { id: r.id, settlement_date: today(), reference: '', file_id: '', request_key: uuid() })}>Verify A/F · clear AR</Button>}
                 {w.can('ops.finance', 'approve') && !closing && ap.stage === 'RECEIVED_UNCONFIRMED' && <Button variant="outline" size="sm" onClick={() => action('ops.ap.confirm', 'Confirm AP', { id: r.id, expected_version: ap.version, reference: '' })}>Confirm AP</Button>}
                 {w.can('ops.finance', 'approve') && ap.stage === 'CONFIRMED' && <Button variant="outline" size="sm" onClick={() => action('ops.ap.pay', 'Record AP payout', { id: r.id, expected_version: ap.version, reference: '' })}>Record AP payout</Button>}
                 {w.can('ops.finance', 'approve') && !closing && ['CONFIRMED', 'PAID'].includes(ap.stage) && <Button size="sm" onClick={() => action('ops.finance.close', 'Finance verification and monthly closing', { id: r.id, closing_date: today() })}>Verify and close month</Button>}

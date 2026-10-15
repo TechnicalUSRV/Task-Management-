@@ -9,3 +9,18 @@ export const apiPath=(path:string)=>path.startsWith('/api/')?`${API_BASE}/c/${cu
 // A separate API origin needs the session cookie sent along (the API answers only origins it trusts).
 export const apiFetch=(url:string,options?:RequestInit)=>fetch(apiPath(url),{credentials:API_BASE?'include':'same-origin',...options});
 export const openCompany=(id:string)=>{window.location.href=`/c/${encodeURIComponent(id)}/`;};
+
+/** crypto.randomUUID() requires a secure context (HTTPS or localhost).  Office LAN
+ *  addresses like http://192.168.x.x are insecure, so the call throws.  This helper
+ *  falls back to crypto.getRandomValues(), which works everywhere. */
+export const uuid = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch { /* insecure context */ }
+  }
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40; // version 4
+  b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+  const h = Array.from(b, v => v.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+};

@@ -3,6 +3,7 @@ import {Badge,Bar,Btn,Empty,FilterChips,FilterPick,Pager,SearchBox,Toggle,Worksp
 import {useEffect,useId,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {AlertCircle,AlertTriangle,CheckCircle2,ChevronDown,ChevronRight,GitBranch,History,Info,Layers,List,Plus,SearchX,ShieldCheck,Users,X,type LucideIcon} from 'lucide-react';
 import {formatDateTime,localDate,plural} from './format';
+import {uuid} from './api-client';
 import './styles/organization.css';
 type Row=Record<string,any>;
 type Props={data:Row;actor:string;read:(params:Row)=>Promise<Row>;perform:(action:string,data:Row,options?:{quiet?:boolean})=>Promise<Row>;mini?:boolean;requestId?:string;onOpenTask?:(id:string)=>void};
@@ -311,7 +312,7 @@ function Check({label,checked,onChange,disabled,error}:{label:ReactNode;checked:
 
 function OrganizationEditor({p,edit,close,run,revision,name,wsName}:{p:Props;edit:Edit;close:()=>void;run:Props['perform'];revision:number;name:(id:string)=>string;wsName:(id:string,fallback?:string)=>string}){
  const mini=!!p.mini;
- const [d,setD]=useState<Row>(()=>({...edit.data,request_key:crypto.randomUUID()})),[busy,setBusy]=useState(false),[previewing,setPreviewing]=useState(false),[formError,setFormError]=useState(''),[errors,setErrors]=useState<Record<string,string>>({}),[impact,setImpact]=useState<Row|null>(null),[ack,setAck]=useState(false),[dirty,setDirty]=useState(false),[discard,setDiscard]=useState(false);
+ const [d,setD]=useState<Row>(()=>({...edit.data,request_key:uuid()})),[busy,setBusy]=useState(false),[previewing,setPreviewing]=useState(false),[formError,setFormError]=useState(''),[errors,setErrors]=useState<Record<string,string>>({}),[impact,setImpact]=useState<Row|null>(null),[ack,setAck]=useState(false),[dirty,setDirty]=useState(false),[discard,setDiscard]=useState(false);
  const [openedRevision]=useState(revision);
  const keepButton=useRef<HTMLButtonElement>(null),returnFocus=useRef<HTMLElement|null>(null),returnScroll=useRef(0),previewSequence=useRef(0),body=useRef<HTMLDivElement>(null),impactRef=useRef<HTMLDivElement>(null);
  const dialog=useRef<HTMLDialogElement>(null),org=p.data.organization,me=org.me||{},kind=edit.kind,manager=!!(me.is_admin||me.is_governor);

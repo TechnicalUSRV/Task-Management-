@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { cn } from '@/lib/utils';
 import { lineAmounts } from './money.mjs';
 import { formatDateTime, formatMoney, localDate, zoneOptions } from './format';
+import { uuid } from './api-client';
 import {
   Alert, Card, DataTable, EmptyState, Field, FormSection, Missing, Picker, SearchInput, StatusBadge,
   useConfirm, useFormErrors, type Column,
@@ -417,10 +418,10 @@ export function initialModel(kind: string, state: Data, actor: string, source: R
     lead: { status: 'NEW', rating: 'WARM', owner_id: actor },
     opportunity: { owner_id: actor, branch_id: state.lookups.find((l: Row) => l.kind === 'branch')?.id, class_id: state.lookups.find((l: Row) => l.kind === 'opportunity_class')?.id, estimation: later(), probability: 50, costing: '0', payment_received: '0', commission: '0', lines: [] },
     activity: { parent_type: 'TASK', type: 'FOLLOWUP', channel: 'TASK', subject: '', start_at: localInput(), end_at: '', assigned_to: actor, priority: 'MEDIUM', status: 'OPEN', branch_id: state.lookups.find((l: Row) => l.kind === 'branch')?.id, forecast: '0' },
-    shipment: { shipment_date: today() }, invoice: { invoice_date: today(), due_date: later() }, payment: { payment_date: today(), request_key: crypto.randomUUID() }, generate: { contact_ids: [] }, lookup: { kind: 'material' },
+    shipment: { shipment_date: today() }, invoice: { invoice_date: today(), due_date: later() }, payment: { payment_date: today(), request_key: uuid() }, generate: { contact_ids: [] }, lookup: { kind: 'material' },
   };
   const d = { ...(defaults[kind] || {}), ...source };
-  if (kind === 'opportunity' && !source.id) d.request_key = crypto.randomUUID();
+  if (kind === 'opportunity' && !source.id) d.request_key = uuid();
   if (source.id) d.expected_version = source.version;
   if (kind === 'contact' && source.id) d.active = source.active === 0 ? '0' : '1';
   if (kind === 'campaign' && source.id) d.budget = (source.budget_cents / 100).toFixed(2);

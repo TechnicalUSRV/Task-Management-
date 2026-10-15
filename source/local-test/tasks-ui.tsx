@@ -4,7 +4,7 @@ import {MeetingApprovals} from './meeting-approval-ui';
 import { RecurrenceFields } from './recurrence-ui';
 import { WorkspaceSections } from './workspace-sections';
 import { OrganizationPage } from './organization-ui';
-import { apiFetch, apiPath } from './api-client';
+import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import {
   Archive, ArchiveRestore, ArrowDown, ArrowUp, ArrowUpRight, CalendarDays, Eye as EyeIcon, ChevronLeft, ChevronRight, Clock3, Columns3, Download, FolderKanban, GitBranch, LayoutGrid, Link2, List, ListChecks,
@@ -43,7 +43,7 @@ const STATUS_ORDER = Object.keys(TASK_STATUS);
 export function taskDraft(w: Workspace, kind: Kind, row: Row = {}, workspace = ''): Row {
   const d = w.data, wid = row.workspace_id || workspace || d.tm_workspaces.find((r: Row) => r.status === 'ACTIVE' && r.org_access?.can_create !== false)?.id || '';
   const members = d.tm_members.filter((m: Row) => m.workspace_id === wid).map((m: Row) => m.staff_id), owner = members.includes(w.actor) ? w.actor : members[0] || w.actor;
-  const common = { ...row, expected_version: row.version, request_key: crypto.randomUUID() };
+  const common = { ...row, expected_version: row.version, request_key: uuid() };
   if (kind === 'workspace') return { kind: d.organization?.enabled ? 'PERSONAL' : 'LEGACY', name: '', description: '', department: '', owner_id: w.actor, color: 'BLUE', member_ids: row.id ? d.tm_members.filter((m: Row) => m.workspace_id === row.id).map((m: Row) => m.staff_id) : [w.actor], ...common };
   if (kind === 'profile') return { name: '', email: '', phone: '', position: '', department: '', active: 1, ...common, ...(row.username ? {name:row.username} : {}) };
   if (kind === 'task') {
@@ -259,7 +259,7 @@ function WorkspaceMemberDialog({ w, workspace, onClose, remove=false }: { w: Wor
   const [staff, setStaff] = useState(''), [role, setRole] = useState('MEMBER'), [reason, setReason] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const [errors, setErrors] = useState<{ staff?: string; reason?: string }>({});
   const current = new Set(w.data.tm_members.filter((m: Row) => m.workspace_id === workspace.id).map((m: Row) => m.staff_id));
-  const [requestKey] = useState(()=>crypto.randomUUID());
+  const [requestKey] = useState(()=>uuid());
   const people = remove ? w.data.tm_members.filter((m:Row)=>m.workspace_id===workspace.id&&m.staff_id!==workspace.owner_id).map((m:Row)=>({id:m.staff_id,name:w.lookup(m.staff_id)})) : (workspace.org_access?.member_candidates||[]).filter((p:Row) => !current.has(p.id));
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setError('');

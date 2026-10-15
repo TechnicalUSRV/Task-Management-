@@ -18,7 +18,7 @@ import {
 import { fileToBase64, photoFromFile } from './media';
 import { setDisplayZone, zoneName, zonedInput, zonedToIso } from './format';
 import { BrandTitle, LogoIcon } from './brand';
-import { API_BASE } from './api-client';
+import { API_BASE, uuid } from './api-client';
 
 // The Telegram Mini App: a phone-sized screen for Task Management inside Telegram. It talks only to the
 // Mini App gateway, which checks Telegram's signed launch data and applies the person's Task Controlling Management permissions.
@@ -1075,7 +1075,7 @@ function TaskForm({ c, id }: { c: Ctx; id?: string }) {
     try {
       const body: Row = { workspace_id: d.workspace_id, title: d.title, description: d.description, pic_id: d.pic_id, supporter_ids: d.supporter_ids, reviewer_id: d.reviewer_id, due_date: d.due_date, start_date: t ? t.start_date : (taskToday() <= d.due_date ? taskToday() : d.due_date), priority: d.priority, department: d.department, department_note: d.department_note, recurrence: d.recurrence || '', recurrence_rule:d.recurrence_rule, recurrence_until: d.recurrence ? d.recurrence_until || null : null };
       const r = t ? await c.perform('tm.task.save', { ...body, id: t.id, expected_version: openedVersion ?? t.version, move_series: d.move_series === true, estimate: `${Math.floor(t.estimate_minutes / 60)}:${String(t.estimate_minutes % 60).padStart(2, '0')}`, related_type: t.related_type || '', related_id: t.related_id || '', change_note: d.change_note || '' })
-        : await c.perform('tm.task.save', { ...body, estimate: '0:00', checklist: (d.checklist || []).length ? d.checklist : undefined, reminder_days: d.reminder_days || [], request_key: crypto.randomUUID() });
+        : await c.perform('tm.task.save', { ...body, estimate: '0:00', checklist: (d.checklist || []).length ? d.checklist : undefined, reminder_days: d.reminder_days || [], request_key: uuid() });
       saved(); c.back(); if (!t && r.id) c.open({ kind: 'task', id: r.id });
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
@@ -1217,7 +1217,7 @@ function RequestForm({ c, id }: { c: Ctx; id?: string }) {
     const missing = [!d.title?.trim() && 'title', !d.manager_id && 'manager_id'].filter(Boolean) as string[];
     if (missing.length) { setInvalid(missing); setError(missingText(missing.includes('title') ? ['what you need'] : [], missing.includes('manager_id') ? ['who you are asking'] : [])); focusField(formRef.current, missing[0]); return; }
     setBusy(true);
-    try { await c.perform('tm.request.save', { ...d, id: old?.id, expected_version: old?.version, workspace_id: d.workspace_id || null, proposed_due_date: d.proposed_due_date || null, request_key: old ? undefined : crypto.randomUUID() }); saved(); c.back(); }
+    try { await c.perform('tm.request.save', { ...d, id: old?.id, expected_version: old?.version, workspace_id: d.workspace_id || null, proposed_due_date: d.proposed_due_date || null, request_key: old ? undefined : uuid() }); saved(); c.back(); }
     catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
   return (
@@ -1599,7 +1599,7 @@ function MeetingForm({ c, id, day }: { c: Ctx; id?: string; day?: string }) {
     setBusy(true);
     try {
       const r = m ? await c.perform('tm.meeting.save', meetingPayload(c, m, changes))
-        : await c.perform('tm.meeting.save', { ...changes, workspace_id: d.workspace_id, organizer_id: c.me, status: 'SCHEDULED', request_key: crypto.randomUUID() });
+        : await c.perform('tm.meeting.save', { ...changes, workspace_id: d.workspace_id, organizer_id: c.me, status: 'SCHEDULED', request_key: uuid() });
       saved(); c.back(); if (!m && r.id) c.open({ kind: 'meeting', id: r.id });
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };

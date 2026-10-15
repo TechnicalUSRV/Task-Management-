@@ -1,4 +1,4 @@
-import { apiFetch, apiPath } from './api-client';
+import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
   AlarmClock, ArrowDown, ArrowRight, ArrowUp, Ban, Bell, BellRing, Eye as EyeIcon, CalendarClock, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, ClipboardCheck, Download, FileClock, FileText, Hand, Inbox, Link2, ListChecks, MessageSquare, Paperclip, Pencil,
@@ -451,7 +451,7 @@ export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskI
 
 // ------------------------------------------------------------------ requests (anyone can ask anyone)
 export function requestDraft(w: Workspace, row: Row = {}): Row {
-  return { title: '', description: '', manager_id: '', doer: 'RECEIVER', workspace_id: '', priority: 'MEDIUM', proposed_due_date: addDays(taskToday(), 7), department: w.data.tm_profiles.find((p: Row) => p.staff_id === w.actor)?.department || '', department_note: '', ...row, expected_version: row.version, request_key: row.id ? undefined : crypto.randomUUID() };
+  return { title: '', description: '', manager_id: '', doer: 'RECEIVER', workspace_id: '', priority: 'MEDIUM', proposed_due_date: addDays(taskToday(), 7), department: w.data.tm_profiles.find((p: Row) => p.staff_id === w.actor)?.department || '', department_note: '', ...row, expected_version: row.version, request_key: row.id ? undefined : uuid() };
 }
 const DOER_LABEL = (w: Workspace, q: Row) => (q.doer === 'RECEIVER' ? `${firstName(w.lookup(q.manager_id))} does it` : q.doer === 'DECIDE' ? `${firstName(w.lookup(q.manager_id))} decides` : `${firstName(w.lookup(q.requested_by))} does it`);
 const requestStatus = (q: Row) => <StatusBadge value={q.status} label={REQUEST_STATUS[q.status as keyof typeof REQUEST_STATUS]} tone={q.status === 'PENDING' ? 'warning' : q.status === 'APPROVED' ? 'success' : q.status === 'DECLINED' ? 'danger' : 'neutral'} />;
