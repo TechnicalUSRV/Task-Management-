@@ -198,3 +198,34 @@ class JourneyView(APIView):
 def print_script(request):
     from django.http import HttpResponse
     return HttpResponse("document.getElementById('print').addEventListener('click',()=>window.print());", content_type='application/javascript; charset=utf-8')
+
+
+# ---------------------------------------------------------------- the built React app (served like V5.7.7 serves public/)
+STATIC_TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+                '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif',
+                '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.json': 'application/json; charset=utf-8',
+                '.txt': 'text/plain; charset=utf-8'}
+
+
+def frontend(request, path=''):
+    import re
+    from pathlib import Path
+    from urllib.parse import unquote
+    from django.conf import settings as conf
+    from django.http import HttpResponse, JsonResponse
+    if request.method not in ('GET', 'HEAD'):
+        return JsonResponse({'error': 'Method not allowed.'}, status=405)
+    root = Path(conf.FRONTEND_DIR).resolve()
+    try:
+        decoded = unquote(request.path_info, errors='strict')
+    except UnicodeDecodeError:
+        return JsonResponse({'error': 'This address is not valid.'}, status=400)
+    target = (root / ('index.html' if decoded == '/' else '.' + decoded)).resolve()
+    if root not in target.parents:
+        return JsonResponse({'error': 'Not found.'}, status=404)
+    if not target.is_file():
+        return JsonResponse({'error': 'Page not found. Build or extract the local app first.'}, status=404)
+    hashed = decoded.startswith('/assets/') and re.search(r'-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$', decoded)
+    response = HttpResponse(target.read_bytes(), content_type=STATIC_TYPES.get(target.suffix.lower(), 'application/octet-stream'))
+    response['Cache-Control'] = 'public, max-age=31536000, immutable' if hashed else 'no-store'
+    return response

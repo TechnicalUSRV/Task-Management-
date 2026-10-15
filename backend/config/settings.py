@@ -119,6 +119,8 @@ SESSION_COOKIE_SECURE_FLAG = env_bool('SESSION_COOKIE_SECURE', False)
 ALLOW_REMOTE_SETUP = env_bool('DJANGO_ALLOW_REMOTE_SETUP', False)
 # The only company in this deployment. URLs keep the existing /c/<company>/ form.
 COMPANY_ID = env('COMPANY_ID', 'default')
+# The built React app (npm run build → source/local-test/public). Django serves it when present, so one address works.
+FRONTEND_DIR = Path(env('FRONTEND_DIR', str(BASE_DIR.parent / 'source' / 'local-test' / 'public')))
 # Functions this deployment does not offer (Stage 1 decision A): Groups and the Google Sheets connection.
 HIDDEN_FUNCTIONS = tuple(x.strip() for x in env('HIDDEN_FUNCTIONS', 'tasks.groups,admin.integrations').split(',') if x.strip())
 # The public https:// address of this server when it is published (Telegram opens the Mini App there). Empty locally.

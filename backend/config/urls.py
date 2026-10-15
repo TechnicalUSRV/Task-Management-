@@ -1,9 +1,10 @@
 """URL map. Every path also works under /c/<company>/ (core.middleware.CompanyScopeMiddleware)."""
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import path, re_path
 
 from accounts import views as auth
 from compat import views as compat
+from telegram import gateway
 
 urlpatterns = [
     path('api/auth/setup', auth.SetupView.as_view()),
@@ -29,6 +30,12 @@ urlpatterns = [
     path('api/erp/report.csv', compat.ERPReportView.as_view(kind='csv')),
     path('api/journey', compat.JourneyView.as_view()),
     path('print.js', compat.print_script),
+    # The Telegram Mini App (only under /c/<company>/tg/, as in V5.7.7).
+    path('tg', gateway.to_page),
+    path('tg/', gateway.page),
+    re_path(r'^tg/(?P<rest>api/.*)$', lambda request, rest: gateway.api(request, rest[4:])),
+    # Everything else that is not the API is the built React app.
+    re_path(r'^(?!api/).*$', compat.frontend),
 ]
 
 
