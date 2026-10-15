@@ -1,8 +1,9 @@
 """Company-scoped URLs.
 
 V5.7.7 serves every company under /c/<companyId>/… and keeps a separate session cookie per company. This deployment
-has one company (settings.COMPANY_ID, normally 'default'); the same URL forms keep working, and any other company
-ID is answered as "Company not found.", exactly as before.
+has one company (settings.COMPANY_ID, normally 'default'). Company-scoped API and Telegram URLs remain active;
+the retired /c/<companyId>/ homepage returns 404. The office page is /TaskManagement.
+Any other company ID is answered as "Company not found.", exactly as before.
 """
 import re
 
@@ -22,6 +23,8 @@ class CompanyScopeMiddleware:
             company_id, rest = match.groups()
             if company_id != settings.COMPANY_ID:
                 return JsonResponse({'error': 'Company not found.'}, status=404)
+            if rest == '/':
+                return JsonResponse({'error': 'Page not found.'}, status=404)
             request.company_id = company_id
             request.company_scoped = True
             request.path_info = rest
