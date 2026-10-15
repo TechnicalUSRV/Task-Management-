@@ -38,6 +38,7 @@ class MiniBoundaryTests(unittest.TestCase):
     def test_office_and_ambiguous_routes_never_reach_django(self):
         paths = [
             "/", "/index.html", "/tg.html", "/c/default/", "/api/state",
+            "/TaskManagement", "/TaskManagement/", "/TaskManagement/api/state",
             "/api/auth/login", "/c/default/api/command", "/admin/",
             "/c/other/tg/", "/c/default/tg/api/auth/setup",
             "/assets/../index.html", "/assets/%2e%2e/index.html",
