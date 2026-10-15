@@ -68,11 +68,14 @@ python manage.py runserver 127.0.0.1:8000     # terminal 1: the web app and API
 python manage.py run_workers                  # terminal 2: due date and calendar reminders, Telegram bot
 ```
 
-Open <http://127.0.0.1:8000/c/default/>. On an empty database the first screen is **Create the administrator**
+Open <http://127.0.0.1:8000/TaskManagement>. On an empty database the first screen is **Create the administrator**
 (allowed only from this computer unless `DJANGO_ALLOW_REMOTE_SETUP=yes`).
 
-`runserver` is for local use and acceptance testing. Serving the system to the office (a Windows service, HTTPS,
-a production web server) is the hosting stage, which has not started.
+The former `/c/default/` homepage now returns 404. Keep `/c/default/api/...` and `/c/default/tg/...`:
+they provide application requests, sessions and the Telegram Mini App.
+
+`runserver` is for local use and acceptance testing. For the office Waitress services and restricted public
+Mini App tunnel, follow [the Windows service instructions](../tools/windows-services/README.md).
 
 ### Frontend development (optional)
 
@@ -95,7 +98,7 @@ Leave it empty when Django serves the app or when using `npm run dev`.
 
 ## 5. Acceptance check (Stage 4)
 
-1. Start both commands above and open <http://127.0.0.1:8000/c/default/>.
+1. Start both commands above and open <http://127.0.0.1:8000/TaskManagement>.
 2. Create the administrator, sign in.
 3. Administration → **Create user**; Task Management → **New workspace** (add the new user); **New task** for that user.
 4. Edit the task (as the assigner this is sent to the person in charge for approval); sign in as the new user in a
