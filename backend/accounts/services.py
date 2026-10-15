@@ -113,9 +113,10 @@ def user_settings(user):
 
 
 def effective(role_id, settings=None, modules=None):
-    settings = settings or {}
-    base = role_permissions(role_id)
-    modules = enabled_modules() if modules is None else modules
+    return _effective(role_permissions(role_id), settings or {}, enabled_modules() if modules is None else modules)
+
+
+def _effective(base, settings, modules):
     out = {}
     for resource, _, actions in RESOURCES:
         if resource_module(resource) not in modules:
@@ -154,17 +155,48 @@ def staff_is_active(staff_id):
 
 def permissions(user):
     """Effective function permissions for an account, including the Organizational Structure adjustments."""
-    prefs = {} if user.role_id == ADMIN_ROLE else user_settings(user)
+    return permissions_for_many([user])[user.id]
+
+
+def permissions_for_many(users):
+    """permissions() for several accounts with a fixed number of queries (the people list needs everyone's)."""
+    users = list(users)
     modules = enabled_modules()
-    out = effective(user.role_id, prefs, modules)
-    if 'tasks' in modules and 'view' in out.get('tasks.tasks', []):
-        settings = _org_settings()
-        if settings and settings.enabled:
-            for action in ('view', 'create'):
-                if prefs.get('tasks.workspace', {}).get(action) != 'DENY' and action not in out['tasks.workspace']:
-                    out['tasks.workspace'].append(action)
+    role_ids = {u.role_id for u in users if u.role_id != ADMIN_ROLE}
+    by_role = {r: {resource: [] for resource, _, _ in RESOURCES} for r in role_ids}
+    for role_id, resource, action in RolePermission.objects.filter(role_id__in=role_ids).values_list('role_id', 'resource', 'action'):
+        if resource in by_role[role_id]:
+            by_role[role_id][resource].append(action)
+    prefs_by_user = {u.id: {} for u in users}
+    for user_id, resource, action, effect in UserPermissionOverride.objects.filter(
+            user_id__in=[u.id for u in users if u.role_id != ADMIN_ROLE]).values_list('user_id', 'resource', 'action', 'effect'):
+        prefs_by_user[user_id].setdefault(resource, {})[action] = effect
+    settings = _org_settings()
+    org_enabled = bool(settings and settings.enabled)
+    level1 = level1_staff({u.staff_id for u in users}) if 'tasks' in modules else set()
+    return {u.id: _permissions(u, prefs_by_user[u.id], modules, by_role.get(u.role_id), org_enabled, u.staff_id in level1) for u in users}
+
+
+def level1_staff(staff_ids):
+    """Which of these people are organization administrators (is_level1), in two queries."""
+    level1 = set(Profile.objects.filter(staff_id__in=staff_ids, org_level_id=1).values_list('staff_id', flat=True))
+    if not level1:
+        return set()
+    active = set(User.objects.filter(staff_id__in=level1, active=True, staff__active=True).values_list('staff_id', flat=True))
+    inactive_profile = set(Profile.objects.filter(staff_id__in=active, active=False).values_list('staff_id', flat=True))
+    return active - inactive_profile
+
+
+def _permissions(user, prefs, modules, role_perms, org_enabled, is_admin_level1):
+    if user.role_id == ADMIN_ROLE:
+        prefs, role_perms = {}, role_defaults('ADMIN')
+    out = _effective(role_perms or {}, prefs, modules)
+    if 'tasks' in modules and 'view' in out.get('tasks.tasks', []) and org_enabled:
+        for action in ('view', 'create'):
+            if prefs.get('tasks.workspace', {}).get(action) != 'DENY' and action not in out['tasks.workspace']:
+                out['tasks.workspace'].append(action)
     # Organization authority never grants platform administration or task approval/closure actions.
-    if 'tasks' in modules and is_level1(user.staff_id):
+    if 'tasks' in modules and is_admin_level1:
         for resource in ('tasks.workspace', 'tasks.groups', 'tasks.reports'):
             out[resource] = list(CATALOG.get(resource, []))
         for resource in ('tasks.tasks', 'tasks.meetings', 'tasks.timesheets'):

@@ -131,9 +131,10 @@ def task_people(gov):
         "WHERE u.active=%s AND l.active=%s AND COALESCE(p.active,%s)=%s", True, True, True, True)
     found.sort(key=lambda u: (u['name'].lower(), u['id']))
     users = {u.id: u for u in User.objects.select_related('role').filter(id__in=[f['id'] for f in found])}
+    everyone = access.permissions_for_many(users.values())
     out = []
     for f in found:
-        perms = access.permissions(users[f['id']])
+        perms = everyone[f['id']]
         if access.can(users[f['id']], 'tasks.tasks', 'view', perms):
             out.append({'staff_id': f['staff_id'], 'name': f['name'], 'department': f['department'], 'position': f['position'],
                         'signed_in': bool(f['signed_in']), 'telegram': bool(f['telegram']),
@@ -144,6 +145,7 @@ def task_people(gov):
 def filter_state(s, user, gov=None):
     """access.filterState(state, user)."""
     gov = gov or Governance()
+    gov.preload_people()
     perms = access.permissions(user)
 
     def v(resource, action='view'):

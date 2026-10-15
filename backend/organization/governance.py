@@ -115,18 +115,37 @@ class Governance:
             fail('Choose an active employee with a company login.', 422)
         return staff
 
+    def preload_people(self):
+        """Fill the person/active memo for everyone in three queries (screens that list people would otherwise ask per person)."""
+        if self._memo.get('people_loaded'):
+            return
+        profiles = {p.staff_id: p for p in Profile.objects.all()}
+        logins = set(User.objects.filter(active=True, staff__active=True).values_list('staff_id', flat=True))
+        persons, actives = self._memo.setdefault('person', {}), self._memo.setdefault('active', {})
+        for s in Staff.objects.all():
+            persons.setdefault(s.id, self._person_row(s, profiles.get(s.id)))
+            p = profiles.get(s.id)
+            actives.setdefault(s.id, s.id in logins and not (p is not None and not p.active))
+        spaces = self._memo.setdefault('ws', {})
+        for w in rows(Workspace.objects.all()):
+            spaces.setdefault(w['id'], w)
+        self._memo['people_loaded'] = True
+
+    @staticmethod
+    def _person_row(s, p):
+        nickname = p.nickname if p else None
+        # Key order as V5.7.7 builds it (audit snapshots keep it): the row, then username.
+        return {'staff_id': s.id, 'name': display_name(s.name, nickname), 'nickname': nickname,
+                'org_level': p.org_level_id if p else None, 'manager_id': p.manager_id if p else None,
+                'active': (1 if p.active else 0) if p else 1, 'department': p.department if p else None,
+                'position': p.position if p else None, 'username': s.name}
+
     def person(self, staff):
         def load():
             s = Staff.objects.filter(id=staff).first() if staff else None
             if not s:
                 return None
-            p = Profile.objects.filter(staff_id=staff).first()
-            nickname = p.nickname if p else None
-            # Key order as V5.7.7 builds it (audit snapshots keep it): the row, then username.
-            return {'staff_id': s.id, 'name': display_name(s.name, nickname), 'nickname': nickname,
-                    'org_level': p.org_level_id if p else None, 'manager_id': p.manager_id if p else None,
-                    'active': (1 if p.active else 0) if p else 1, 'department': p.department if p else None,
-                    'position': p.position if p else None, 'username': s.name}
+            return self._person_row(s, Profile.objects.filter(staff_id=staff).first())
         return self._cached('person', staff, load)
 
     def level(self, staff):
@@ -1217,9 +1236,11 @@ class Governance:
                 'direct_reports': self._direct_reports(actor, target), 'memberships': memberships, 'owned': owned, 'grants': grants}
 
     def directory(self, actor, manage):
+        self.preload_people()
+        profiles = {p.staff_id: p for p in Profile.objects.all()}
         out = []
         for u in User.objects.filter(active=True, staff__active=True).select_related('staff').order_by('staff__name'):
-            p = Profile.objects.filter(staff_id=u.staff_id).first()
+            p = profiles.get(u.staff_id)
             if p and not p.active:
                 continue
             if manage or self.visible_employee(actor, u.staff_id):
