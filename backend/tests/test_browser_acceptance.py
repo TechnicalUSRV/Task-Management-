@@ -55,9 +55,10 @@ def test_people_workspace_and_task_through_the_app(live_server, browser, setting
     from tasks.models import Task, TaskChangeRequest
     from workspaces.models import Workspace, WorkspaceMember
     settings.TRUSTED_ORIGINS = [*settings.TRUSTED_ORIGINS, live_server.url]
-    base = live_server.url + '/c/default/'
+    base = live_server.url + '/TaskManagement'
 
     page, errors = open_page(browser, base)
+    assert page.request.get(live_server.url + '/c/default/').status == 404
     page.get_by_role('heading', name='Create the administrator').wait_for()
     page.get_by_role('textbox', name='Username').fill(ADMIN)
     page.locator('input[type=password]').nth(0).fill(ADMIN_PASSWORD)
