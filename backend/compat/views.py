@@ -219,7 +219,10 @@ def frontend(request, path=''):
         decoded = unquote(request.path_info, errors='strict')
     except UnicodeDecodeError:
         return JsonResponse({'error': 'This address is not valid.'}, status=400)
-    target = (root / ('index.html' if decoded == '/' else '.' + decoded)).resolve()
+    # Friendly office entry URL. The existing frontend still calls /c/default/api,
+    # preserving its login cookie and company scope without a redirect or rebuild.
+    entry_page = decoded in ('/', '/TaskManagement', '/TaskManagement/')
+    target = (root / ('index.html' if entry_page else '.' + decoded)).resolve()
     if root not in target.parents:
         return JsonResponse({'error': 'Not found.'}, status=404)
     if not target.is_file():
