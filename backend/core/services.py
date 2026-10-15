@@ -1,5 +1,5 @@
 """Small shared services: readable IDs, the change counter and the company record."""
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models import F
 
 from .errors import fail
@@ -23,6 +23,28 @@ def next_id(kind, prefix):
             Sequence.objects.filter(kind=kind).update(value=F('value') + 1)
     value = Sequence.objects.get(kind=kind).value
     return f'{prefix}-{value:06d}'
+
+
+WRITE_LOCK = 'task-management-writes'
+
+
+def write_lock(timeout_ms=15000):
+    """One change at a time, as in V5.7.7 (SQLite BEGIN IMMEDIATE): workflow rules read and then write several rows.
+
+    On SQL Server this takes an exclusive application lock owned by the current transaction (sp_getapplock), so two
+    commands — from two browser tabs, the Telegram bot and the reminder worker, or several server processes — never
+    interleave; it is released at commit or rollback. Reads (the app state) do not take it. SQLite serializes writers itself.
+    """
+    if not transaction.get_connection().in_atomic_block:
+        raise RuntimeError('write_lock must be taken inside a transaction')
+    if connection.vendor != 'microsoft':
+        return
+    with connection.cursor() as c:
+        c.execute("SET NOCOUNT ON; DECLARE @r int; EXEC @r = sp_getapplock @Resource = %s, @LockMode = 'Exclusive', "
+                  "@LockOwner = 'Transaction', @LockTimeout = %s; SELECT @r", [WRITE_LOCK, int(timeout_ms)])
+        result = c.fetchone()
+    if result is None or result[0] < 0:
+        fail('The system is busy with other changes. Please try again in a moment.', 503)
 
 
 def changed():

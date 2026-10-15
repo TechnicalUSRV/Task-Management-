@@ -42,7 +42,8 @@ python manage.py migrate_database      # asks for the taskmanagement_migrator pa
 ```
 
 Then the DBA runs the three `DENY UPDATE, DELETE …` statements at the end of
-`docs/backend-migration/sqlserver-logins.sql` (they protect the audit history from the application login), and:
+`docs/backend-migration/sqlserver-logins.sql` (they protect the audit history from the application login) and,
+recommended, `ALTER DATABASE … SET READ_COMMITTED_SNAPSHOT ON` from the same file. Then:
 
 ```powershell
 python manage.py check_database        # must end with "Database check passed"

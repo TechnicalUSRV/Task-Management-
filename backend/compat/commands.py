@@ -11,7 +11,7 @@ from django.db import IntegrityError, transaction
 
 from accounts import services as access
 from core.errors import fail
-from core.services import active_staff, changed
+from core.services import active_staff, changed, write_lock
 from organization.governance import Governance
 from core import company
 from telegram import services as telegram
@@ -61,6 +61,7 @@ def run(user, action, data, source='WEB'):
     actor = user.staff_id
     try:
         with transaction.atomic():
+            write_lock()
             active_staff(actor)
             gov = Governance()
             gov.guard(action, data, actor)

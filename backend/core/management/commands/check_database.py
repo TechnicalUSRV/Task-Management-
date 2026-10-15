@@ -10,8 +10,10 @@ Nothing is changed.
 """
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
+from django.db import connection, transaction
 from django.db.migrations.executor import MigrationExecutor
+
+from core.services import write_lock
 
 AUDIT_TABLES = ('org_audit', 'access_audit', 'tm_task_history')
 SYSTEM_DATABASES = {'master', 'tempdb', 'model', 'msdb'}
@@ -23,6 +25,11 @@ def one(cursor, sql, *args):
     cursor.execute(sql, args)
     row = cursor.fetchone()
     return row[0] if row else None
+
+
+def lock_works():
+    with transaction.atomic():
+        write_lock(timeout_ms=5000)
 
 
 def sqlserver_checks(cursor, configured_name):
@@ -60,6 +67,15 @@ def sqlserver_checks(cursor, configured_name):
     if unprotected:
         out.append(('warn', f'Login {login} may UPDATE or DELETE {", ".join(unprotected)}. For the application login, run the DENY statements at '
                             'the end of docs/backend-migration/sqlserver-logins.sql (the migration login keeps these rights).'))
+    try:
+        lock_works()
+        out.append(('ok', 'Changes are serialized with an application lock (sp_getapplock), as in V5.7.7.'))
+    except Exception as e:   # noqa: BLE001
+        out.append(('fail', f'The application lock used to serialize changes is not available: {e}'))
+    rcsi = one(cursor, 'SELECT is_read_committed_snapshot_on FROM sys.databases WHERE name = DB_NAME()')
+    out.append(('ok', 'READ_COMMITTED_SNAPSHOT is on: reading the app state never waits for a change in progress.') if rcsi == 1 else
+               ('warn', 'READ_COMMITTED_SNAPSHOT is off. Recommended (DBA, once): ALTER DATABASE TaskManagement_Production SET '
+                        'READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE; — readers then never wait for writers.'))
     collation = one(cursor, "SELECT CAST(DATABASEPROPERTYEX(DB_NAME(), 'Collation') AS nvarchar(128))") or ''
     out.append(('ok' if '_CI_' in collation else 'warn', f'Database collation {collation}' + ('' if '_CI_' in collation else
                 ' is case-sensitive; usernames are compared case-insensitively by the application, but a _CI_ collation is expected.')))

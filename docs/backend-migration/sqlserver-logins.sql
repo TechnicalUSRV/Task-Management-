@@ -44,6 +44,12 @@ GO
     DENY UPDATE, DELETE ON OBJECT::dbo.access_audit TO [taskmanagement_app];
     DENY UPDATE, DELETE ON OBJECT::dbo.tm_task_history TO [taskmanagement_app];
 
+  Recommended once (DBA): readers of the app state then never wait for a change in progress.
+
+    ALTER DATABASE [TaskManagement_Production] SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK IMMEDIATE;
+
+  Changes are serialized by the application with sp_getapplock (available to every database user; nothing to grant).
+
   Check what each login can do:
     EXECUTE AS LOGIN = N'taskmanagement_app';
     SELECT * FROM fn_my_permissions(NULL, 'DATABASE');

@@ -12,7 +12,7 @@ import threading
 
 from django.db import close_old_connections, transaction
 
-from core.services import changed
+from core.services import changed, write_lock
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ def due_reminders(at=None):
     from organization.governance import Governance
     from tasks.services import TaskService
     with transaction.atomic():
+        write_lock()
         n = TaskService(Governance()).due_reminders(at)
         if n:
             changed()
@@ -32,6 +33,7 @@ def event_reminders(at=None):
     from organization.governance import Governance
     from tasks.services import TaskService
     with transaction.atomic():
+        write_lock()
         n = MeetingService(TaskService(Governance())).event_reminders(at)
         if n:
             changed()

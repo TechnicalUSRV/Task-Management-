@@ -25,10 +25,15 @@ class FakeCursor:
         return [(d,) for d in self.databases]
 
 
-SAFE = {'@@SERVERNAME': 'SERVERSYSTEM', 'DB_NAME()': 'TaskManagement_Production', 'SUSER_SNAME()': 'taskmanagement_app',
+SAFE = {'is_read_committed_snapshot_on': 1, '@@SERVERNAME': 'SERVERSYSTEM', 'DB_NAME()': 'TaskManagement_Production', 'SUSER_SNAME()': 'taskmanagement_app',
         'ProductVersion': '16.0.4135.4', "IS_SRVROLEMEMBER('sysadmin')": 0, "IS_MEMBER('db_owner')": 0, "'CREATE TABLE'": 0,
         'OBJECT_ID': {f'dbo.{t}': 1 for t in ('org_audit', 'access_audit', 'tm_task_history')}, "'OBJECT', 'UPDATE'": 0,
         "'OBJECT', 'DELETE'": 0, "DATABASEPROPERTYEX(DB_NAME(), 'Collation')": 'SQL_Latin1_General_CP1_CI_AS'}
+
+
+@pytest.fixture(autouse=True)
+def no_live_lock(monkeypatch):
+    monkeypatch.setattr('core.management.commands.check_database.lock_works', lambda: None)
 
 
 def levels(results):
@@ -67,3 +72,47 @@ def test_migrate_database_on_the_local_database(db, capsys):
     call_command('migrate_database', verbosity=0)
     call_command('check_database')
     assert 'All migrations applied' in capsys.readouterr().out
+
+
+class FakeServer:
+    """Stands in for a SQL Server connection to check the application lock call."""
+    vendor = 'microsoft'
+
+    def __init__(self, answer):
+        self.answer, self.sql = answer, []
+
+    def cursor(self):
+        server = self
+
+        class Cursor:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def execute(self, sql, params):
+                server.sql.append((sql, params))
+
+            def fetchone(self):
+                return (server.answer,)
+        return Cursor()
+
+
+@pytest.mark.parametrize('answer, refused', [(0, False), (1, False), (-1, True), (-3, True)])
+def test_changes_take_an_exclusive_transaction_lock_on_sql_server(db, monkeypatch, answer, refused):
+    from django.db import transaction
+
+    from core import services
+    from core.errors import InputError
+    server = FakeServer(answer)
+    monkeypatch.setattr(services, 'connection', server)
+    with transaction.atomic():
+        if refused:
+            with pytest.raises(InputError) as e:
+                services.write_lock()
+            assert e.value.status == 503
+        else:
+            services.write_lock()
+    sql, params = server.sql[0]
+    assert "sp_getapplock" in sql and "@LockOwner = 'Transaction'" in sql and "'Exclusive'" in sql and params[0] == services.WRITE_LOCK
