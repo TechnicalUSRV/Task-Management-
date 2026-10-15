@@ -25,6 +25,7 @@ from organization.governance import is_personal_workspace
 from workspaces.models import Workspace
 
 from .models import TelegramGroup, TelegramLink, TelegramLinkCode, TelegramLog, TelegramSession, TelegramSettings
+from .sealed import seal, unseal
 
 CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 NEVER = datetime(9999, 12, 31, 23, 59, 59, 999000, tzinfo=dt_timezone.utc)
@@ -44,8 +45,11 @@ def now():
 
 
 def settings():
+    """The settings row, with the bot token readable (it is stored encrypted, see sealed.py)."""
     s, _ = TelegramSettings.objects.get_or_create(id=1)
-    return row(s)
+    out = row(s)
+    out['bot_token'] = unseal(out['bot_token'])
+    return out
 
 
 def audit(actor, action, detail=''):
@@ -124,7 +128,7 @@ def handle(gov, action, d, actor):
             fail('Add the bot token before turning Telegram on.')
         hour = old['digest_hour'] if 'digest_hour' not in d else integer(d['digest_hour'], -1, 23, 'daily reminder time')
         changed_token = token != old['bot_token']
-        values = {'enabled': bool(enabled), 'bot_token': token,
+        values = {'enabled': bool(enabled), 'bot_token': seal(token),
                   'mini_app_url': old['mini_app_url'] if 'mini_app_url' not in d else mini_app_base(d['mini_app_url']),
                   'digest_hour': hour, 'group_updates': not (d.get('group_updates') is False or d.get('group_updates') == 0),
                   'status': 'OFF' if not enabled else 'STARTING' if changed_token or old['status'] == 'OFF' else old['status'],

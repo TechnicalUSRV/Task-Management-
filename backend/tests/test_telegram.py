@@ -142,3 +142,13 @@ def test_telegram_off_and_mini_app_page(admin_api, settings, tmp_path):
     assert page.status_code == 200 and b'mini' in page.content and 'telegram.org' in page['Content-Security-Policy']
     moved = client.get('/c/default/tg?x=1')
     assert moved.status_code == 308 and moved['Location'] == '/c/default/tg/?x=1'
+
+
+def test_bot_token_is_stored_encrypted(connected, settings):
+    from telegram import services as tg
+    from telegram.models import TelegramSettings
+    stored = TelegramSettings.objects.get(id=1).bot_token
+    assert stored.startswith('enc1:') and TOKEN not in stored and TOKEN.split(':')[1] not in stored
+    assert tg.settings()['bot_token'] == TOKEN
+    settings.SECRET_KEY = 'a-different-key'
+    assert tg.settings()['bot_token'] == ''          # a changed key cannot read it: the token must be entered again

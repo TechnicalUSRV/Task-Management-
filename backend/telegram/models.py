@@ -11,7 +11,7 @@ from core.models import Staff
 class TelegramSettings(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1)
     enabled = models.BooleanField(default=False)
-    bot_token = models.CharField(max_length=200, blank=True, default='')
+    bot_token = models.CharField(max_length=400, blank=True, default='')   # encrypted, see sealed.py
     bot_id = models.BigIntegerField(null=True, blank=True)
     bot_username = models.CharField(max_length=100, blank=True, default='')
     bot_name = models.CharField(max_length=200, blank=True, default='')
