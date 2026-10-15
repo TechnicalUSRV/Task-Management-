@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.urls import path, re_path
 
 from accounts import views as auth
+from compat import resources
 from compat import views as compat
 from telegram import gateway
 
@@ -29,6 +30,11 @@ urlpatterns = [
     path('api/erp/report.export', compat.ERPReportView.as_view(kind='export')),
     path('api/erp/report.csv', compat.ERPReportView.as_view(kind='csv')),
     path('api/journey', compat.JourneyView.as_view()),
+    # REST resources (read): the same permissions and record scope as /api/state; changes go through /api/command.
+    path('api/v1/', resources.IndexView.as_view()),
+    path('api/v1/organization/', resources.OrganizationView.as_view()),
+    path('api/v1/<str:resource>/', resources.ListView.as_view()),
+    path('api/v1/<str:resource>/<str:key>/', resources.DetailView.as_view()),
     path('print.js', compat.print_script),
     # The Telegram Mini App (only under /c/<company>/tg/, as in V5.7.7).
     path('tg', gateway.to_page),
