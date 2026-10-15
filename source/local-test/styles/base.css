@@ -3,7 +3,9 @@
 /* Element defaults live in the base layer so Tailwind utilities (e.g. a button-styled link) can override them. */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  /* Instant scrolling: smooth-scroll animates every navigation/close "jump to top",
+     which feels laggy on office machines. Explicit smooth scrolls can still opt in. */
+  html { scroll-behavior: auto; }
   body { margin: 0; min-width: 320px; }
   button { cursor: pointer; }
   button:disabled, [aria-disabled="true"] { cursor: not-allowed; }

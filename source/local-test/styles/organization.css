@@ -168,7 +168,7 @@ select.org-control{appearance:none;padding-right:34px;text-overflow:ellipsis;bac
 /* ---------------------------------------------------------------- dialogs (ERP): like the app's dialogs (17 px title, 640/880 px, footer always visible) */
 .org-dialog{margin:auto;padding:0;width:calc(100% - 1.5rem);max-width:calc(100% - 1.5rem);max-height:min(92dvh,940px);overflow:hidden;border:1px solid var(--c-border);border-radius:var(--r-lg,12px);background:#fff;color:var(--c-text);box-shadow:var(--sh-lg);font-size:var(--fs-base,14px);line-height:1.5}
 .org-dialog[open]{display:flex;flex-direction:column}
-.org-dialog::backdrop{background:rgb(16 24 40 / .45);backdrop-filter:blur(2px)}
+.org-dialog::backdrop{background:rgb(16 24 40 / .45)}
 .org-dialog-form[hidden]{display:none !important}
 .org-dialog-header{position:relative;display:flex;flex-direction:column;gap:4px;flex-shrink:0;padding:16px 56px 16px 24px;border-bottom:1px solid var(--c-border)}
 .org-dialog-title{margin:0;font-size:17px;font-weight:600;line-height:1.375;letter-spacing:-.01em;color:var(--c-text);text-transform:none}
