@@ -93,9 +93,15 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
   // was saved since the data on screen was loaded, and reload quietly if so; reload anyway every 5 minutes.
   // Not while a dialog or menu is open or someone is typing, so nothing changes under their hands.
   useEffect(() => {
-    let checking = false, failures = 0;
+    let checking = false, failures = 0, lastScroll = 0;
     const OFFLINE = 'The local Task Controlling Management server is not responding.';
+    // A full-app reload re-renders everything; holding it off while the person is actively
+    // scrolling (anywhere — the page, a dialog, a list) keeps scrolling smooth. capture:true
+    // catches scrolls inside inner containers too; the reload resumes the moment they pause.
+    const onScroll = () => { lastScroll = Date.now(); };
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
     const busy = () => {
+      if (Date.now() - lastScroll < 600) return true;
       if (document.querySelector('dialog[open],[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]')) return true;
       const a = document.activeElement as HTMLInputElement | null;
       return !!a && (a.isContentEditable || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || (a.tagName === 'INPUT' && a.type !== 'search' && a.type !== 'checkbox' && a.type !== 'radio'));
@@ -120,7 +126,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
     };
     const timer = window.setInterval(() => void check(), 4000), back = () => void check();
     document.addEventListener('visibilitychange', back); window.addEventListener('focus', back);
-    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); };
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', back); window.removeEventListener('focus', back); window.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions); };
   }, [refresh]);
 
   // Move focus to the page and back to the top when the address changes, so keyboard and screen-reader users land on the new content.

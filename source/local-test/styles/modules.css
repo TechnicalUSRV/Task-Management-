@@ -357,7 +357,8 @@ a.doc-flow-doc:hover { border-color: #b9c7e6; background: var(--c-surface-2); te
 .perm-search { width: min(360px, 100%); }
 .perm-tools-actions { display: flex; gap: 4px; }
 .perm-empty { padding: 16px; font-size: var(--fs-sm); color: var(--c-text-3); text-align: center; }
-.perm-group { border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface); min-width: 0; }
+/* Each module's checkbox table is heavy; skip painting the ones scrolled off-screen. */
+.perm-group { border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface); min-width: 0; content-visibility: auto; contain-intrinsic-size: auto 260px; }
 .perm-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; min-height: 44px; padding: 8px 12px; cursor: pointer; list-style: none; border-radius: var(--r-md); }
 .perm-group > summary::-webkit-details-marker { display: none; }
 .perm-group > summary:hover { background: var(--c-surface-2); }
@@ -620,7 +621,7 @@ a.doc-flow-doc:hover { border-color: #b9c7e6; background: var(--c-surface-2); te
 .person-search svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--c-text-4); }
 .person-search input { flex: 1; min-width: 0; height: 32px; border: 0; background: transparent; font-size: var(--fs-sm); color: var(--c-text); outline: none; }
 .person-options { max-height: min(320px, 50vh); margin: 0; padding: 4px; overflow-y: auto; list-style: none; }
-.person-option { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--r-md); cursor: pointer; }
+.person-option { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--r-md); cursor: pointer; content-visibility: auto; contain-intrinsic-size: auto 42px; }
 .person-option.is-active { background: var(--c-hover); }
 .person-option[aria-selected="true"] { background: var(--c-accent-soft); }
 .person-option-text { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.3; }

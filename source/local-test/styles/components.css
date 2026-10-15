@@ -481,6 +481,7 @@ th:hover .th-sort-idle, .th-sort:focus-visible .th-sort-idle { opacity: 0.6; }
 
 /* ================================================================ lists (activity feeds, work queues) */
 .item-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.item-list > li { content-visibility: auto; contain-intrinsic-size: auto 52px; }
 .item-list > li + li { border-top: 1px solid var(--c-border); }
 .list-item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 52px; padding: 10px 8px; margin: 0 -8px; width: calc(100% + 16px); border: 0; border-radius: var(--r-sm); background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; }
 a.list-item:hover, button.list-item:hover { background: var(--c-hover); text-decoration: none; }
