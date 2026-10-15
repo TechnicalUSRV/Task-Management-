@@ -77,6 +77,10 @@ function lookup(kind, args) {
   if (kind === 'next') return s.get('SELECT next_task_id FROM tm_tasks WHERE id=?', args[0])?.next_task_id ?? null;
   if (kind === 'due') return s.get("SELECT id FROM tm_due_requests WHERE task_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
   if (kind === 'mchange') return s.get("SELECT id FROM tm_meeting_changes WHERE meeting_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
+  if (kind === 'orgrev') return s.organization.settings().revision;
+  if (kind === 'grant') return s.get('SELECT id FROM org_grants WHERE beneficiary_id=? ORDER BY created_at DESC,id DESC LIMIT 1', args[0])?.id ?? null;
+  if (kind === 'orgreq') return s.get('SELECT id FROM org_requests WHERE requester_id=? ORDER BY created_at DESC,id DESC LIMIT 1', args[0])?.id ?? null;
+  if (kind === 'ws') return s.get('SELECT id FROM tm_workspaces WHERE name=?', args[0])?.id ?? null;
   if (kind === 'sent') return messageId;
   if (kind === 'card') return s.get('SELECT message_id FROM tg_sessions WHERE tg_user_id=?', Number(args[0]))?.message_id ?? null;
   if (kind === 'task') return s.get('SELECT id FROM tm_tasks WHERE title=? ORDER BY id DESC LIMIT 1', args[0])?.id ?? null;
@@ -132,7 +136,8 @@ for (const step of scenario.steps) {
       if (!user) throw Object.assign(new Error('Sign in to continue.'), {status: 401});
       const read = {state: () => s.access.filterState(s.state(), user), report: () => buildTaskReport(s.scopedState(user), input),
         dashboard: () => buildDashboard(s, user, input), erp: () => buildERPReport(s, user, input, !!step.exporting),
-        options: () => reportOptions(s, user), source: () => sourceRecords(s, user, input), mini: () => miniState(s, user, '')}[step.read];
+        options: () => reportOptions(s, user), source: () => sourceRecords(s, user, input), mini: () => miniState(s, user, ''),
+        org: () => s.organization.query(user.staff_id, input)}[step.read];
       results.push({ok: true, result: JSON.parse(JSON.stringify(read()))});
     }
     else {

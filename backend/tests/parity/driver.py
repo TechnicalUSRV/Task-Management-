@@ -105,6 +105,14 @@ class Scenario:
             return _one('SELECT id FROM tm_due_requests WHERE task_id=%s ORDER BY created_at DESC, id DESC LIMIT 1', args[0])
         if kind == 'mchange':
             return _one('SELECT id FROM tm_meeting_changes WHERE meeting_id=%s ORDER BY created_at DESC, id DESC LIMIT 1', args[0])
+        if kind == 'orgrev':
+            return _one('SELECT revision FROM org_settings WHERE id=1')
+        if kind == 'grant':
+            return _one('SELECT id FROM org_grants WHERE beneficiary_id=%s ORDER BY created_at DESC, id DESC LIMIT 1', args[0])
+        if kind == 'orgreq':
+            return _one('SELECT id FROM org_requests WHERE requester_id=%s ORDER BY created_at DESC, id DESC LIMIT 1', args[0])
+        if kind == 'ws':
+            return _one('SELECT id FROM tm_workspaces WHERE name=%s', args[0])
         if kind == 'sent':
             return self.telegram.message_id
         if kind == 'card':
@@ -221,6 +229,8 @@ class Scenario:
             return reports.source_records(user, data)
         if kind == 'mini':
             return reports.mini_state(user, '')
+        if kind == 'org':
+            return Governance().query(user.staff_id, data)
         raise ValueError(kind)
 
     def play(self, scenario):

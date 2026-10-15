@@ -10,7 +10,6 @@ A Governance instance memoizes reads; every write in this module calls `invalida
 import hashlib
 import json
 
-from django.db.models import Q
 from django.utils import timezone
 
 from accounts import services as access
@@ -122,11 +121,12 @@ class Governance:
             if not s:
                 return None
             p = Profile.objects.filter(staff_id=staff).first()
-            nickname = p.nickname if p else ''
-            return {'staff_id': s.id, 'username': s.name, 'name': display_name(s.name, nickname), 'nickname': nickname,
+            nickname = p.nickname if p else None
+            # Key order as V5.7.7 builds it (audit snapshots keep it): the row, then username.
+            return {'staff_id': s.id, 'name': display_name(s.name, nickname), 'nickname': nickname,
                     'org_level': p.org_level_id if p else None, 'manager_id': p.manager_id if p else None,
                     'active': (1 if p.active else 0) if p else 1, 'department': p.department if p else None,
-                    'position': p.position if p else None}
+                    'position': p.position if p else None, 'username': s.name}
         return self._cached('person', staff, load)
 
     def level(self, staff):
@@ -157,7 +157,8 @@ class Governance:
     # ------------------------------------------------------------ reporting tree
     def tree(self):
         def load():
-            data = list(Profile.objects.values_list('staff_id', 'manager_id', 'org_level_id'))
+            # V5.7.7 reads tm_profiles in insertion order; profiles are created with their staff record, so staff_id order.
+            data = list(Profile.objects.order_by('staff_id').values_list('staff_id', 'manager_id', 'org_level_id'))
             parents = {s: m for s, m, _ in data}
             children = {}
             for s, m, _ in data:
@@ -171,13 +172,14 @@ class Governance:
         t = self.tree()
         if staff in t['subtrees']:
             return t['subtrees'][staff]
-        out, queue, at = set(), list(t['children'].get(staff, [])), 0
+        # A dict keeps V5.7.7's Set order (breadth first), which impact previews list.
+        out, queue, at = {}, list(t['children'].get(staff, [])), 0
         while at < len(queue):
             k = queue[at]
             at += 1
             if k == staff or k in out:
                 continue
-            out.add(k)
+            out[k] = True
             queue.extend(t['children'].get(k, []))
         t['subtrees'][staff] = out
         return out
@@ -382,6 +384,10 @@ class Governance:
         return text(d.get('reason'), 'Reason', 2000, True)
 
     def assign_person(self, staff, org_level, manager):
+        if manager and manager == staff:
+            # V5.7.7 stores the change and validateTree() then refuses it with this message; here the database's own
+            # check (tm_profile_not_own_manager) would refuse it first, so the same answer is given before writing.
+            fail('The reporting manager must be active at an earlier valid level: Level 2 reports to Level 1; Level 3+ reports through Level 2.', 422)
         updated = Profile.objects.filter(staff_id=staff).first()
         if updated:
             Profile.objects.filter(staff_id=staff).update(org_level_id=org_level, manager_id=manager, version=updated.version + 1)
@@ -427,30 +433,31 @@ class Governance:
                 fail(f"Workspace {w['name']} needs a valid owner grant or a responsible Level 2 replacement.", 409)
 
     def affected(self, staff_ids=(), grant_id=None):
-        employees = set(staff_ids)
+        # Ordered like V5.7.7 (insertion-ordered Sets; rows in the order they were created, which their ids follow).
+        employees = dict.fromkeys(staff_ids)
         for staff in staff_ids:
-            employees |= self.descendants(staff)
-        active_grants = rows(OrgGrant.objects.filter(status='ACTIVE'))
+            employees.update(dict.fromkeys(self.descendants(staff)))
+        active_grants = rows(OrgGrant.objects.filter(status='ACTIVE').order_by('id'))
         if grant_id:
-            linked = {grant_id}
+            linked = {grant_id: True}
         else:
-            linked = {g['id'] for g in active_grants if g['beneficiary_id'] in employees or g['governing_manager_id'] in employees}
+            linked = dict.fromkeys(g['id'] for g in active_grants if g['beneficiary_id'] in employees or g['governing_manager_id'] in employees)
         changed = True
         while changed:
             changed = False
             for g in active_grants:
                 if g['parent_grant_id'] in linked and g['id'] not in linked:
-                    linked.add(g['id'])
+                    linked[g['id']] = True
                     changed = True
         workspaces = [{k: w[k] for k in ('id', 'name', 'owner_id', 'governing_manager_id', 'owner_grant_id', 'version')}
-                      for w in rows(Workspace.objects.filter(kind='ORGANIZATIONAL', deleted_at__isnull=True))
+                      for w in rows(Workspace.objects.filter(kind='ORGANIZATIONAL', deleted_at__isnull=True).order_by('id'))
                       if w['owner_id'] in employees or w['governing_manager_id'] in employees or w['owner_grant_id'] in linked]
         wids = {w['id'] for w in workspaces}
         requests = [{k: q[k] for k in ('id', 'kind', 'workspace_id', 'beneficiary_id', 'approver_id')}
-                    for q in rows(OrgRequest.objects.filter(status__in=['PENDING', 'REVIEW']))
+                    for q in rows(OrgRequest.objects.filter(status__in=['PENDING', 'REVIEW']).order_by('id'))
                     if q['beneficiary_id'] in employees or q['approver_id'] in employees or q['workspace_id'] in wids]
         memberships = [{'workspace_id': w, 'staff_id': s} for w, s in WorkspaceMember.objects.filter(
-            workspace__kind='ORGANIZATIONAL').values_list('workspace_id', 'staff_id') if s in employees]
+            workspace__kind='ORGANIZATIONAL').order_by('id').values_list('workspace_id', 'staff_id') if s in employees]
         return {'employees': list(employees), 'grants': list(linked), 'workspaces': workspaces,
                 'memberships': memberships, 'requests': requests}
 
@@ -613,11 +620,18 @@ class Governance:
         except Exception:  # noqa: BLE001
             return False
 
+    @staticmethod
+    def request_key(d):
+        """V5.7.7 copies d.request_key into the stored payload; JSON.stringify leaves it out when it was not sent."""
+        return {'request_key': d['request_key']} if 'request_key' in d else {}
+
     def make_request(self, kind, p, actor, approve=False, approval_actor=None):
         approver = self.approver_for(kind, p, actor)
         key = f"{actor}:{kind}:{text(p.get('request_key'), 'Request key', 100, True)}" if p.get('request_key') else None
-        parts = [kind, actor, p.get('workspace_id'), p.get('beneficiary_id'), p.get('template_id'), p.get('parent_grant_id'),
-                 p.get('capabilities'), p.get('member_role'), p.get('changes')]
+        def js_or_null(v):   # JavaScript `value || null`
+            return None if v is None or v is False or (not isinstance(v, (list, dict)) and v in ('', 0)) else v
+        parts = [kind, actor, *(js_or_null(p.get(k)) for k in ('workspace_id', 'beneficiary_id', 'template_id', 'parent_grant_id', 'capabilities',
+                                                              'member_role', 'changes'))]
         if p.get('workspace_replacements'):
             parts.append(p['workspace_replacements'])
         fingerprint = jhash(parts)
@@ -628,13 +642,17 @@ class Governance:
         if existing:
             return {'id': existing.id, 'type': 'org_request', 'message': 'Request already recorded.', 'unchanged': True, 'status': existing.status}
         at = now()
-        q = OrgRequest.objects.create(id=next_id('org-request', 'ORGREQ'), kind=kind, workspace_id=p.get('workspace_id') or None,
-                                      beneficiary_id=p.get('beneficiary_id') or None, requester_id=actor, approver_id=approver,
-                                      payload_json=jtext(p), reason=text(p.get('reason'), 'Reason', 2000, True),
-                                      status='PENDING' if approver else 'REVIEW', request_key=key, fingerprint=fingerprint,
-                                      created_at=at, updated_at=at)
-        q = row(q)
-        self.audit(actor, 'request.created', employee=q['beneficiary_id'], workspace=q['workspace_id'], after=q, reason=q['reason'], approval=q['id'])
+        created = OrgRequest.objects.create(id=next_id('org-request', 'ORGREQ'), kind=kind, workspace_id=p.get('workspace_id') or None,
+                                            beneficiary_id=p.get('beneficiary_id') or None, requester_id=actor, approver_id=approver,
+                                            payload_json=jtext(p), reason=text(p.get('reason'), 'Reason', 2000, True),
+                                            status='PENDING' if approver else 'REVIEW', request_key=key, fingerprint=fingerprint,
+                                            created_at=at, updated_at=at)
+        q = row(created)
+        # The audit snapshot is the request as V5.7.7 inserts it (without the columns that only get defaults).
+        snapshot = {k: q[k] for k in ('id', 'kind', 'workspace_id', 'beneficiary_id', 'requester_id', 'approver_id', 'payload_json', 'reason',
+                                      'status', 'request_key', 'fingerprint', 'created_at', 'updated_at')}
+        self.audit(actor, 'request.created', employee=q['beneficiary_id'], workspace=q['workspace_id'], after=snapshot, reason=q['reason'],
+                   approval=q['id'])
         if approve:
             return self.decide({'id': q['id'], 'decision': 'APPROVE', 'note': 'Direct authorized approval'}, approval_actor or actor, administrative=True)
         if approver:
@@ -692,7 +710,7 @@ class Governance:
         if self.member(w['id'], target):
             return {'id': w['id'], 'type': 'tm_workspace', 'message': 'This person already has active membership.', 'unchanged': True}
         return self.make_request('MEMBERSHIP', {'workspace_id': w['id'], 'beneficiary_id': target, 'member_role': role,
-                                                'reason': self.require_reason(d), 'request_key': d.get('request_key')},
+                                                'reason': self.require_reason(d), **self.request_key(d)},
                                  actor, approve=direct)
 
     def delegation_payload(self, d, actor):
@@ -720,7 +738,7 @@ class Governance:
                 fail('The requested authority exceeds your active scoped delegation.', 403)
         return {'beneficiary_id': target, 'template_id': template['id'], 'title': template['name'], 'capabilities': caps,
                 'branch_root_id': target, 'workspace_id': w['id'] if w else None, 'governing_manager_id': g,
-                'parent_grant_id': parent['id'] if parent else None, 'reason': self.require_reason(d), 'request_key': d.get('request_key')}
+                'parent_grant_id': parent['id'] if parent else None, 'reason': self.require_reason(d), **self.request_key(d)}
 
     def decision_authority(self, actor, q):
         current = self.approver_for(q['kind'], parse(q['payload_json']), q['requester_id'])
@@ -771,15 +789,18 @@ class Governance:
                 checked = self.delegation_payload({**p, 'reason': q['reason']}, q['requester_id'])
                 if checked['governing_manager_id'] != p.get('governing_manager_id'):
                     fail('The branch changed. Submit a new delegation request.', 409)
-                at = now()
-                grant = OrgGrant.objects.create(id=next_id('org-grant', 'GRANT'), beneficiary_id=p['beneficiary_id'], template_id=p.get('template_id'),
-                                                title=p['title'], capabilities_json=jtext(checked['capabilities']), branch_root_id=p['beneficiary_id'],
-                                                workspace_id=p.get('workspace_id') or None, governing_manager_id=checked['governing_manager_id'],
-                                                parent_grant_id=checked['parent_grant_id'], request_id=q['id'], status='ACTIVE',
-                                                granted_by_id=actor, created_at=at, updated_at=at)
+                moment = now()
+                at = iso(moment)
+                grant = {'id': next_id('org-grant', 'GRANT'), 'beneficiary_id': p['beneficiary_id'], 'template_id': p.get('template_id'),
+                         'title': p['title'], 'capabilities_json': jtext(checked['capabilities']), 'branch_root_id': p['beneficiary_id'],
+                         'workspace_id': p.get('workspace_id') or None, 'governing_manager_id': checked['governing_manager_id'],
+                         'parent_grant_id': checked['parent_grant_id'], 'request_id': q['id'], 'status': 'ACTIVE', 'granted_by': actor,
+                         'created_at': at, 'updated_at': at}
+                OrgGrant.objects.create(**{**{('granted_by_id' if k == 'granted_by' else k): v for k, v in grant.items()},
+                                           'created_at': moment, 'updated_at': moment})
                 self.invalidate()
                 self.audit(actor, 'delegation.approved', employee=p['beneficiary_id'], workspace=p.get('workspace_id'),
-                           after=row(grant), reason=note or q['reason'], approval=q['id'])
+                           after=grant, reason=note or q['reason'], approval=q['id'])
             else:
                 self.expected(d)
                 if d.get('acknowledged') is not True:
@@ -1392,7 +1413,7 @@ class Governance:
             if not self.is_level1(actor) and self.governor(actor) != actor and any((x['level'] or 0) < 3 for x in changes):
                 fail('Lower levels cannot request appointment to Level 1 or Level 2.', 403)
             return self.make_request('STRUCTURE', {'changes': changes, 'workspace_replacements': d.get('workspace_replacements') or [],
-                                                   'reason': self.require_reason(d), 'request_key': d.get('request_key')}, actor)
+                                                   'reason': self.require_reason(d), **self.request_key(d)}, actor)
         if action in ('org.workspace.delete', 'org.workspace.restore'):
             return self.remove_workspace(d, actor, action.endswith('.restore'))
         if action == 'org.workspace.save':
