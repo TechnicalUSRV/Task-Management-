@@ -61,7 +61,8 @@ class User(AbstractBaseUser):
         db_table = 'access_users'
         constraints = [
             # Contact email is optional; supplied addresses stay unique (V5.7.1 migration 18).
-            models.UniqueConstraint(fields=['email'], condition=~Q(email=''), name='access_contact_email_unique'),
+            # SQL Server filtered indexes require a simple comparison, so exclude blank emails with > ''.
+            models.UniqueConstraint(fields=['email'], condition=Q(email__gt=''), name='access_contact_email_unique'),
         ]
         indexes = [models.Index(fields=['role', 'active'], name='access_user_role_active')]
 
