@@ -231,7 +231,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="user",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("email", ""), _negated=True),
+                condition=models.Q(("email__gt", "")),
                 fields=("email",),
                 name="access_contact_email_unique",
             ),
