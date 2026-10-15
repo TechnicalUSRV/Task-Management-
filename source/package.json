@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "vite build --config local-test/vite.config.ts",
+    "dev": "vite --config local-test/vite.config.ts",
     "start": "node local-test/server.mjs --open",
     "share": "node local-test/share.mjs",
     "test": "npm run test:release",

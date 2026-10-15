@@ -36,6 +36,15 @@ ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost')
 # The Vite dev server proxies /c/<company>/api to Django, so its own origin is listed here for development.
 TRUSTED_ORIGINS = env_list('DJANGO_TRUSTED_ORIGINS', 'http://127.0.0.1:8000,http://localhost:8000,http://127.0.0.1:5173,http://localhost:5173')
 CSRF_TRUSTED_ORIGINS = TRUSTED_ORIGINS
+# Photos and files are readable only by pages of the same origin (V5.7.7). A React app on another origin of the same
+# site (VITE_API_BASE_URL) needs 'same-site' here so its <img> tags can show them.
+CROSS_ORIGIN_RESOURCE_POLICY = env('CROSS_ORIGIN_RESOURCE_POLICY', 'same-origin')
+# Deployment checks that do not apply: writes are protected as in V5.7.7 (Origin check on every state-changing request
+# and SameSite=Strict, HttpOnly session cookies; there are no HTML forms), and framing is refused by the
+# Content-Security-Policy frame-ancestors 'none' — except the Telegram Mini App page, which Telegram shows in a frame.
+SILENCED_SYSTEM_CHECKS = ['security.W002', 'security.W003']
+if CROSS_ORIGIN_RESOURCE_POLICY not in ('same-origin', 'same-site'):
+    raise ImproperlyConfigured('CROSS_ORIGIN_RESOURCE_POLICY must be same-origin or same-site.')
 
 INSTALLED_APPS = [
     'django.contrib.contenttypes',
@@ -55,6 +64,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'core.middleware.TrustedOriginCorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'core.middleware.CompanyScopeMiddleware',

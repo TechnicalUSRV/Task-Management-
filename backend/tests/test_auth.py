@@ -121,3 +121,25 @@ def test_usernames_are_unique_and_role_changes_end_sessions(admin_api):
                            admin.staff_id)
     assert member.get('/api/changes').status_code == 401
     assert Staff.objects.get(id=user.staff_id).name == 'Sok Dara'
+
+
+def test_only_trusted_origins_may_call_the_api_from_another_origin(admin_api, settings):
+    """VITE_API_BASE_URL: a React app on another trusted origin gets CORS answers with credentials; others get none."""
+    settings.TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://127.0.0.1:5174']
+    c = admin_api.client
+    pre = c.options('/c/default/api/command', HTTP_ORIGIN='http://127.0.0.1:5174', HTTP_ACCESS_CONTROL_REQUEST_METHOD='POST',
+                    HTTP_ACCESS_CONTROL_REQUEST_HEADERS='content-type')
+    assert pre.status_code == 204
+    assert pre['Access-Control-Allow-Origin'] == 'http://127.0.0.1:5174' and pre['Access-Control-Allow-Credentials'] == 'true'
+    assert 'POST' in pre['Access-Control-Allow-Methods'] and 'Origin' in pre['Vary']
+    state = c.get('/c/default/api/state', HTTP_ORIGIN='http://127.0.0.1:5174')
+    assert state.status_code == 200 and state['Access-Control-Allow-Origin'] == 'http://127.0.0.1:5174'
+    ok = admin_api.post('/api/command', {'action': 'tm.workspace.save', 'data': {'name': 'From the other origin', 'owner_id': admin_api.user['staff_id']}}, origin='http://127.0.0.1:5174')
+    assert ok.status_code == 200, ok.json()
+    for foreign in ('https://evil.example', 'null'):
+        pre = c.options('/c/default/api/command', HTTP_ORIGIN=foreign, HTTP_ACCESS_CONTROL_REQUEST_METHOD='POST')
+        assert not pre.has_header('Access-Control-Allow-Origin')
+        refused = admin_api.post('/api/command', {'action': 'tm.workspace.save', 'data': {'name': 'Forged'}}, origin=foreign)
+        assert refused.status_code == 403 and not refused.has_header('Access-Control-Allow-Origin')
+    same = admin_api.get('/api/state', HTTP_ORIGIN='http://127.0.0.1:8000')
+    assert not same.has_header('Access-Control-Allow-Origin')

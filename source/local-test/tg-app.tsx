@@ -18,6 +18,7 @@ import {
 import { fileToBase64, photoFromFile } from './media';
 import { setDisplayZone, zoneName, zonedInput, zonedToIso } from './format';
 import { BrandTitle, LogoIcon } from './brand';
+import { API_BASE } from './api-client';
 
 // The Telegram Mini App: a phone-sized screen for Task Management inside Telegram. It talks only to the
 // Mini App gateway, which checks Telegram's signed launch data and applies the person's Task Controlling Management permissions.
@@ -25,11 +26,11 @@ type Row = Record<string, any>;
 declare global { interface Window { Telegram?: { WebApp?: any } } }
 const tgApp = () => (typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined);
 const COMPANY = /^\/c\/([a-zA-Z0-9_-]+)\/tg/.exec(typeof location === 'undefined' ? '' : location.pathname)?.[1] || 'default';
-const API = `/c/${COMPANY}/tg/api`;
+const API = `${API_BASE}/c/${COMPANY}/tg/api`;
 const initData = () => tgApp()?.initData || new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || '';
 class ApiError extends Error { constructor(message: string, public status: number, public code?: string) { super(message); } }
 async function call(path: string, body?: Row): Promise<Row> {
-  const res = await fetch(API + path, { method: body ? 'POST' : 'GET', headers: { Authorization: 'tma ' + initData(), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(API + path, { method: body ? 'POST' : 'GET', credentials: API_BASE ? 'include' : 'same-origin', headers: { Authorization: 'tma ' + initData(), ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
   let data: Row = {};
   try { data = await res.json(); } catch { /* not JSON */ }
   if (!res.ok) throw new ApiError(data.error || 'Something went wrong. Please try again.', res.status, data.code);

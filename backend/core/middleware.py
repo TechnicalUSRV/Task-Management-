@@ -7,7 +7,7 @@ ID is answered as "Company not found.", exactly as before.
 import re
 
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 SCOPED = re.compile(r'^/c/([a-zA-Z0-9_-]{1,80})(/.*)$')
 
@@ -48,6 +48,34 @@ class SecurityHeadersMiddleware:
         response = self.get_response(request)
         response.headers.setdefault('Cache-Control', 'no-store')
         response.headers.setdefault('X-Content-Type-Options', 'nosniff')
-        response.headers.setdefault('Cross-Origin-Resource-Policy', 'same-origin')
+        response.headers.setdefault('Cross-Origin-Resource-Policy', settings.CROSS_ORIGIN_RESOURCE_POLICY)
         response.headers.setdefault('Content-Security-Policy', CSP)
+        return response
+
+
+class TrustedOriginCorsMiddleware:
+    """Lets the React app call the API from another trusted origin (VITE_API_BASE_URL) with its session cookie.
+
+    Only origins listed in DJANGO_TRUSTED_ORIGINS are answered, never "*". The normal setup needs none of this: Django
+    serves the built app itself, and the Vite dev server proxies /c/<company>/api to Django, so the browser sees one origin.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        origin = request.headers.get('Origin', '')
+        trusted = origin and origin in settings.TRUSTED_ORIGINS and origin != f'{request.scheme}://{request.get_host()}'
+        if trusted and request.method == 'OPTIONS' and request.headers.get('Access-Control-Request-Method'):
+            response = HttpResponse(status=204)
+            response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response['Access-Control-Max-Age'] = '600'
+        else:
+            response = self.get_response(request)
+        if trusted:
+            response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Credentials'] = 'true'
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
+            response['Vary'] = ', '.join(x for x in (response.get('Vary'), 'Origin') if x)
         return response

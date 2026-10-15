@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { apiPath } from './api-client';
+import { apiFetch, apiPath } from './api-client';
 import { type Row, Lines, money, sum, today } from './components';
 import { REPORTS } from './reports.mjs';
 import { useServerReport } from './report-hook';
@@ -162,7 +162,7 @@ export function Detail(w: Workspace & { type: string; row: Row }) {
   useEffect(() => { if (type === 'quotation') setRevision(String(r.revision)); }, [type, r.revision]);
   const loadJourney = () => {
     setJourney(null); setJourneyError('');
-    if (contactId && w.can('crm.contacts')) void fetch(apiPath(`/api/journey?contact=${encodeURIComponent(contactId)}`)).then(async res => { const body = await res.json(); if (!res.ok) throw new Error(body.error || 'Unable to load the customer journey.'); setJourney(body); }).catch(e => setJourneyError(e.message));
+    if (contactId && w.can('crm.contacts')) void apiFetch(`/api/journey?contact=${encodeURIComponent(contactId)}`).then(async res => { const body = await res.json(); if (!res.ok) throw new Error(body.error || 'Unable to load the customer journey.'); setJourney(body); }).catch(e => setJourneyError(e.message));
   };
   useEffect(loadJourney, [contactId, d]); // eslint-disable-line react-hooks/exhaustive-deps
   const command = async (action: string, data: Row, key: string) => { setBusy(key); try { const result = await w.perform(action, data); if (result.type && result.id) w.show(result.type, result.id); } catch (e) { toast.error((e as Error).message); } finally { setBusy(''); } };
