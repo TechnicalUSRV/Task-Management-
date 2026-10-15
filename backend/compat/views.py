@@ -38,8 +38,7 @@ def telegram_part(request, user, gov):
     s = telegram.settings()
     public = conf.PUBLIC_URL
     company = request.company_id
-    app_url = f'{public}/c/{company}/tg/' if public else (f"{s['mini_app_url']}/c/{company}/tg/" if s['mini_app_url'] else '')
-    out = telegram.info(gov, user, can_admin, app_url, bool(public))
+    out = telegram.info(gov, user, can_admin, telegram.app_url(s), bool(public))
     if out.get('telegram_admin'):
         host = request.get_host()
         out['telegram_admin']['gateway'] = {'port': request.get_port(), 'local_url': f'{request.scheme}://{host}', 'path': f'/c/{company}/tg/',

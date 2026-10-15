@@ -79,6 +79,18 @@ def mini_app_base(value):
     return f"https://{host.encode('idna').decode().lower()}{f':{port}' if port and port != 443 else ''}"
 
 
+def app_url(s=None):
+    """The Mini App address the bot and the web app hand out (V5.7.7 effectiveMiniAppUrl): the shared public address when
+    one is configured, otherwise the Mini App address saved in Administration → Telegram, or '' when neither is set."""
+    from urllib.parse import quote as encode
+    from django.conf import settings as conf
+    s = s or settings()
+    company = encode(conf.COMPANY_ID, safe="-_.!~*'()")
+    if conf.PUBLIC_URL:
+        return f'{conf.PUBLIC_URL}/c/{company}/tg/'
+    return f"{s['mini_app_url']}/c/{company}/tg/" if s['mini_app_url'] else ''
+
+
 def link_info(code, s, created):
     return {'code': code, 'link': f"https://t.me/{s['bot_username']}?start=link_{code}", 'bot_username': s['bot_username'],
             'created_at': iso(created) if isinstance(created, datetime) else created}

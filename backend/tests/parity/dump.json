@@ -28,6 +28,12 @@
     "tm_event_reminders": {"cols": ["kind", "ref_id", "staff_id", "offset_min", "start_at"], "order": "kind,ref_id,staff_id,offset_min"},
     "org_audit": {"cols": ["actor_id", "action", "employee_id", "workspace_id", "before_json", "after_json", "reason", "approval_id"], "order": "id"},
     "org_requests": {"cols": ["id", "kind", "workspace_id", "beneficiary_id", "requester_id", "approver_id", "payload_json", "reason", "status", "decision_by", "decision_note", "request_key", "version"], "order": "id"},
-    "access_audit": {"cols": ["actor_id", "action", "target_id", "detail"], "order": "id"}
+    "access_audit": {"cols": ["actor_id", "action", "target_id", "detail"], "order": "id"},
+    "tg_settings": {"cols": ["bot_id", "bot_username", "bot_name", "last_update_id", "last_notification_id", "last_digest_date", "status", "status_detail"], "order": "id"},
+    "tg_links": {"cols": ["tg_user_id", "staff_id", "chat_id", "username", "first_name", "notify", "linked_at"], "order": "tg_user_id"},
+    "tg_groups": {"cols": ["chat_id", "title", "type", "workspace_id", "notify", "active", "linked_by", "linked_at", "version"], "order": "chat_id"},
+    "tg_sessions": {"cols": ["chat_id", "tg_user_id", "flow", "step", "data", "message_id", "prompt_id"], "order": "chat_id,tg_user_id"},
+    "tm_notification_deliveries": {"cols": ["notification_id", "channel", "status", "reason", "attempts", "next_at"], "order": "notification_id,channel"},
+    "tg_log": {"cols": ["level", "chat_id", "message"], "order": "id"}
   }
 }

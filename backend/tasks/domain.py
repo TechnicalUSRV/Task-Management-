@@ -412,3 +412,29 @@ def task_state_label(t):
 
 def due_decider(t):
     return t['reviewer_id'] if t.get('reviewer_id') and (t.get('reviewer_status') or 'ACCEPTED') != 'DECLINED' else t.get('created_by')
+
+
+TASK_VERBS = ['accept', 'decline', 'progress', 'stuck', 'resume', 'submit', 'pass', 'return', 'close', 'cancel', 'reopen', 'note', 'due', 'edit',
+              'handover', 'remind', 'reminders', 'checklist', 'file']
+
+
+def task_actions(t, staff, can_approve=False):
+    """taskActions(): the verbs this person may use on an (enriched) task, as the screens and the bot show them."""
+    support = t.get('support') or t.get('supporters') or []
+    r = task_roles(t, staff, support, can_approve)
+    allowed = [v for v in TASK_VERBS if not task_block(v, t, r)]
+    if r['isPic'] and t['status'] == 'NOT_STARTED' and (not t.get('accepted_at') or t.get('declined_at')):
+        allowed = [v for v in allowed if v in ('accept', 'decline', 'edit', 'note', 'cancel', 'handover', 'file', 'reminders')]
+    elif r['supportStatus'] == 'PENDING' and not r['isGovernor']:
+        allowed = [v for v in allowed if v in ('accept', 'decline', 'note', 'file')]
+    return {'roles': r, 'allowed': allowed, 'approval': needs_approval(t), 'path': completion_path(t)}
+
+
+def completion_approver(t):
+    cr = t.get('change_request')
+    if cr and cr['kind'] == 'COMPLETE' and cr['requester_side'] == 'PIC':
+        return cr['approver_id']
+    return completion_path(t)['approver']
+
+
+REQUEST_STATUS = {'PENDING': 'Waiting for answer', 'APPROVED': 'Accepted', 'DECLINED': 'Declined', 'WITHDRAWN': 'Withdrawn'}

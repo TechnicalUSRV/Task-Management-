@@ -18,6 +18,7 @@ const {taskToday, addDays, buildTaskReport} = await import(pathToFileURL(path.jo
 const {buildDashboard} = await import(pathToFileURL(path.join(source, 'dashboard.mjs')).href);
 const {buildERPReport, reportOptions, sourceRecords} = await import(pathToFileURL(path.join(source, 'erp-sources.mjs')).href);
 const {miniState} = await import(pathToFileURL(path.join(source, 'telegram-gateway.mjs')).href);
+const {createBot} = await import(pathToFileURL(path.join(source, 'telegram-bot.mjs')).href);
 const spec = JSON.parse(readFileSync(new URL('./dump.json', import.meta.url), 'utf8'));
 const scenario = JSON.parse(readFileSync(0, 'utf8'));
 const s = openStore(':memory:');
@@ -27,6 +28,38 @@ const MODULES = {dashboard: 1, crm: 0, tasks: 1, ops: 0, finance: 0, reports: 1,
 for (const [module, enabled] of Object.entries(MODULES)) s.run('UPDATE erp_module_settings SET enabled=? WHERE module_id=?', enabled, module);
 
 const results = [];
+
+// The Telegram Bot API is replaced by a recorder: every call the bot makes is kept (in order) as the step's result.
+// {"telegram_bot": "<token>"} starts the bot, {"tg": <update>} hands it one update, {"tg_flush": {}} delivers
+// notifications ({"digest": true} also sends the morning summary now), {"tg_fail": {"method", "code", "description"}}
+// makes the next call of that method fail.
+const APP = 'https://tasks.example.test/tg/';
+const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==';
+let bot = null, calls = [], failNext = {}, messageId = 100;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+globalThis.fetch = async (url, options = {}) => {
+  url = String(url);
+  // Files whose id starts with IMG download as a 1×1 PNG; anything else as a few bytes of text.
+  if (url.includes('/file/bot')) {
+    const id = url.split('/').pop();
+    return new Response(id.startsWith('IMG') ? Buffer.from(PNG, 'base64') : Buffer.from('file:' + id));
+  }
+  const method = /\/bot[^/]+\/(\w+)$/.exec(url)?.[1] || '?';
+  let params;
+  if (options.body instanceof FormData) {
+    params = {};
+    for (const [k, v] of options.body.entries()) params[k] = typeof v === 'string' ? v : {name: v.name, type: v.type, size: v.size};
+  } else params = JSON.parse(options.body || '{}');
+  if (method === 'getUpdates') return new Promise((_, reject) => options.signal?.addEventListener('abort', () => reject(new Error('stopped'))));
+  if (method !== 'getMe') calls.push({method, params});
+  const fail = failNext[method];
+  if (fail) { delete failNext[method]; return Response.json({ok: false, error_code: fail.code, description: fail.description, parameters: fail.parameters}); }
+  const result = method === 'getMe' ? {id: 999, is_bot: true, first_name: 'Sunny', username: 'sunny_test_bot'}
+    : ['sendMessage', 'sendDocument'].includes(method) ? {message_id: ++messageId, chat: {id: Number(params.chat_id)}}
+    : method === 'getFile' ? {file_id: params.file_id, file_unique_id: 'u', file_size: 12, file_path: 'documents/' + params.file_id} : true;
+  return Response.json({ok: true, result});
+};
+const phnomPenhHour = () => Number(new Intl.DateTimeFormat('en-GB', {timeZone: 'Asia/Phnom_Penh', hour: '2-digit', hourCycle: 'h23'}).format(new Date()));
 const VERSIONED = new Set(['tm_tasks', 'tm_workspaces', 'tm_requests', 'tm_due_requests', 'tm_change_requests', 'tm_timesheets', 'tm_meetings', 'tm_meeting_changes', 'access_users', 'tm_calendar_notes']);
 function lookup(kind, args) {
   if (kind === 'today') return args[0] ? addDays(taskToday(), Number(args[0])) : taskToday();
@@ -44,6 +77,11 @@ function lookup(kind, args) {
   if (kind === 'next') return s.get('SELECT next_task_id FROM tm_tasks WHERE id=?', args[0])?.next_task_id ?? null;
   if (kind === 'due') return s.get("SELECT id FROM tm_due_requests WHERE task_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
   if (kind === 'mchange') return s.get("SELECT id FROM tm_meeting_changes WHERE meeting_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
+  if (kind === 'sent') return messageId;
+  if (kind === 'card') return s.get('SELECT message_id FROM tg_sessions WHERE tg_user_id=?', Number(args[0]))?.message_id ?? null;
+  if (kind === 'task') return s.get('SELECT id FROM tm_tasks WHERE title=? ORDER BY id DESC LIMIT 1', args[0])?.id ?? null;
+  if (kind === 'request') return s.get('SELECT id FROM tm_requests WHERE title=? ORDER BY id DESC LIMIT 1', args[0])?.id ?? null;
+  if (kind === 'month') return taskToday().slice(0, 7);
   if (kind === 'change') return s.get("SELECT id FROM tm_change_requests WHERE task_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
   throw new Error('Unknown placeholder ' + kind);
 }
@@ -71,7 +109,21 @@ function resolve(value) {
 
 for (const step of scenario.steps) {
   try {
-    if (step.bootstrap) results.push({ok: true, result: s.access.bootstrap(resolve(step.bootstrap))});
+    if (step.telegram_bot) {
+      s.run('UPDATE tg_settings SET enabled=1,bot_token=? WHERE id=1', step.telegram_bot);
+      calls = [];
+      bot = createBot({store: s, token: step.telegram_bot, outboxMs: 2e9, pollTimeout: 25, appUrl: () => APP, logger: {error() {}}});
+      for (let i = 0; i < 400 && s.get('SELECT status FROM tg_settings WHERE id=1').status !== 'ONLINE'; i++) await sleep(5);
+      await sleep(5);
+      results.push({ok: true, result: calls});
+    }
+    else if (step.tg_fail) { failNext[step.tg_fail.method] = step.tg_fail; results.push({ok: true, result: null}); }
+    else if (step.tg) { calls = []; await bot.handleUpdate(resolve(step.tg)); results.push({ok: true, result: calls}); }
+    else if (step.tg_flush) {
+      if (step.tg_flush.digest) s.run("UPDATE tg_settings SET digest_hour=?,last_digest_date='' WHERE id=1", phnomPenhHour());
+      calls = []; await bot.flush(); results.push({ok: true, result: calls});
+    }
+    else if (step.bootstrap) results.push({ok: true, result: s.access.bootstrap(resolve(step.bootstrap))});
     else if (step.reminders) results.push({ok: true, result: s.reminders(new Date(resolve(step.reminders)))});
     else if (step.event_reminders) results.push({ok: true, result: s.eventReminders(new Date(resolve(step.event_reminders)))});
     else if (step.read) {
@@ -101,4 +153,5 @@ for (const [table, t] of Object.entries(spec.tables)) {
   dump[table] = s.all(`SELECT ${t.cols.map(c => (t.node_cols?.[c] ? `${t.node_cols[c]} AS ${c}` : c)).join(',')} FROM ${from}${t.node_where ? ' WHERE ' + t.node_where : ''} ORDER BY ${t.order}`)
     .map(r => mask(r, t.cols));
 }
-process.stdout.write(JSON.stringify({steps: results, dump}));
+// The bot's long poll never ends by itself, so the process exits once the output is written.
+process.stdout.write(JSON.stringify({steps: results, dump}), () => process.exit(0));

@@ -34,18 +34,19 @@ def node_run(scenario):
     return json.loads(done.stdout)
 
 
-def masked(value):
+def masked(value, volatile=()):
     if isinstance(value, dict):
-        return {k: ('<t>' if k.endswith('_at') and v is not None else masked(v)) for k, v in value.items()}
+        return {k: ('<t>' if (k.endswith('_at') or k in volatile) and v is not None else masked(v, volatile)) for k, v in value.items()}
     if isinstance(value, list):
-        return [masked(v) for v in value]
+        return [masked(v, volatile) for v in value]
     return value
 
 
-def compare(scenario):
+def compare(scenario, volatile=()):
     expected, actual = node_run(scenario), Scenario().play(scenario)
+    assert len(expected['steps']) == len(actual['steps'])
     for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
-        assert masked(got) == masked(want), f'step {i} {json.dumps(scenario["steps"][i])}\n V5.7.7: {want}\n Django: {got}'
+        assert masked(got, volatile) == masked(want, volatile), f'step {i} {json.dumps(scenario["steps"][i])}\n V5.7.7: {want}\n Django: {got}'
     for table, want in expected['dump'].items():
         got = actual['dump'][table]
         if got != want:
