@@ -2,7 +2,7 @@
 #Requires -RunAsAdministrator
 [CmdletBinding()]
 param(
-    [string]$Repository = (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent),
+    [string]$Repository,
     [string]$ServiceRoot = 'D:\TaskManagement\Services',
     [string]$OfficeIp = '192.168.2.182',
     [string]$PublicUrl = 'https://unpack-expensive-outfield.ngrok-free.dev',
@@ -10,6 +10,20 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+
+# Resolve the default after parameter binding: script automatic variables may be
+# empty while a default parameter expression is being evaluated.
+if ([string]::IsNullOrWhiteSpace($Repository)) {
+    $installerPath = $PSCommandPath
+    if ([string]::IsNullOrWhiteSpace($installerPath)) {
+        $installerPath = $MyInvocation.MyCommand.Path
+    }
+    if ([string]::IsNullOrWhiteSpace($installerPath)) {
+        throw 'Cannot locate the installer. Pass -Repository with the full repository folder path.'
+    }
+    $installerDirectory = Split-Path -Path $installerPath -Parent
+    $Repository = [System.IO.Path]::GetFullPath((Join-Path $installerDirectory '..\..'))
+}
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$Arguments)
