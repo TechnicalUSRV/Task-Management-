@@ -135,6 +135,8 @@ FRONTEND_DIR = Path(env('FRONTEND_DIR', str(BASE_DIR.parent / 'source' / 'local-
 HIDDEN_FUNCTIONS = tuple(x.strip() for x in env('HIDDEN_FUNCTIONS', 'tasks.groups,admin.integrations').split(',') if x.strip())
 # The public https:// address of this server when it is published (Telegram opens the Mini App there). Empty locally.
 PUBLIC_URL = env('PUBLIC_URL', '').rstrip('/')
+# The built React app is served from FRONTEND_DIR by compat.views.frontend (/assets/…); Django's static files are unused.
+STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['accounts.authentication.SessionTokenAuthentication'],

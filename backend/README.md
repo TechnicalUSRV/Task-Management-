@@ -90,7 +90,7 @@ Leave it empty when Django serves the app or when using `npm run dev`.
 | `python manage.py check_database` | Server, database and login in use; fails for `sa`, sysadmin, a wrong database or missing migrations; warns about schema rights, access to other databases and unprotected audit tables. Changes nothing. |
 | `python manage.py migrate_database` | Applies migrations with the migration login (password asked, not stored). |
 | `python manage.py run_workers` | Reminders (due dates every 10 minutes, calendar every minute) and the Telegram bot when it is turned on in Administration → Telegram. `--once` runs one reminder pass; `--no-telegram` skips the bot. |
-| `python -m pytest` | All automated tests. They use a temporary in-memory SQLite database and never touch SQL Server. The parity tests also run the V5.7.7 code and need Node.js 22.5+ (otherwise they are skipped). |
+| `python -m pytest` | All automated tests. They use a temporary in-memory SQLite database and never touch SQL Server. The parity tests also run the V5.7.7 code and need Node.js 22.5+; the browser acceptance test needs the built frontend and Playwright (`pip install playwright==1.56.0`, then `python -m playwright install chromium`). Without them those tests are skipped. |
 
 ## 5. Acceptance check (Stage 4)
 
