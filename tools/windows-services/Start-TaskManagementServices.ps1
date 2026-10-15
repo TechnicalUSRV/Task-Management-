@@ -50,8 +50,10 @@ function Start-One([string]$Id) {
 $companyPath = '/c/' + $config.Company
 try {
     Start-One 'TMOfficeWeb'
-    Wait-HttpStatus ("http://{0}:8000{1}/" -f $config.OfficeIp, $companyPath) 200
+    Wait-HttpStatus ("http://{0}:8000/TaskManagement" -f $config.OfficeIp) 200
+    Wait-HttpStatus ("http://{0}:8000{1}/" -f $config.OfficeIp, $companyPath) 404
     Start-One 'TMMiniApp'
+    Wait-HttpStatus 'http://127.0.0.1:8001/TaskManagement' 404
     Wait-HttpStatus ("http://127.0.0.1:8001{0}/tg/" -f $companyPath) 200
     Wait-HttpStatus ("http://127.0.0.1:8001{0}/" -f $companyPath) 404
     Wait-HttpStatus ("http://127.0.0.1:8001{0}/api/state" -f $companyPath) 404
@@ -78,6 +80,7 @@ try {
     } while ([DateTime]::UtcNow -lt $deadline)
     if (-not $workerReady) { throw "Worker startup was not confirmed. See $ServiceRoot\Logs\TMWorkers." }
     Start-One 'TMNgrok'
+    Wait-HttpStatus ($config.PublicUrl + '/TaskManagement') 404
     Wait-HttpStatus ($config.PublicUrl + $companyPath + '/tg/') 200
     Wait-HttpStatus ($config.PublicUrl + $companyPath + '/') 404
     Wait-HttpStatus ($config.PublicUrl + $companyPath + '/api/state') 404
