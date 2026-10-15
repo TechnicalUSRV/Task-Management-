@@ -75,6 +75,13 @@ def query(sql, *args):
         return [{n: value(v) for n, v in zip(names, r)} for r in c.fetchall()]
 
 
+def query_first(n, sql, *args):
+    """query() for at most n rows, read by the database (SQL Server TOP, SQLite LIMIT) instead of fetching every row."""
+    n = int(n)
+    sql = sql.replace('SELECT ', f'SELECT TOP {n} ', 1) if connection.vendor == 'microsoft' else f'{sql} LIMIT {n}'
+    return query(sql, *args)
+
+
 def table(name):
     cols, order = TABLES[name]
     return query(f'SELECT {cols} FROM {name} ORDER BY {order}')
@@ -210,8 +217,8 @@ def filter_state(s, user, gov=None):
             out['tm_calendar_notes'].sort(key=lambda n: (n['day'], '' if n['start_at'] is None else n['start_at'], n['id']))
             task_ids, meeting_ids = {t['id'] for t in out['tm_tasks']}, {m['id'] for m in out['tm_meetings']}
             request_ids, note_ids = {q['id'] for q in out['tm_requests']}, {n['id'] for n in out['tm_calendar_notes']}
-            notes = query('SELECT id,staff_id,kind,task_id,request_id,due_request_id,title,body,actor_id,created_at,read_at,meeting_id,note_id,'
-                          'org_request_id FROM tm_notifications WHERE staff_id=%s ORDER BY id DESC', user.staff_id)[:150]
+            notes = query_first(150, 'SELECT id,staff_id,kind,task_id,request_id,due_request_id,title,body,actor_id,created_at,read_at,meeting_id,note_id,'
+                          'org_request_id FROM tm_notifications WHERE staff_id=%s ORDER BY id DESC', user.staff_id)
             out['tm_notifications'] = [n for n in notes if (not n['task_id'] or n['task_id'] in task_ids) and (not n['meeting_id'] or n['meeting_id'] in meeting_ids)
                                        and (not n['request_id'] or n['request_id'] in request_ids) and (not n['note_id'] or n['note_id'] in note_ids)
                                        and (not n['org_request_id'] or (v('tasks.organization') and gov.notification_visible(user.staff_id, n['org_request_id'])))][:100]
@@ -238,7 +245,7 @@ def filter_state(s, user, gov=None):
     out['access_users'] = query("SELECT u.id,u.staff_id,u.email,u.username,u.role_id,u.active,u.version,u.created_at,u.updated_at,l.name,"
                                 "COALESCE(p.position,'') AS position,COALESCE(p.department,'') AS department FROM access_users u "
                                 "JOIN staff l ON l.id=u.staff_id LEFT JOIN tm_profiles p ON p.staff_id=u.staff_id ORDER BY u.id") if v('admin.users') else []
-    out['access_audit'] = query('SELECT id,actor_id,action,target_id,detail,created_at FROM access_audit ORDER BY id DESC')[:200] if admin_view else []
+    out['access_audit'] = query_first(200, 'SELECT id,actor_id,action,target_id,detail,created_at FROM access_audit ORDER BY id DESC') if admin_view else []
     out['access_user_permissions'] = query('SELECT user_id,resource,action,effect FROM access_user_permissions ORDER BY id') if v('admin.users') else []
     return out
 

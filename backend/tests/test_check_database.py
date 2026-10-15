@@ -61,3 +61,9 @@ def test_local_database_check_runs(db, capsys):
     call_command('check_database')
     out = capsys.readouterr().out
     assert 'for tests and offline development only' in out and 'All migrations applied' in out
+
+
+def test_migrate_database_on_the_local_database(db, capsys):
+    call_command('migrate_database', verbosity=0)
+    call_command('check_database')
+    assert 'All migrations applied' in capsys.readouterr().out
