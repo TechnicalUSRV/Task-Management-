@@ -13,6 +13,10 @@ HTTPS pilot configuration; office HTTPS and the remaining deployment checks in
 | TMWorkers | One `manage.py run_workers` process | No HTTP listener |
 | TMNgrok | Public HTTPS tunnel | Only http://127.0.0.1:8001 |
 
+Office address: <http://192.168.2.182:8000/TaskManagement>.
+The former `/c/default/` homepage returns **404**. Its `/c/default/api/...` and
+`/c/default/tg/...` routes remain active for the application and Telegram.
+
 The Python services depend on `MSSQLSERVER`. The tunnel depends on `TMMiniApp`.
 WinSW restarts a failed process after 30 seconds. After the startup checks pass,
 Windows uses **Automatic (Delayed Start)** for all four services.
@@ -69,8 +73,10 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File ".\tools\windows-s
 ```
 
 This refuses to start while ports 8000/8001, another `run_workers` process or ngrok
-are still in use. It verifies HTTP 200 for the office and Mini App pages and HTTP
-404 for the office root/API through the restricted listener and public tunnel.
+are still in use. It verifies HTTP 200 for `/TaskManagement` on the office listener
+and 404 for the retired company homepage. It checks HTTP 200 for the Mini App page
+and 404 for `/TaskManagement` and the office root/API through the restricted listener
+and public tunnel.
 It also looks for a **new** worker startup message. If a check fails, it stops the
 four services and leaves them Manual; fix the logged problem and rerun this script.
 It does not kill unrelated processes.
