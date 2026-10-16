@@ -25,9 +25,10 @@ class MiniBoundaryTests(unittest.TestCase):
         routes = [
             ("/c/default/tg", "GET"), ("/c/default/tg/", "GET"),
             ("/assets/tg-ABC12345.js", "GET"), ("/assets/font-ABC12345.woff2", "HEAD"),
+            ("/assets/pdf.worker.min-rsCePomN.mjs", "GET"),
         ]
         routes += [(f"/c/default/tg/api/{x}", "GET") for x in
-                   ("state", "changes", "organization", "report", "photo", "file")]
+                   ("state", "changes", "organization", "report", "photo", "file", "file-preview")]
         routes += [(f"/c/default/tg/api/{x}", "POST") for x in ("login", "link", "command")]
         for path, method in routes:
             with self.subTest(path=path, method=method):
@@ -44,7 +45,7 @@ class MiniBoundaryTests(unittest.TestCase):
             "/assets/../index.html", "/assets/%2e%2e/index.html",
             "/assets/%252e%252e/index.html", "/assets/..\\index.html",
             "/assets/file.js/../../api/state", "//c/default/tg/",
-            "/assets/bundle.js.map", "/c/default/tg/api/state/",
+            "/assets/bundle.js.map", "/c/default/tg/api/state/", "/assets/x..y.mjs", "/assets/.hidden.mjs", "/assets/worker.mjs.map",
         ]
         for path in paths:
             for method in ("GET", "POST", "HEAD"):

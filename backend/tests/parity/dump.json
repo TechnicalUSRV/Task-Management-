@@ -38,6 +38,17 @@
     "org_settings": {"cols": ["enabled", "revision", "initialized_by"], "order": "id"},
     "org_levels": {"cols": ["id", "name", "version"], "order": "id"},
     "org_templates": {"cols": ["id", "name", "capabilities_json", "active", "version"], "order": "id"},
-    "org_grants": {"cols": ["id", "beneficiary_id", "template_id", "title", "capabilities_json", "branch_root_id", "workspace_id", "governing_manager_id", "parent_grant_id", "request_id", "status", "granted_by", "version"], "order": "id"}
+    "org_grants": {"cols": ["id", "beneficiary_id", "template_id", "title", "capabilities_json", "branch_root_id", "workspace_id", "governing_manager_id", "parent_grant_id", "request_id", "status", "granted_by", "version"], "order": "id"},
+    "tm_boards": {"cols": ["id", "workspace_id", "name", "description", "visibility", "audience", "workspace_level", "owner_id", "status", "archived_at", "archived_by", "version", "created_by", "layout_json"], "order": "id"},
+    "tm_board_access": {"cols": ["board_id", "staff_id", "level"], "order": "board_id,staff_id"},
+    "tm_board_columns": {"cols": ["id", "board_id", "name", "name_key", "type", "position", "settings_json", "version"], "order": "id"},
+    "tm_board_rows": {"cols": ["id", "board_id", "position", "values_json", "version", "created_by", "updated_by"], "order": "id"},
+    "tm_board_notes": {"cols": ["id", "board_id", "row_id", "author_id", "body", "edited_at", "deleted_at", "deleted_by", "version"], "order": "id"},
+    "tm_board_note_revisions": {"cols": ["note_id", "body", "action", "actor_id"], "order": "id"},
+    "tm_board_row_access": {"cols": ["row_id", "board_id", "principal_type", "principal_id"], "order": "row_id,principal_type,principal_id"},
+    "tm_board_column_access": {"cols": ["column_id", "board_id", "principal_type", "principal_id"], "order": "column_id,principal_type,principal_id"},
+    "tm_board_views": {"cols": ["board_id", "staff_id", "view_json"], "order": "board_id,staff_id"},
+    "tm_board_imports": {"cols": ["id", "board_id", "staff_id", "file_name", "file_size", "sheets_json", "status", "result_json"], "order": "id"},
+    "tm_board_files": {"cols": ["id", "board_id", "row_id", "column_id", "name", "mime", "size", "uploaded_by"], "order": "id"}
   }
 }

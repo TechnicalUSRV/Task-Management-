@@ -21,7 +21,8 @@ import {
   groupCaps, cellText, formatNumber, formatResult, formatDay, cleanCell, columnNameError, compileFormula, previewFormula, statusLabels, emptyValue, levelKey,
 } from './group-domain.mjs';
 import { groupCommand, groupRead, type GroupError } from './group-api';
-import { TASK_FILE_TYPES, TASK_FILE_ACCEPT, PREVIEW_TYPES } from './task-domain.mjs';
+import { GroupFilePreview } from './file-preview';
+import { TASK_FILE_TYPES, TASK_FILE_ACCEPT } from './task-domain.mjs';
 import { fileToBase64 } from './media';
 import { NotesDrawer, AccessRuleDialog, ExportDialog, type RuleTarget } from './group-tools-ui';
 import { ImportWizard } from './group-import-ui';
@@ -1204,7 +1205,6 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
 
 // ---------------------------------------------------------------- V5.6.9 Attachment cells
 const fileUrl = (groupId: string, f: Row, inline = false) => apiPath(`/api/tasks/group/file?id=${encodeURIComponent(groupId)}&file=${encodeURIComponent(f.id)}${inline ? '&inline=1' : ''}`);
-const opensInBrowser = (f: Row) => PREVIEW_TYPES.includes(f.mime) || f.mime === 'application/pdf';
 const fileSize = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.ceil(n / 1024))} KB`);
 const FileKindIcon = ({ f }: { f: Row }) => (String(f.mime || '').startsWith('image/') ? <FileImage aria-hidden="true" /> : <FileText aria-hidden="true" />);
 /** The files of a cell as small chips (the first three, then “+n”). */
@@ -1212,10 +1212,11 @@ function FileChips({ files }: { files: Row[] }) {
   const list = Array.isArray(files) ? files : [];
   return <span className="cell-files">{list.slice(0, 3).map(f => <span key={f.id} className="file-chip" title={f.name}><FileKindIcon f={f} /><span className="file-chip-name">{f.name}</span></span>)}{list.length > 3 && <span className="file-more">+{list.length - 3}</span>}</span>;
 }
-/** One Attachment cell: its files open in a new tab (images and PDF) or download; people who can edit records upload
- *  more (several at once) and remove them. In the table it is a cell; in card view, a field. */
+/** One Attachment cell: its files open in the in-app preview (images, PDF, Word, Excel, PowerPoint, CSV and text) or
+ *  download; people who can edit records upload more (several at once) and remove them. In the table it is a cell; in
+ *  card view, a field. */
 function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }: { row: Row; col: Row; groupId: string; caps: Row; replaceRow: (row: Row) => void; lifted?: boolean; inline?: boolean }) {
-  const [open, setOpen] = useState(false), [busy, setBusy] = useState(''), [error, setError] = useState('');
+  const [open, setOpen] = useState(false), [busy, setBusy] = useState(''), [error, setError] = useState(''), [preview, setPreview] = useState<Row | null>(null);
   const input = useRef<HTMLInputElement>(null), confirm = useConfirm(), asking = useRef(false);
   const files: Row[] = Array.isArray(row.values?.[col.id]) ? row.values[col.id] : [];
   const editable = !!caps.editRows, key = cellKey(row.id, col.id);
@@ -1254,7 +1255,7 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
       {busy && <Loader2 className="spin cell-status" aria-label="Uploading" />}
     </button>
   );
-  const panel = (
+  const panel = (<>
     <Popover open={open} onOpenChange={o => { if (!busy && !asking.current) setOpen(o); }}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align="start" className="attach-popover" aria-label={`${col.name}: files`}>
@@ -1263,7 +1264,7 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
         {files.length ? <ul className="attach-list">
           {files.map(f => <li key={f.id} className="attach-item">
             <FileKindIcon f={f} />
-            <span className="attach-text"><a className="attach-name" href={fileUrl(groupId, f, opensInBrowser(f))} target="_blank" rel="noopener noreferrer" title={opensInBrowser(f) ? 'Open in a new tab' : 'Download'}>{f.name}</a><small>{fileSize(f.size)}</small></span>
+            <span className="attach-text"><button type="button" className="attach-name" onClick={() => { setOpen(false); setPreview({ ...f, detail: col.name }); }} title="Preview">{f.name}</button><small>{fileSize(f.size)}</small></span>
             <a className="attach-action" href={fileUrl(groupId, f)} download={f.name} aria-label={`Download ${f.name}`} title="Download"><Download aria-hidden="true" /></a>
             {editable && <button type="button" className="attach-action" aria-label={`Remove ${f.name}`} title="Remove" disabled={!!busy} onClick={() => void remove(f)}><Trash2 aria-hidden="true" /></button>}
           </li>)}
@@ -1275,7 +1276,8 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
         </div>}
       </PopoverContent>
     </Popover>
-  );
+    {preview && <GroupFilePreview groupId={groupId} file={preview as Row & { id: string; name: string; mime: string }} onClose={() => setPreview(null)} />}
+  </>);
   if (inline) return panel;
   return <td data-column-id={col.id} style={columnStyle(col.id)} className={`grid-cell type-attachment${lifted ? ' is-dragging' : ''}`}>{panel}</td>;
 }

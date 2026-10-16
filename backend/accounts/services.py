@@ -204,7 +204,7 @@ def _permissions(user, prefs, modules, role_perms, org_enabled, is_admin_level1)
                 out[resource] = ['view']
     if user.role_id != ADMIN_ROLE:
         out['admin.workspaces'] = []
-    # Decision A (Stage 1): Groups and the Google Sheets connection are not part of this deployment.
+    # Functions switched off in this deployment (settings.HIDDEN_FUNCTIONS; by default the Google Sheets connection).
     for resource in hidden_functions():
         if resource in out:
             out[resource] = []

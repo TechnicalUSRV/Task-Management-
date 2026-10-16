@@ -1,8 +1,8 @@
 """Function-permission check for every command — access.mjs authorize() (V5.7.7).
 
 This decides which function permission a command needs. Record-level rules (task roles, workspace authority,
-hierarchy) are applied afterwards by the domain services. CRM, Operations and Google Sheets commands are not available
-in this deployment (Stage 1 decision A); they are refused here.
+hierarchy, group sharing) are applied afterwards by the domain services. CRM, Operations and Google Sheets commands are
+not available in this deployment (Stage 1 decision A); they are refused here.
 """
 import re
 
@@ -15,6 +15,8 @@ ID_KEYS = ('id', 'task_id', 'activity_id', 'meeting_id', 'request_id', 'workspac
 TASK_WORK = re.compile(r'^tm\.(task\.(accept|decline|progress|stuck|resume|submit|pass|return|close|cancel|reopen|note|handover|remind|reminders)'
                        r'|change\.(decide|withdraw)|due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)'
                        r'|request\.(save|withdraw|decide|forward)|notification\.read)$')
+GROUP_COMMAND = re.compile(r'^tm\.group\.(save|archive|delete|column\.(save|move|delete|access)|row\.(add|update|move|delete|access)'
+                           r'|file\.(add|remove)|view\.save|layout\.save|note\.(add|edit|delete)|import\.(upload|commit))$')
 CRM_RESOURCES = {'CONTACT': 'crm.contacts', 'LEAD': 'crm.leads', 'OPPORTUNITY': 'crm.opportunities', 'ACCOUNT': 'crm.accounts',
                  'OPERATIONS': 'ops.job'}
 
@@ -72,6 +74,25 @@ def authorize(user, action, d):
         return
     elif TASK_WORK.match(action):
         resource, verb = 'tasks.tasks', 'view'
+    elif GROUP_COMMAND.match(action):
+        # Groups: the role permission for the kind of change; the group's own sharing is checked by the group rules. Your own
+        # layout needs only View; notes (also deleting your own note) and access rules need Update; importing adds records,
+        # so it needs Create.
+        resource = 'tasks.groups'
+        if action == 'tm.group.save':
+            verb = 'update' if d.get('id') else 'create'
+        elif action == 'tm.group.view.save':
+            verb = 'view'
+        elif re.match(r'^tm\.group\.(note|layout|row\.access|column\.access)', action):
+            verb = 'update'
+        elif action.startswith('tm.group.import.'):
+            verb = 'create'
+        elif re.search(r'\.(archive|delete)$', action):
+            verb = 'delete'
+        elif action == 'tm.group.row.add':
+            verb = 'create'
+        else:
+            verb = 'update'
     elif action == 'tm.profile.photo':
         resource, verb = 'tasks.users', 'update'
         if d.get('staff_id') != user.staff_id and not access.profile_manager(user):

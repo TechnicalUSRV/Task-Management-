@@ -19,6 +19,7 @@ const {buildDashboard} = await import(pathToFileURL(path.join(source, 'dashboard
 const {buildERPReport, reportOptions, sourceRecords} = await import(pathToFileURL(path.join(source, 'erp-sources.mjs')).href);
 const {miniState} = await import(pathToFileURL(path.join(source, 'telegram-gateway.mjs')).href);
 const {createBot} = await import(pathToFileURL(path.join(source, 'telegram-bot.mjs')).href);
+const {readXlsx} = await import(pathToFileURL(path.join(source, 'xlsx.mjs')).href);
 const spec = JSON.parse(readFileSync(new URL('./dump.json', import.meta.url), 'utf8'));
 const scenario = JSON.parse(readFileSync(0, 'utf8'));
 const s = openStore(':memory:');
@@ -28,6 +29,7 @@ const MODULES = {dashboard: 1, crm: 0, tasks: 1, ops: 0, finance: 0, reports: 1,
 for (const [module, enabled] of Object.entries(MODULES)) s.run('UPDATE erp_module_settings SET enabled=? WHERE module_id=?', enabled, module);
 
 const results = [];
+const groups = s.tasks.groups, gkey = input => String(input.id || '').slice(0, 60);
 
 // The Telegram Bot API is replaced by a recorder: every call the bot makes is kept (in order) as the step's result.
 // {"telegram_bot": "<token>"} starts the bot, {"tg": <update>} hands it one update, {"tg_flush": {}} delivers
@@ -60,7 +62,7 @@ globalThis.fetch = async (url, options = {}) => {
   return Response.json({ok: true, result});
 };
 const phnomPenhHour = () => Number(new Intl.DateTimeFormat('en-GB', {timeZone: 'Asia/Phnom_Penh', hour: '2-digit', hourCycle: 'h23'}).format(new Date()));
-const VERSIONED = new Set(['tm_tasks', 'tm_workspaces', 'tm_requests', 'tm_due_requests', 'tm_change_requests', 'tm_timesheets', 'tm_meetings', 'tm_meeting_changes', 'access_users', 'tm_calendar_notes']);
+const VERSIONED = new Set(['tm_tasks', 'tm_workspaces', 'tm_requests', 'tm_due_requests', 'tm_change_requests', 'tm_timesheets', 'tm_meetings', 'tm_meeting_changes', 'access_users', 'tm_calendar_notes', 'tm_boards', 'tm_board_columns', 'tm_board_rows', 'tm_board_notes']);
 function lookup(kind, args) {
   if (kind === 'today') return args[0] ? addDays(taskToday(), Number(args[0])) : taskToday();
   if (kind === 'version') {
@@ -87,12 +89,19 @@ function lookup(kind, args) {
   if (kind === 'request') return s.get('SELECT id FROM tm_requests WHERE title=? ORDER BY id DESC LIMIT 1', args[0])?.id ?? null;
   if (kind === 'month') return taskToday().slice(0, 7);
   if (kind === 'change') return s.get("SELECT id FROM tm_change_requests WHERE task_id=? ORDER BY created_at DESC,id DESC LIMIT 1", args[0])?.id ?? null;
+  if (kind === 'group') return s.get('SELECT id FROM tm_boards WHERE name=?', args[0])?.id ?? null;
+  if (kind === 'gcol') return s.get('SELECT c.id FROM tm_board_columns c JOIN tm_boards b ON b.id=c.board_id WHERE b.name=? AND c.name=?', args[0], args[1])?.id ?? null;
+  if (kind === 'grow') return s.get('SELECT r.id FROM tm_board_rows r JOIN tm_boards b ON b.id=r.board_id WHERE b.name=? AND r.position=?', args[0], Number(args[1]))?.id ?? null;
+  if (kind === 'gnote') return s.get('SELECT id FROM tm_board_notes ORDER BY id DESC LIMIT 1')?.id ?? null;
+  if (kind === 'gfile') return s.get('SELECT id FROM tm_board_files ORDER BY id DESC LIMIT 1')?.id ?? null;
+  if (kind === 'gimport') return s.get('SELECT id FROM tm_board_imports ORDER BY id DESC LIMIT 1')?.id ?? null;
   throw new Error('Unknown placeholder ' + kind);
 }
 // ${N.path}: a field of step N's result. ${kind:arg:arg}: a lookup. A string that is only a placeholder becomes its value.
 function resolve(value) {
   if (Array.isArray(value)) return value.map(resolve);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, resolve(v)]));
+  // Keys may be placeholders too (a Group row's values are keyed by column ID).
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k.includes('${') ? resolve(k) : k, resolve(v)]));
   if (typeof value !== 'string' || !value.includes('${')) return value;
   // An argument starting with @ is itself an expression and takes the rest of the text (so it comes last).
   const one = inner => {
@@ -137,7 +146,15 @@ for (const step of scenario.steps) {
       const read = {state: () => s.access.filterState(s.state(), user), report: () => buildTaskReport(s.scopedState(user), input),
         dashboard: () => buildDashboard(s, user, input), erp: () => buildERPReport(s, user, input, !!step.exporting),
         options: () => reportOptions(s, user), source: () => sourceRecords(s, user, input), mini: () => miniState(s, user, ''),
-        org: () => s.organization.query(user.staff_id, input)}[step.read];
+        org: () => s.organization.query(user.staff_id, input),
+        // Groups: what GET /api/tasks/group… answers (server.mjs), and the Excel export read back.
+        group: () => groups.read(gkey(input), user.staff_id, input), group_rows: () => groups.query(gkey(input), user.staff_id, input),
+        group_notes: () => groups.notes(gkey(input), user.staff_id, input), group_history: () => groups.noteHistory(gkey(input), user.staff_id, input.note),
+        group_members: () => groups.members(gkey(input), user.staff_id, {q: input.q || '', offset: input.offset, limit: input.limit}),
+        group_audience: () => groups.audience(gkey(input), user.staff_id), group_import: () => groups.imports.describe(input.import, user.staff_id),
+        group_preview: () => groups.imports.preview(input.import_id, user.staff_id, input.plan),
+        group_file: () => { const f = groups.file(gkey(input), user.staff_id, input.file); return {name: f.name, mime: f.mime, size: f.size, content: Buffer.from(f.content).toString('base64')}; },
+        group_xlsx: () => { const x = groups.xlsx(gkey(input), user.staff_id, input); return {name: x.name, rows: x.rows, sheets: readXlsx(x.buffer)}; }}[step.read];
       results.push({ok: true, result: JSON.parse(JSON.stringify(read()))});
     }
     else {

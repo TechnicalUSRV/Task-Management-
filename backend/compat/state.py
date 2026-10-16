@@ -122,7 +122,8 @@ def full_state():
                              "COALESCE(p.version,0) AS version,p.manager_id,COALESCE(p.timezone,'') AS timezone,p.org_level,"
                              "COALESCE(p.nickname,'') AS nickname FROM staff l LEFT JOIN tm_profiles p ON p.staff_id=l.id")
     s['tm_profiles'].sort(key=lambda p: p['name'])   # V5.7.7 reads them through its staff-name index
-    s['tm_boards'], s['tm_board_access'] = [], []
+    from groups.service import GroupService
+    s.update(GroupService.state())
     return s
 
 
@@ -147,6 +148,35 @@ def task_people(gov):
                         'signed_in': bool(f['signed_in']), 'telegram': bool(f['telegram']),
                         'approver': access.can(users[f['id']], 'tasks.tasks', 'approve', perms)})
     return out
+
+
+def group_part(s, out, user, gov, v):
+    """Groups: only the groups this person may open (their own, or Team groups shared with them or with their whole
+    workspace), with their access level. Rows are read separately, one group at a time (GET /api/tasks/group)."""
+    empty = {'tm_boards': [], 'tm_board_access': [], 'tm_board_summaries': [], 'tm_group_workspaces': []}
+    if not v('tasks.groups') or s.get('tm_boards') is None:   # an empty list still counts (V5.7.7: `s.tm_boards` is [])
+        return empty
+    from groups.service import GroupService
+    from tasks.services import TaskService
+    groups = GroupService(TaskService(gov)).remember_lookups()
+    staff, admin = user.staff_id, v('tasks.groups', 'approve')
+    member = {m['workspace_id'] for m in s['tm_members'] if m['staff_id'] == staff}
+    boards = []
+    for b in s['tm_boards']:
+        level = groups.level_for(b, staff)
+        if level > 0:
+            context = gov.group_context(staff, b)
+            boards.append({**b, 'level': level, 'admin': bool(context['admin'] if context is not None else admin) and b['visibility'] == 'TEAM'})
+    ids = {b['id'] for b in boards}
+    # Rows and columns each person may see in each group (access rules apply to the counts too).
+    summaries = groups.summaries(staff, [{**b, 'layout_json': '{}'} for b in sorted(s['tm_boards'], key=lambda b: b['id']) if b['id'] in ids])
+    # Active workspaces where this person may create groups (member, owner or group administrator; governed workspaces
+    # follow the organization's rules). The screens combine it with the role's Create permission.
+    workspaces = [w['id'] for w in out['tm_workspaces'] if w['status'] == 'ACTIVE' and (
+        gov.can_create_resource(staff, gov.ws_by_id(w['id'])) if gov.governed(gov.ws_by_id(w['id']))
+        else w['id'] in member or w.get('owner_id') == staff or admin)]
+    return {'tm_boards': boards, 'tm_board_access': [a for a in s['tm_board_access'] if a['board_id'] in ids],
+            'tm_board_summaries': summaries, 'tm_group_workspaces': workspaces}
 
 
 def filter_state(s, user, gov=None):
@@ -182,7 +212,7 @@ def filter_state(s, user, gov=None):
     out['my_timezone'] = service.zone_of(user.staff_id)
     theme = query('SELECT sidebar_theme FROM tm_profiles WHERE staff_id=%s', user.staff_id)
     out['my_sidebar_theme'] = (theme[0]['sidebar_theme'] if theme else '') or ''
-    out['tm_boards'], out['tm_board_access'], out['tm_board_summaries'], out['tm_group_workspaces'] = [], [], [], []
+    out.update(group_part(s, out, user, gov, v))
     if not task_any:
         for k in [k for k in s if k.startswith('tm_')]:
             out[k] = []

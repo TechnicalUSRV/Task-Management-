@@ -455,6 +455,7 @@ button.grid-cell-view:hover .cell-attach-hint { color: var(--c-accent-text); }
 .attach-text { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
 .attach-name { overflow: hidden; color: var(--c-accent-text); text-overflow: ellipsis; white-space: nowrap; }
 .attach-name:hover { text-decoration: underline; }
+button.attach-name { display: block; max-width: 100%; border: 0; padding: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .attach-text small { color: var(--c-text-3); font-size: var(--fs-xs); }
 .attach-action { display: grid; flex: none; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--c-text-3); }
 .attach-action:hover { background: var(--c-surface-3); color: var(--c-text); }

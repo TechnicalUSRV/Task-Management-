@@ -1,8 +1,10 @@
 """Deny-by-default WSGI boundary for the internet-facing Telegram process."""
 import re
 
-_ASSET = re.compile(r"/assets/[A-Za-z0-9_-]+\.(?:js|css|woff2?|ttf|png|jpg|jpeg|gif|svg|ico|webp)")
-_GET_API = frozenset({"state", "changes", "organization", "report", "photo", "file"})
+# Built files: name-hash.ext, where the name may have dots between its parts (pdf.worker.min-<hash>.mjs, the PDF
+# preview's worker) but never an empty part, so "." and ".." can't appear.
+_ASSET = re.compile(r"/assets/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.(?:m?js|css|woff2?|ttf|png|jpg|jpeg|gif|svg|ico|webp)")
+_GET_API = frozenset({"state", "changes", "organization", "report", "photo", "file", "file-preview"})
 _POST_API = frozenset({"login", "link", "command"})
 
 

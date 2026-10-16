@@ -229,7 +229,7 @@ def _api(request, rest):
     s = telegram.settings()
     if not s['enabled'] or not s['bot_token']:
         raise GatewayError(503, 'Telegram is turned off for this company.', 'off')
-    if request.method == 'GET' and rest in ('/api/photo', '/api/file'):
+    if request.method == 'GET' and rest in ('/api/photo', '/api/file', '/api/file-preview'):
         return _media(request, rest, company, s)
     raw = re.sub(r'^tma ', '', str(request.headers.get('Authorization', '')))
     init = validate_init_data(raw, s['bot_token'], max_age=INIT_MAX_AGE)
@@ -331,8 +331,11 @@ def _media(request, rest, company, s):
             raise GatewayError(404, 'Photo not found.')
         cache = 'private, max-age=86400' if request.GET.get('v') == str(photo.version) else 'no-store'
         return send(200, bytes(photo.content), photo.mime, cache, headers)
-    from compat.views import task_file_response
+    from compat.views import task_file_preview, task_file_response
     try:
+        if rest == '/api/file-preview':
+            # The in-app preview of a Word, Excel, PowerPoint, CSV or text file: the same access check as the download.
+            return send(200, task_file_preview(link['staff_id'], request.GET.get('id')))
         response = task_file_response(link['staff_id'], request.GET.get('id'), request.GET.get('inline') == '1', {'Referrer-Policy': 'no-referrer'})
     except InputError as e:
         raise GatewayError(e.status, e.message)

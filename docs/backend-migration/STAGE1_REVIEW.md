@@ -253,3 +253,10 @@ Existing React app (unchanged screens)        Telegram Mini App            Teleg
 - **C — Companies:** one company. Single-company schema; the `/c/default/` URL prefix keeps working.
 - **D — Data:** no live data. SQL Server starts empty; Django migrations create the schema. The SQLite importer is deferred.
 - **E — SQL logins:** done by the DBA (15 Oct 2026) using `sqlserver-logins.sql`: `taskmanagement_migrator` for migrations, `taskmanagement_app` for the running application.
+
+### Decision A revised (16 Oct 2026) — Groups restored
+
+- Groups (Task Management · Groups) are offered again with their V5.7.7 behaviour, ported to Django (`backend/groups`, tables `tm_board*`). Parity tests run the same Group scenarios on V5.7.7 and Django and compare every result and stored row.
+- The Google Sheets connection (`admin.integrations`) stays switched off; a group's Google Sheets tab shows “Google Sheets isn’t set up yet”.
+- Roles saved while Groups were hidden get their Group permissions back once, exactly as V5.7.7 did when Groups first appeared (migration `groups.0002`).
+

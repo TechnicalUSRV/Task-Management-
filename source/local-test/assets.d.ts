@@ -6,3 +6,6 @@ declare module '*.svg' {const src:string;export default src;}
 // Build-time settings read by the app (Vite exposes only variables starting with VITE_).
 interface ImportMetaEnv { readonly VITE_API_BASE_URL?: string }
 interface ImportMeta { readonly env: ImportMetaEnv }
+
+// A file Vite copies into /assets, imported as its address (the PDF.js worker of the file preview).
+declare module '*?url' { const src: string; export default src; }

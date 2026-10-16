@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'tasks',
     'timesheets',
     'meetings',
+    'groups',
     'telegram',
     'compat',
 ]
@@ -131,8 +132,9 @@ ALLOW_REMOTE_SETUP = env_bool('DJANGO_ALLOW_REMOTE_SETUP', False)
 COMPANY_ID = env('COMPANY_ID', 'default')
 # The built React app (npm run build → source/local-test/public). Django serves it when present, so one address works.
 FRONTEND_DIR = Path(env('FRONTEND_DIR', str(BASE_DIR.parent / 'source' / 'local-test' / 'public')))
-# Functions this deployment does not offer (Stage 1 decision A): Groups and the Google Sheets connection.
-HIDDEN_FUNCTIONS = tuple(x.strip() for x in env('HIDDEN_FUNCTIONS', 'tasks.groups,admin.integrations').split(',') if x.strip())
+# Functions this deployment does not offer: the Google Sheets connection (Stage 1 decision A). Groups were hidden too in
+# Stage 1 and are offered again (restored to V5.7.7 behaviour); list `tasks.groups` here only to switch Groups off.
+HIDDEN_FUNCTIONS = tuple(x.strip() for x in env('HIDDEN_FUNCTIONS', 'admin.integrations').split(',') if x.strip())
 # The public https:// address of this server when it is published (Telegram opens the Mini App there). Empty locally.
 PUBLIC_URL = env('PUBLIC_URL', '').rstrip('/')
 # The built React app is served from FRONTEND_DIR by compat.views.frontend (/assets/…); Django's static files are unused.

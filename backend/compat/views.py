@@ -84,8 +84,8 @@ class PhotoView(APIView):
         return binary(photo.content, photo.mime, {'Cache-Control': cache, 'Content-Security-Policy': "default-src 'none'; sandbox"})
 
 
-def task_file_response(staff, file_id, inline_wanted, extra=None):
-    from tasks.domain import PREVIEW_TYPES
+def task_file(staff, file_id):
+    """A task's file for someone who may see that task (anyone else is told it does not exist)."""
     from tasks.models import Task, TaskFile
     from tasks.scope import TaskScope
     from core.rows import row
@@ -93,16 +93,37 @@ def task_file_response(staff, file_id, inline_wanted, extra=None):
     t = row(Task.objects.filter(id=f.task_id).first()) if f else None
     if not f or not TaskScope(Governance()).can_see(staff, t):
         fail('File not found.', 404)
-    inline = inline_wanted and f.mime in PREVIEW_TYPES
+    return f
+
+
+def task_file_response(staff, file_id, inline_wanted, extra=None):
+    from tasks.preview import INLINE_TYPES
+    f = task_file(staff, file_id)
+    # Images and PDFs open in the in-app preview (inline=1); everything else always downloads. The sandbox policy keeps
+    # a file from running anything even when it is opened directly.
+    inline = inline_wanted and f.mime in INLINE_TYPES
     return binary(f.content, f.mime if inline else 'application/octet-stream', {
         'Content-Disposition': f"{'inline' if inline else 'attachment'}; filename=\"task-file\"; filename*=UTF-8''{attachment_name(f.name)}",
         'Cache-Control': 'private, no-cache', 'Content-Security-Policy': "default-src 'none'; sandbox", **(extra or {})})
+
+
+def task_file_preview(staff, file_id):
+    from tasks.preview import describe
+    f = task_file(staff, file_id)
+    return describe(f.name, f.mime, f.size, bytes(f.content))
 
 
 class TaskFileView(APIView):
     def get(self, request):
         access.require_permission(request.user, 'tasks.tasks')
         return task_file_response(request.user.staff_id, request.query_params.get('id'), request.query_params.get('inline') == '1')
+
+
+class TaskFilePreviewView(APIView):
+    """GET /api/tasks/file/preview?id=… — what the in-app preview shows (same access check as the download)."""
+    def get(self, request):
+        access.require_permission(request.user, 'tasks.tasks')
+        return Response(task_file_preview(request.user.staff_id, request.query_params.get('id')))
 
 
 # ---------------------------------------------------------------- task reports, dashboard and custom reports
@@ -200,7 +221,8 @@ def print_script(request):
 
 
 # ---------------------------------------------------------------- the built React app (served like V5.7.7 serves public/)
-STATIC_TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+STATIC_TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.mjs': 'application/javascript; charset=utf-8',
+                '.css': 'text/css; charset=utf-8',
                 '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif',
                 '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.json': 'application/json; charset=utf-8',
                 '.txt': 'text/plain; charset=utf-8'}

@@ -365,11 +365,12 @@ def unvolatile(value):
     return value
 
 
-HIDDEN = ('tasks.groups', 'admin.integrations')
+HIDDEN = ('admin.integrations',)
 
 
 def as_deployed(value):
-    """V5.7.7 output as this deployment shows it: Groups and the Google Sheets connection are not offered (decision A)."""
+    """V5.7.7 output as this deployment shows it: the Google Sheets connection is not offered (decision A). Groups are
+    offered exactly as in V5.7.7."""
     if isinstance(value, dict):
         out = {}
         for k, v in value.items():
@@ -377,8 +378,6 @@ def as_deployed(value):
                 v = {r: ([] if r in HIDDEN else a) for r, a in v.items()}
             elif k == 'erp_catalog':
                 v = [{**m, 'functions': [f for f in m['functions'] if f['key'] not in HIDDEN]} for m in v]
-            elif k == 'tm_group_workspaces':
-                v = []
             out[k] = as_deployed(v)
         return out
     if isinstance(value, list):

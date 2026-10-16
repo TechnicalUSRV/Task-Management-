@@ -114,7 +114,33 @@ SELECT id, title, status, pic_id FROM dbo.tm_tasks;
 SELECT TOP 20 task_id, kind, actor_id, created_at FROM dbo.tm_task_history ORDER BY id DESC;
 ```
 
-## 6. Layout
+## 6. Groups and attachment previews (16 Oct 2026)
+
+**Groups** (Task Management → Groups) work as in V5.7.7: customizable tables in a workspace with Text, Number, Date,
+Status, In Charge, Support, Formula and Attachment columns, sharing, row and column access rules, notes, layouts, Excel
+import and export. They had been switched off by Stage 1 decision A; the Google Sheets connection stays off.
+
+**Attachment preview**: task files and files in Group Attachment cells open inside the app (web and Telegram Mini App).
+Images and PDFs are shown from the file (PDFs page by page, with zoom); Word (.docx), Excel (.xlsx), PowerPoint (.pptx),
+CSV and text files are read on the server into plain text, tables and slides; other files offer the download. Every
+preview goes through the same access check as the download (`/api/tasks/file/preview`, `/api/tasks/group/file/preview`,
+`/tg/api/file-preview`). Files are never sent to an outside viewer.
+
+When updating an existing installation:
+
+```powershell
+git pull --ff-only
+cd backend
+python manage.py migrate_database      # adds the Group tables (nothing existing is changed)
+cd ..\source
+npm ci                                 # PDF.js (the PDF preview) was added
+npm run build
+```
+
+In `backend\.env`, Groups must not be listed as switched off: `HIDDEN_FUNCTIONS=admin.integrations` (an `.env` copied
+from the earlier `.env.example` says `tasks.groups,admin.integrations`; remove `tasks.groups`). Then restart the services.
+
+## 7. Layout
 
 | App | Tables (V5.7.7 names) |
 |---|---|
@@ -127,5 +153,6 @@ SELECT TOP 20 task_id, kind, actor_id, created_at FROM dbo.tm_task_history ORDER
 | `timesheets` | tm_timesheets |
 | `notifications` | tm_notifications, tm_notification_deliveries |
 | `telegram` | tg_settings (token encrypted), tg_links, tg_link_codes, tg_groups, tg_sessions, tg_log; bot and Mini App gateway |
+| `groups` | Groups: tm_boards, tm_board_access, tm_board_columns, tm_board_rows, tm_board_notes (+ revisions), row and column access rules, layouts, Excel imports, files in Attachment columns |
 | `audit` | tm_events |
 | `compat` | the V5.7.7 API contract (state, commands, files, reports, dashboard) and `/api/v1/` resources |

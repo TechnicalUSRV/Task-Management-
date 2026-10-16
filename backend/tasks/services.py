@@ -2010,6 +2010,7 @@ class TaskService:
             from meetings.services import MeetingService
             return MeetingService(self).handle(action, d, actor, source)
         if action.startswith('tm.group.'):
-            fail('Groups are not available in this installation.', 403)
+            from groups.service import GroupService
+            return GroupService(self).handle(action, d, actor)
         fail('Unknown Task Management action.', 404)
 

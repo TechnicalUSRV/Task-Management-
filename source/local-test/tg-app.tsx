@@ -19,6 +19,7 @@ import { fileToBase64, photoFromFile } from './media';
 import { setDisplayZone, zoneName, zonedInput, zonedToIso } from './format';
 import { BrandTitle, LogoIcon } from './brand';
 import { API_BASE, uuid } from './api-client';
+import { PreviewPane, previewKind, type PreviewSource } from './file-preview';
 
 // The Telegram Mini App: a phone-sized screen for Task Management inside Telegram. It talks only to the
 // Mini App gateway, which checks Telegram's signed launch data and applies the person's Task Controlling Management permissions.
@@ -157,7 +158,7 @@ type Ctx = {
   /** A person's first name, or "You" / "you" for the person using the app. */
   who: (id?: string | null, lower?: boolean) => string;
   perform: (action: string, data: Row, options?: { quiet?: boolean }) => Promise<Row>; open: (v: View) => void; back: () => void; sheet: (s: SheetSpec) => void; setTab: (t: Tab) => void; showTasks: (scope: string) => void;
-  fileUrl: (f: Row, inline?: boolean) => string; viewFile: (f: Row) => void; download: (f: Row) => void;
+  fileUrl: (f: Row, inline?: boolean) => string; previewUrl: (f: Row) => string; viewFile: (f: Row) => void; download: (f: Row) => void;
 };
 
 // Open layers (sheets, people pickers, the photo viewer) close first when Telegram's Back button or Escape is used,
@@ -312,7 +313,9 @@ export function MiniApp() {
     who: (id, lower = false) => (id && id === me ? (lower ? 'you' : 'You') : first(name(id))),
     photo: id => (id && token && photos.has(id) ? `${API}/photo?staff=${encodeURIComponent(id)}&v=${photos.get(id)}&t=${token}` : undefined),
     open: v => setStack(s => [...s, v]), back, sheet: s => setSheet({ spec: s, key: ++sheetSeq.current }), setTab: t => { setStack([]); setTab(t); }, showTasks: sc => { setScope(sc); setArea('mine'); setStack([]); setTab('tasks'); },
-    fileUrl, download, viewFile: f => (PREVIEW_TYPES.includes(f.mime) ? setViewer(f) : download(f)),
+    fileUrl, previewUrl: f => `${API}/file-preview?id=${encodeURIComponent(f.id)}&t=${token}`, download,
+    // Images, PDFs and Word, Excel, PowerPoint, CSV and text files open in the in-app preview; anything else downloads.
+    viewFile: f => (previewKind(f.mime) !== 'none' ? setViewer(f) : download(f)),
   };
   const view = stack[stack.length - 1];
   const unread = (data.tm_notifications || []).filter((n: Row) => !n.read_at).length;
@@ -676,17 +679,16 @@ function FieldInput({ c, f, value, onChange, invalid }: { c: Ctx; f: Field; valu
   if (f.type === 'textarea' || !f.type) return <LField label={f.label} required={f.required}><textarea className="input" rows={3} value={value ?? ''} maxLength={2000} placeholder={f.placeholder} onChange={e => onChange(e.target.value)} aria-required={f.required || undefined} aria-invalid={bad} data-field={f.key} />{hint}</LField>;
   return <LField label={f.label} required={f.required}><input className="input" type={f.type} value={value ?? ''} min={f.min} maxLength={f.type === 'text' ? 300 : undefined} placeholder={f.placeholder} onChange={e => onChange(e.target.value)} aria-required={f.required || undefined} aria-invalid={bad} data-field={f.key} />{hint}</LField>;
 }
-/** A photo attached to a task, full screen, with a download button. */
+/** A file attached to a task, full screen: images and PDFs (zoom, pages) and readable Word, Excel, PowerPoint, CSV and
+ *  text files, with a download button. Telegram's Back button closes it. The short-lived media link is checked by the
+ *  server exactly like a download. */
 function Viewer({ c, file, onClose }: { c: Ctx; file: Row; onClose: () => void }) {
   useLayer(onClose);
+  const source = useMemo<PreviewSource>(() => ({ file: { id: file.id, name: file.name, mime: file.mime, size: file.size }, bytesUrl: c.fileUrl(file, true),
+    previewUrl: c.previewUrl(file), load: url => fetch(url, { credentials: API_BASE ? 'include' : 'same-origin' }), download: () => c.download(file) }), [file.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="viewer" role="dialog" aria-modal="true" aria-label={file.name}>
-      <div className="viewer-bar">
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><X aria-hidden="true" /></button>
-        <span className="viewer-name">{file.name}</span>
-        <button type="button" className="icon-btn" onClick={() => c.download(file)} aria-label={`Download ${file.name}`}><Download aria-hidden="true" /></button>
-      </div>
-      <div className="viewer-body" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><img src={c.fileUrl(file, true)} alt={file.name} /></div>
+      <PreviewPane source={source} onClose={onClose} dark />
     </div>
   );
 }
@@ -1010,7 +1012,7 @@ function TaskView({ c, id }: { c: Ctx; id: string }) {
         {files.length ? <ul className="files">
           {files.map(f => (
             <li key={f.id}>
-              <button type="button" className="file-open" onClick={() => c.viewFile(f)} aria-label={`${PREVIEW_TYPES.includes(f.mime) ? 'View' : 'Download'} ${f.name}`}>
+              <button type="button" className="file-open" onClick={() => c.viewFile(f)} aria-label={`${previewKind(f.mime) !== 'none' ? 'Preview' : 'Download'} ${f.name}`}>
                 {PREVIEW_TYPES.includes(f.mime) ? <img className="file-thumb" src={c.fileUrl(f, true)} alt="" loading="lazy" /> : <span className="file-thumb file-icon"><FileText aria-hidden="true" /></span>}
                 <span className="row-main"><span className="row-title">{f.name}</span><span className="row-meta">{kb(f.size)} · {c.who(f.uploaded_by)} · {fmtTime(f.created_at)}</span></span>
               </button>

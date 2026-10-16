@@ -22,7 +22,7 @@ from tasks.services import TaskService
 
 SPEC = json.loads((Path(__file__).parent / 'dump.json').read_text())
 VERSIONED = {'tm_tasks', 'tm_workspaces', 'tm_requests', 'tm_due_requests', 'tm_change_requests', 'tm_timesheets', 'tm_meetings',
-             'tm_meeting_changes', 'access_users', 'tm_calendar_notes'}
+             'tm_meeting_changes', 'access_users', 'tm_calendar_notes', 'tm_boards', 'tm_board_columns', 'tm_board_rows', 'tm_board_notes'}
 
 
 def _one(sql, *args):
@@ -125,6 +125,20 @@ class Scenario:
             return dm.task_today()[:7]
         if kind == 'change':
             return _one('SELECT id FROM tm_change_requests WHERE task_id=%s ORDER BY created_at DESC, id DESC LIMIT 1', args[0])
+        # Groups: a group by name, a column by group and column name, a row by group and position, the latest note, file
+        # and Excel upload.
+        if kind == 'group':
+            return _one('SELECT id FROM tm_boards WHERE name=%s', args[0])
+        if kind == 'gcol':
+            return _one('SELECT c.id FROM tm_board_columns c JOIN tm_boards b ON b.id=c.board_id WHERE b.name=%s AND c.name=%s', args[0], args[1])
+        if kind == 'grow':
+            return _one('SELECT r.id FROM tm_board_rows r JOIN tm_boards b ON b.id=r.board_id WHERE b.name=%s AND r.position=%s', args[0], int(args[1]))
+        if kind == 'gnote':
+            return _one('SELECT id FROM tm_board_notes ORDER BY id DESC LIMIT 1')
+        if kind == 'gfile':
+            return _one('SELECT id FROM tm_board_files ORDER BY id DESC LIMIT 1')
+        if kind == 'gimport':
+            return _one('SELECT id FROM tm_board_imports ORDER BY id DESC LIMIT 1')
         raise ValueError('Unknown placeholder ' + kind)
 
     def one(self, inner):
@@ -148,7 +162,8 @@ class Scenario:
         if isinstance(value, list):
             return [self.resolve(v) for v in value]
         if isinstance(value, dict):
-            return {k: self.resolve(v) for k, v in value.items()}
+            # Keys may be placeholders too (a Group row's values are keyed by column ID).
+            return {(self.resolve(k) if '${' in k else k): self.resolve(v) for k, v in value.items()}
         if not isinstance(value, str) or '${' not in value:
             return value
         whole = re.fullmatch(r'\$\{([^}]*)\}', value)
@@ -231,6 +246,39 @@ class Scenario:
             return reports.mini_state(user, '')
         if kind == 'org':
             return Governance().query(user.staff_id, data)
+        if kind.startswith('group'):
+            return self.read_group(kind, user, data)
+        raise ValueError(kind)
+
+    @staticmethod
+    def read_group(kind, user, data):
+        """What GET /api/tasks/group… answers (the counterpart of the Node driver's group reads)."""
+        from groups.service import GroupService
+        from groups.xlsx import read_xlsx
+        groups, staff, key = GroupService(TaskService(Governance())), user.staff_id, str(data.get('id') or '')[:60]
+        if kind == 'group':
+            return groups.read(key, staff, data)
+        if kind == 'group_rows':
+            return groups.query(key, staff, data)
+        if kind == 'group_notes':
+            return groups.notes(key, staff, data)
+        if kind == 'group_history':
+            return groups.note_history(key, staff, data.get('note'))
+        if kind == 'group_members':
+            return groups.members(key, staff, data.get('q') or '', data.get('offset'), data.get('limit'))
+        if kind == 'group_audience':
+            return groups.audience(key, staff)
+        if kind == 'group_import':
+            return groups.imports.describe(data.get('import'), staff)
+        if kind == 'group_preview':
+            return groups.imports.preview(data.get('import_id'), staff, data.get('plan'))
+        if kind == 'group_file':
+            f = groups.file(key, staff, data.get('file'))
+            return {'name': f.name, 'mime': f.mime, 'size': f.size, 'content': base64.b64encode(bytes(f.content)).decode()}
+        if kind == 'group_xlsx':
+            with transaction.atomic():
+                file = groups.xlsx(key, staff, data)
+            return {'name': file['name'], 'rows': file['rows'], 'sheets': read_xlsx(file['buffer'])}
         raise ValueError(kind)
 
     def play(self, scenario):

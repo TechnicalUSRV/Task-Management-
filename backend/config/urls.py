@@ -5,6 +5,7 @@ from django.urls import path, re_path
 from accounts import views as auth
 from compat import resources
 from compat import views as compat
+from groups import views as groups
 from telegram import gateway
 
 urlpatterns = [
@@ -20,6 +21,20 @@ urlpatterns = [
     path('api/state', compat.StateView.as_view()),
     path('api/photo', compat.PhotoView.as_view()),
     path('api/tasks/file', compat.TaskFileView.as_view()),
+    path('api/tasks/file/preview', compat.TaskFilePreviewView.as_view()),
+    # Groups (V5.4–V5.6.9): reads; every change goes through /api/command.
+    path('api/tasks/group', groups.GroupReadView.as_view(kind='group')),
+    path('api/tasks/group/rows', groups.GroupReadView.as_view(kind='rows')),
+    path('api/tasks/group/notes', groups.GroupReadView.as_view(kind='notes')),
+    path('api/tasks/group/note-history', groups.GroupReadView.as_view(kind='note-history')),
+    path('api/tasks/group/members', groups.GroupReadView.as_view(kind='members')),
+    path('api/tasks/group/audience', groups.GroupReadView.as_view(kind='audience')),
+    path('api/tasks/group/import', groups.GroupReadView.as_view(kind='import')),
+    path('api/tasks/group/import/preview', groups.ImportPreviewView.as_view()),
+    path('api/tasks/group/file', groups.GroupReadView.as_view(kind='file')),
+    path('api/tasks/group/file/preview', groups.GroupReadView.as_view(kind='file-preview')),
+    path('api/tasks/group.xlsx', groups.GroupReadView.as_view(kind='xlsx')),
+    path('api/google', groups.GoogleView.as_view()),
     path('api/tasks/report', compat.TaskReportView.as_view()),
     path('api/tasks/report.csv', compat.TaskReportView.as_view(kind='csv')),
     path('api/tasks/report.print', compat.TaskReportView.as_view(kind='print')),

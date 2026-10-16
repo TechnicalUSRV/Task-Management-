@@ -326,6 +326,25 @@ class Governance:
         return (w['owner_id'] == staff or self.governs(staff, w) or self.workspace_override(staff, w)
                 or self.member_role(w['id'], staff) == 'MEMBER')
 
+    def group_context(self, staff, b):
+        """organization.mjs groupContext(): who may open a Group of a governed or personal workspace.
+
+        None for legacy workspaces (the group's own sharing decides). `allowed` False hides the group; `admin` lets
+        authorized Administration manage Team groups of organizational workspaces; `viewer` limits inherited workspace
+        rights to viewing (direct grants and ownership stay independent)."""
+        from groups.models import BoardAccess
+        w = self.ws_by_id(b['workspace_id'])
+        if w and w['deleted_at']:
+            return {'allowed': False, 'admin': False, 'viewer': True}
+        if is_personal_workspace(w):
+            return {'allowed': self.can_view_workspace(staff, w), 'admin': False, 'viewer': staff != w['owner_id']}
+        if not self.governed(w):
+            return None
+        direct = BoardAccess.objects.filter(board_id=b['id'], staff_id=staff).exists()
+        allowed = b['owner_id'] == staff or self.member(w['id'], staff) or direct or self.global_workspaces(staff)
+        return {'allowed': bool(allowed), 'admin': w['kind'] == 'ORGANIZATIONAL' and b['visibility'] == 'TEAM' and bool(self.global_workspaces(staff)),
+                'viewer': self.member_role(w['id'], staff) == 'VIEWER'}
+
     def can_collaborate_outside(self, staff, w):
         if w and w['deleted_at']:
             return False

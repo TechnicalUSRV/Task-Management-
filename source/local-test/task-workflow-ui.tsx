@@ -4,7 +4,9 @@ import {
   AlarmClock, ArrowDown, ArrowRight, ArrowUp, Ban, Bell, BellRing, Eye as EyeIcon, CalendarClock, CheckCheck, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, ClipboardCheck, Download, FileClock, FileText, Hand, Inbox, Link2, ListChecks, MessageSquare, Paperclip, Pencil,
   PlayCircle, Plus, Printer, Repeat, RotateCcw, Scale, Send, ShieldCheck, Trash2, Undo2, UserCheck, UserRoundCog, Users, XCircle, type LucideIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,6 +20,7 @@ import {
 } from './task-domain.mjs';
 import { fileToBase64 } from './profile-ui';
 import { useServerReport } from './report-hook';
+import { TaskFilePreview } from './file-preview';
 import { useViewState } from './router';
 import { formatDate, formatDateTime, isMissing, plural } from './format';
 import {
@@ -227,6 +230,7 @@ const ASKED: Record<string, string> = { pic: 'to take charge of this task', supp
 export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskId: string; onClose: () => void; onEdit: (t: Row) => void }) {
   const tasks = useTasks(w), t = tasks.find((x: Row) => x.id === taskId);
   const [action, setAction] = useState<ActionSpec | null>(null), [comment, setComment] = useState(''), [busy, setBusy] = useState(false), [newItem, setNewItem] = useState(''), [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<Row | null>(null);
   const confirm = useConfirm(), headingId = useId();
   if (!t) return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
@@ -407,12 +411,14 @@ export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskI
                 {canFile && <label className={`btn-upload${uploading ? ' is-busy' : ''}`}><Paperclip aria-hidden="true" />{uploading ? 'Uploading…' : 'Attach a file'}<input type="file" accept={TASK_FILE_ACCEPT} disabled={uploading} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} /></label>}</div>
               {files.length ? <ul className="task-files">
                 {files.map(f => <li key={f.id}>
-                  {PREVIEW_TYPES.includes(f.mime) ? <a className="file-thumb" href={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}&inline=1`)} target="_blank" rel="noopener noreferrer"><img src={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}&inline=1`)} alt="" loading="lazy" /><span className="sr-only">Open {f.name} (new tab)</span></a> : <span className="file-icon" aria-hidden="true"><FileText /></span>}
-                  <span className="cell-stack"><a className="text-link" href={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}`)}><Download aria-hidden="true" className="inline-icon" />{f.name}</a><small>{kb(f.size)} · {name(f.uploaded_by)} · {formatDateTime(f.created_at)}{sourceLabel(f.source) ? ` · via ${sourceLabel(f.source)}` : ''}</small></span>
+                  {PREVIEW_TYPES.includes(f.mime) ? <button type="button" className="file-thumb" onClick={() => setPreview(f)}><img src={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}&inline=1`)} alt="" loading="lazy" /><span className="sr-only">Preview {f.name}</span></button> : <span className="file-icon" aria-hidden="true"><FileText /></span>}
+                  <span className="cell-stack"><button type="button" className="text-link file-open" onClick={() => setPreview(f)} title="Preview"><EyeIcon aria-hidden="true" className="inline-icon" />{f.name}</button><small>{kb(f.size)} · {name(f.uploaded_by)} · {formatDateTime(f.created_at)}{sourceLabel(f.source) ? ` · via ${sourceLabel(f.source)}` : ''}</small></span>
+                  <Tooltip><TooltipTrigger asChild><a className={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }), 'icon-button')} href={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}`)} download={f.name} aria-label={`Download ${f.name}`}><Download aria-hidden="true" /></a></TooltipTrigger><TooltipContent>Download</TooltipContent></Tooltip>
                   {(f.uploaded_by === me || roles.isGovernor) && <IconButton label={`Remove ${f.name}`} icon={Trash2} disabled={busy} onClick={() => void removeFile(f)} />}
                 </li>)}
               </ul> : <p className="muted small">No files yet. Attach photos, PDFs or documents (up to 30 MB each). In Telegram, reply to the task’s message with a photo or document.</p>}
             </section>}
+            {preview && <TaskFilePreview file={preview as Row & { id: string; name: string; mime: string }} onClose={() => setPreview(null)} />}
             <ChangeHistory w={w} taskId={t.id} />
             <section aria-labelledby={`h-${t.id}`}>
               <h3 className="text-section" id={`h-${t.id}`}>Activity</h3>
