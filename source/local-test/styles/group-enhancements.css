@@ -5,3 +5,7 @@
 @media(pointer:coarse){.cell-format-trigger{opacity:1;width:30px;height:30px}.grid-cell-view{padding-right:32px!important}}
 
 .grid-cell[style*="color"]>.grid-cell-view{color:inherit}.row-card-field{position:relative}.row-card-field .cell-format-trigger{position:static;display:inline-flex;margin-left:6px;opacity:1;vertical-align:middle}
+
+/* Review fix: with "Send to Telegram" open the popover can be taller than the space below the cell. Keep it on screen and
+   scroll inside it so the order, combine and Send controls stay reachable. */
+.attach-popover{max-height:min(var(--radix-popover-content-available-height,80vh),calc(100dvh - 16px));overflow-y:auto;overscroll-behavior:contain}

@@ -298,6 +298,7 @@ export function MiniApp() {
   if (status.kind !== 'ready' || !data) return <StatusScreen status={status} onRetry={() => { setStatus({ kind: 'loading' }); void load(); }} onLinked={() => { setStatus({ kind: 'loading' }); void load(); }} />;
   const me = data.auth.user.staff_id, perms = data.auth.permissions || {};
   const can = (r: string, a = 'view') => (perms[r] || []).includes(a);
+  const hasGroups = can('tasks.groups');
   const names = new Map<string, string>((data.lookups || []).map((l: Row) => [l.id, l.name]));
   const photos = new Map<string, number>((data.staff_photos || []).map((p: Row) => [p.staff_id, p.version]));
   const token = encodeURIComponent(media.current);
@@ -347,11 +348,12 @@ export function MiniApp() {
       </main>}
       {!view && (
         <nav className="tabbar" aria-label="Main">
-          {([['home', 'Home', Home], ['tasks', 'Tasks', ListChecks], ['calendar', 'Calendar', CalendarDays], ['groups', 'Groups', Table2], ['reports', 'Reports', PieChart], ['alerts', 'Alerts', Bell]] as [Tab, string, LucideIcon][]).map(([id, label, Icon]) => {
+          {/* Groups takes the Requests slot only for people whose role includes Groups; everyone else keeps the Requests tab. */}
+          {([['home', 'Home', Home], ['tasks', 'Tasks', ListChecks], ['calendar', 'Calendar', CalendarDays], hasGroups ? ['groups', 'Groups', Table2] : ['requests', 'Requests', Inbox], ['reports', 'Reports', PieChart], ['alerts', 'Alerts', Bell]] as [Tab, string, LucideIcon][]).map(([id, label, Icon]) => {
             // V5.6.8: Home shows the same number as its "Waiting for you" list.
-            const n = id === 'alerts' ? unread : id === 'tasks' ? waiting.requests.length : id === 'home' ? waiting.total : 0;
+            const n = id === 'alerts' ? unread : id === (hasGroups ? 'tasks' : 'requests') ? waiting.requests.length : id === 'home' ? waiting.total : 0;
             return (
-              <button key={id} type="button" className="tab" aria-current={tab === id || tab === 'requests' && id === 'tasks' ? 'page' : undefined} onClick={() => setTab(id)}
+              <button key={id} type="button" className="tab" aria-current={tab === id || hasGroups && tab === 'requests' && id === 'tasks' ? 'page' : undefined} onClick={() => setTab(id)}
                 aria-label={n ? `${label}, ${n} ${id === 'alerts' ? 'unread' : 'waiting for you'}` : undefined}>
                 <span className="tab-icon" aria-hidden="true"><Icon />{n > 0 && <span className="dot-count">{n > 9 ? '9+' : n}</span>}</span>
                 <span>{label}</span>
@@ -704,7 +706,8 @@ const byDue = (a: Row, b: Row) => a.due_date.localeCompare(b.due_date);
 function TaskActions({ c }: { c: Ctx }) {
   return <div className="actions-row" aria-label="Task actions">
     {c.can('tasks.tasks', 'create') && <button type="button" className="btn primary" onClick={() => c.open({ kind: 'task-form' })}><Plus />New Task</button>}
-    {c.can('tasks.requests', 'create') && <button type="button" className="btn" onClick={() => c.open({ kind: 'request-form' })}><Send />Request Task</button>}
+    {/* Requests are authorized like other task work (Tasks · View); there is no separate tasks.requests permission. */}
+    {c.can('tasks.tasks') && <button type="button" className="btn" onClick={() => c.open({ kind: 'request-form' })}><Send />Request Task</button>}
     <button type="button" className="btn" onClick={() => c.setTab('requests')}><Inbox />Requests</button>
   </div>;
 }

@@ -1,6 +1,7 @@
 """Queued delivery to the caller's own Telegram. Network work never holds the command lock."""
 from datetime import timedelta
 from io import BytesIO
+import time
 import uuid
 
 from django.db import transaction
@@ -9,12 +10,19 @@ from core.errors import InputError, fail
 from core.services import write_lock
 from telegram import services as telegram
 from telegram.models import TelegramLink
+from tasks.filecheck import content_matches
 from . import js
 from .models import BoardDelivery
 
 MAX_DOCUMENT = 50_000_000
 MAX_MERGE = 100_000_000
 MAX_PAGES = 1000
+# Telegram asks bots to send about one message per second to one chat; bursts beyond that are refused with 429.
+SEND_INTERVAL = 1.1
+
+
+def pause(seconds):
+    time.sleep(seconds)
 
 
 def linked(actor):
@@ -39,7 +47,8 @@ def files_for(g, board, actor, ids, mode, inspect_pdf=True):
             fail('Choose at least two PDF files to combine.')
         if sum(f.size for f in files) > MAX_MERGE:
             fail('Choose PDFs totaling at most 100 MB.', 413)
-        if inspect_pdf and any(not bytes(f.content).lstrip().startswith(b'%PDF-') for f in files):
+        # Same rule as the upload check, so a PDF accepted into a cell is never refused here.
+        if inspect_pdf and any(not content_matches('pdf', bytes(f.content)) for f in files):
             fail('Choose at least two PDF files to combine.')
     return files
 
@@ -76,7 +85,9 @@ def enqueue(g, d, actor):
     if not cfg['enabled'] or not cfg['bot_token']:
         fail('Telegram delivery is unavailable. Ask an administrator to enable the bot.', 409)
     link = linked(actor)
-    files = files_for(g, b['id'], actor, d.get('file_ids'), d.get('mode'))
+    # Metadata only: uploads were content-checked already and the worker re-checks before merging, so a click never
+    # loads up to 100 MB of file contents into the web server.
+    files = files_for(g, b['id'], actor, d.get('file_ids'), d.get('mode'), inspect_pdf=False)
     jobs = BoardDelivery.objects.filter(staff_id=actor)
     if jobs.filter(status__in=['QUEUED', 'SENDING']).count() >= 3 or jobs.filter(created_at__gt=g.now() - timedelta(hours=1)).count() >= 30:
         fail('Too many deliveries. Wait for current deliveries to finish and try later.', 429)
@@ -124,6 +135,9 @@ def process_next(transport=None):
     """Claim exactly once. A crash/ambiguous timeout is not retried automatically (Telegram has no deduplication key)."""
     from .views import service
     from telegram.bot import http_transport, TELEGRAM_API, TelegramError
+    # Idle check without the shared write lock: this runs every two seconds, and every user command waits for that lock.
+    if not BoardDelivery.objects.filter(status__in=['QUEUED', 'SENDING']).exists():
+        return False
     with transaction.atomic():
         write_lock()
         BoardDelivery.objects.filter(status='SENDING', updated_at__lt=timezone.now() - timedelta(minutes=10)).update(
@@ -143,6 +157,8 @@ def process_next(transport=None):
         merged = merge_pdfs(files) if job.mode == 'MERGED_PDF' else None
         del files
         for i in range(1 if merged else len(ids)):
+            if i:
+                pause(SEND_INTERVAL)
             # Fresh governance and access checks for every outbound document.
             g = service()
             if not g.gov.active(job.staff_id):

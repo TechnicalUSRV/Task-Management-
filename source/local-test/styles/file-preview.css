@@ -118,3 +118,5 @@
 .fp-continuous{padding:12px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:20px}.fp-scroll-page{position:relative;flex-shrink:0;background:#fff;min-width:min(100%,280px);box-shadow:0 2px 8px #0003;scroll-margin-top:12px}.fp-scroll-page canvas{display:block;max-width:none}.fp-scroll-label{position:absolute;top:3px;left:6px;color:#667085;font-size:10px;pointer-events:none}.fp-file-nav{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px;flex-shrink:0;border-bottom:1px solid #aab4c333}.fp-file-nav button{display:flex;align-items:center;gap:4px;min-height:36px;padding:5px 9px;font-size:12px}.fp-file-nav button:disabled{opacity:.4}
 
 .fp-continuous{width:max-content;min-width:100%}
+/* Review fix: explicit colors, so Previous/Next File stay readable in the Mini App's dark viewer (no button reset there). */
+.fp-file-nav button{color:inherit;background:transparent;border:1px solid #aab4c366;border-radius:6px;font:inherit;font-size:12px;cursor:pointer}.fp-file-nav button:not(:disabled):hover{background:#aab4c322}.fp-file-nav button:disabled{cursor:default}

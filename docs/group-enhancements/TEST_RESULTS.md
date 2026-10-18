@@ -41,4 +41,24 @@ All Telegram transport calls in tests are mocked. No employee received a test me
 3. Verify actual document delivery with a dedicated test bot and test accounts, including bot blocking, access changes and uncertain delivery handling.
 4. Measure representative Group sizes and PDF batches on the office server; check frontend loading on the intended office network and public Mini App connection.
 
+## Review follow-up — 18 October 2026
+
+An independent review of commit `a48ea77` ran the full suite, built the frontend and walked through every feature in Chromium (desktop 1440×900 and a 390×780 phone viewport with signed Mini App launch data) on a local SQLite copy with synthetic data. Telegram sending used the real worker with a capturing transport; nothing was sent to Telegram. Fixes made on this branch:
+
+| Area | Problem found | Fix |
+| --- | --- | --- |
+| Group page load | Each row on a page ran its own cell-color query (up to 200 extra queries per page). | One query per page (`styles_by_row`). Test: query count is the same for 2 and 12 rows. |
+| Delivery worker | Polled every 2 s while holding the global write lock, even with nothing queued, so every user command could wait for it. | Unlocked idle check first; the lock is taken only when a job is queued or sending. |
+| Queueing a delivery | The web request loaded up to 100 MB of file contents to re-check PDF headers that uploads already verified. | Metadata only at queue time; the worker still checks before merging. |
+| PDF merge | Used a stricter PDF check than upload, so an accepted PDF with bytes before `%PDF-` could not be combined. | Same rule as the upload check. |
+| Separate sends | Up to 20 documents sent back to back; Telegram refuses bursts in one chat (429). | ~1.1 s between documents. |
+| Internal import | Row selection checked against a list (slow for thousands of rows). | Set lookup. Share/source lists cache permission lookups for the request. |
+| Attachment popover | With *Send to Telegram* open it grew below the screen: order, Combine and Send were unreachable. | Limited to the available height and scrolls inside. |
+| Mini App · Tasks | *Request Task* checked a `tasks.requests` permission that does not exist, so it never appeared (Home's button had been removed). | Uses the backend rule for requests (Tasks · View). |
+| Mini App · tab bar | People without Groups permission got a Groups tab that only said they had no access, and lost the Requests tab. | They keep the Requests tab. |
+| Mini App · styling | Table cells and file names showed heavy browser-default button borders; *Next File* was white on white in the dark viewer. | Explicit button styles. |
+| Sidebar | The new icons broke the rule that lets long labels wrap ("Organizational Struc…"). | Selector fixed; labels wrap. |
+
+After the fixes: **115 passed, 102 subtests passed** (four new regression tests, each confirmed to fail on `a48ea77`); migrations consistent; typecheck, display-format test and build passed. Remaining acceptance items 1, 3 and 4 above still apply; item 2 is covered for Chromium, but not for Telegram on real Android/iOS devices.
+
 Use the detailed acceptance, backup and recovery steps in [DEPLOYMENT.md](DEPLOYMENT.md). This branch is implemented and automatically tested; it is **not yet accepted for production deployment**.

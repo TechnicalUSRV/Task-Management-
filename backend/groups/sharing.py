@@ -26,6 +26,7 @@ class DataSharing:
                 (recipient == w['owner_id'] or self.g.is_member(w['id'], recipient) or self.g.gov.can_collaborate_outside(actor, w)))
 
     def describe(self, key, actor):
+        self.g.remember_lookups()  # read-only: one permission/membership lookup per person, not per check
         b, _ = self.manager(key, actor)
         people = [{'id': s, 'name': self.g.name_of(s)} for s in User.objects.filter(active=True).values_list('staff_id', flat=True)
                   if s != actor and self.recipient_allowed(b, actor, s)]
@@ -94,6 +95,7 @@ class DataSharing:
         return b, sight, columns, grant
 
     def sources(self, destination, actor):
+        self.g.remember_lookups()  # read-only pass over every active Group
         _, caps = self.g.open_board(destination, actor)
         self.g.need(caps, 'import', 'You cannot import into this group.')
         found = []
@@ -118,9 +120,10 @@ class DataSharing:
         if row_ids is not None and (not isinstance(row_ids, list) or not row_ids or len(row_ids) > 20000 or not all(isinstance(x, str) for x in row_ids)):
             fail('Choose source rows.')
         prepared = dm.prepare_formulas(sight['all'])
+        wanted = set(row_ids) if row_ids is not None else None  # up to 20,000 IDs: a set, not a list scan per row
         rows = []
         for r in self.g.rows_of(b['id']):
-            if not sight['rowOk'](r['id']) or row_ids is not None and r['id'] not in row_ids:
+            if not sight['rowOk'](r['id']) or wanted is not None and r['id'] not in wanted:
                 continue
             out = {'values': r['values'], 'computed': dm.compute_row(r['values'], sight['all'], prepared)}
             cells = []
@@ -132,7 +135,7 @@ class DataSharing:
                     v = ', '.join(v or [])
                 cells.append({'v': v})
             rows.append({'id': r['id'], 'cells': cells})
-        if row_ids is not None and set(row_ids) != {r['id'] for r in rows}:
+        if wanted is not None and wanted != {r['id'] for r in rows}:
             fail('Source rows changed or are no longer shared.', 409)
         # No expressions, unrelated columns, workspace membership, or hidden-row metadata leave this service.
         return {'name': b['name'], 'columns': [{'id': c['id'], 'name': c['name'], 'type': 'NUMBER' if c['type'] == 'FORMULA' else c['type']} for c in cols],

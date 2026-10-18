@@ -406,3 +406,66 @@ def test_merge_keeps_annotation_appearance_but_removes_actions(files):
     reader = PdfReader(BytesIO(result['content']))
     copied = reader.pages[0]['/Annots'][0].get_object()
     assert copied['/Contents'] == 'Approved stamp note' and '/A' not in copied
+
+
+# ---------------------------------------------------------------- review follow-ups (performance and pacing)
+@pytest.fixture(autouse=True)
+def no_pacing(monkeypatch):
+    """The real worker waits ~1 s between documents (Telegram's per-chat rate); tests record the waits instead."""
+    waits = []
+    monkeypatch.setattr('groups.delivery.pause', waits.append)
+    return waits
+
+
+def test_cell_colors_load_in_one_query_per_page(team):
+    from django.test.utils import CaptureQueriesContext
+    _, _, clients, ws = team
+    a = clients['dara']
+    g, item = board(a, ws, 'Colored rows')
+    rows = [record(a, g, {item: f'Row {i}'}) for i in range(12)]
+    for rid in rows[:6]:
+        version = BoardRow.objects.get(id=rid).version
+        command(a, 'tm.group.cell.format', {'group_id': g, 'row_id': rid, 'column_id': item, 'expected_version': version,
+                                           'style': {'background_color': '#FEF0C7'}})
+
+    def style_queries(limit):
+        with CaptureQueriesContext(connection) as q:
+            page = ok(a.get(f'/api/tasks/group/rows?id={g}&limit={limit}'))
+        return page, sum('tm_board_cell_styles' in x['sql'] for x in q.captured_queries)
+    small, few = style_queries(2)
+    full, many = style_queries(12)
+    assert few == many == 1
+    assert sum(1 for r in full['rows'] if r.get('styles', {}).get(item, {}).get('background_color') == '#FEF0C7') == 6
+
+
+def test_idle_delivery_worker_does_not_take_the_write_lock(files):
+    from django.test.utils import CaptureQueriesContext
+    with CaptureQueriesContext(connection) as q:
+        assert not process_next(lambda *args: pytest.fail('Nothing is queued'))
+    assert len(q.captured_queries) == 1 and q.captured_queries[0]['sql'].lstrip().upper().startswith('SELECT')
+
+
+def test_queueing_reads_metadata_only_and_separate_sends_are_paced(files, no_pacing):
+    from django.test.utils import CaptureQueriesContext
+    _, _, c, g, _, _, ids = files
+    with CaptureQueriesContext(connection) as q:
+        ok(delivery(c['dara'], g, ids, 'MERGED_PDF'))
+    assert not any('"tm_board_files"."content"' in x['sql'] for x in q.captured_queries)
+    job = ok(delivery(c['dara'], g, ids))['result']['delivery']
+    sent = []
+    assert process_next(lambda *args: sent.append(args) or {'message_id': len(sent)})   # merged: one document, no wait
+    assert len(sent) == 1 and no_pacing == []
+    assert process_next(lambda *args: sent.append(args) or {'message_id': len(sent)})   # separate: wait between the two
+    assert len(sent) == 3 and len(no_pacing) == 1 and no_pacing[0] >= 1
+    assert BoardDelivery.objects.get(id=job['id']).status == 'SENT'
+
+
+def test_merge_accepts_any_pdf_the_upload_check_accepts(files):
+    _, _, c, g, r, col, ids = files
+    # A real PDF with a byte-order mark before its header (some exporters write one): accepted at upload, so it must merge too.
+    padded = attach(c['dara'], g, r, col, 'Scanner.pdf', b'\xef\xbb\xbf' + pdf([140]))
+    job = ok(delivery(c['dara'], g, [ids[0], padded], 'MERGED_PDF'))['result']['delivery']
+    sent = []
+    assert process_next(lambda *args: sent.append(args[3]) or {'message_id': 1})
+    assert BoardDelivery.objects.get(id=job['id']).status == 'SENT'
+    assert [float(p.mediabox.width) for p in PdfReader(BytesIO(sent[0]['content'])).pages] == [100, 110, 140]

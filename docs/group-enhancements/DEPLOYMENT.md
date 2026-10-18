@@ -7,7 +7,20 @@ This change is prepared on `feature/groups-mobile-sharing`, based on `09154e3cfe
 1. Record `git rev-parse HEAD`, `git status --short`, the active Python environment, `python -m pip freeze`, Node version and the current service definitions. Keep local changes; do not use `git reset --hard` or overwrite configuration to update.
 2. Securely back up `backend\.env`, any frontend environment file, WinSW service XML/configuration, the tunnel configuration, and the currently built `source\local-test\public` folder. Keep existing Django/Telegram encryption keys; the bot token depends on them. Do not put secrets in GitHub or this report.
 3. Have the DBA make a **full SQL Server backup** of `TaskManagement_Production`, using a new backup file and backup checksums. Retain the recovery-chain/log backups required by the company's recovery policy. Attachments and Group data are in this database; a Git backup alone does not protect them.
+
+   Connect SSMS with a SQL login that has `BACKUP DATABASE` permission on this database. The application login (`taskmanagement_app`) and the migration login (`taskmanagement_migrator`) do **not** have it: a backup run as either fails with *BACKUP DATABASE permission denied*, and that message means no backup was written. Example (change the date in the file name):
+
+   ```sql
+   BACKUP DATABASE [TaskManagement_Production]
+   TO DISK = N'D:\Task Controlling Management SQL\Backups\TaskManagement_Production_YYYYMMDD_before_group_sharing.bak'
+   WITH COPY_ONLY, INIT, CHECKSUM, NAME = N'Before Group sharing / Telegram delivery';
+   RESTORE VERIFYONLY FROM DISK = N'D:\Task Controlling Management SQL\Backups\TaskManagement_Production_YYYYMMDD_before_group_sharing.bak' WITH CHECKSUM;
+   ```
+
+   Both statements must finish without an error (`BACKUP DATABASE successfully processed … pages` and `The backup set on file 1 is valid`). Then confirm the new file and its size with `Get-ChildItem "D:\Task Controlling Management SQL\Backups\*.bak" | Sort-Object LastWriteTime -Descending`. Copy it off the server as well: a backup on the same disk does not survive a disk or server failure.
 4. Verify the backup and restore it to an isolated staging database. A successful file verification alone is not a complete restore test. Record the restore duration and recovery point. Limit access to the restored company data.
+
+   *Office server note:* `SERVERSYSTEM` runs SQL Server Express with `TaskManagement_Production` as the only database this application may use, and other databases there must not be changed. A staging restore therefore needs another machine/instance, or an explicit decision by the system owner to create a separate staging database on `SERVERSYSTEM`. Do not restore over `TaskManagement_Production`.
 5. Use a separate staging checkout, least-privilege SQL login and migration login. Set its `DB_NAME` explicitly to the staging database. Disable the restored production Telegram bot before starting any staging worker. Use a dedicated test bot and test accounts for outbound verification. Never run two polling workers against the production bot token.
 
 ## 2. Prepare and test staging
@@ -27,7 +40,7 @@ git switch --track origin/feature/groups-mobile-sharing
 Set-Location .\source
 npm ci
 npm run typecheck
-node local-test/group-presentation-test.mjs
+node local-test/group-presentation-test.mjs   # Node 24+. On Node 22: node --experimental-strip-types local-test/group-presentation-test.mjs
 npm run build
 Set-Location ..\backend
 python manage.py showmigrations groups
@@ -71,10 +84,13 @@ In Administrator PowerShell, with the existing service names from `tools/windows
 
 ```powershell
 Stop-Service TMNgrok
-Stop-Service TMOfficeWeb
-Stop-Service TMMiniApp
 Stop-Service TMWorkers
+Stop-Service TMMiniApp
+Stop-Service TMOfficeWeb
+Get-Service TMOfficeWeb,TMMiniApp,TMWorkers,TMNgrok   # all four must show Stopped
 ```
+
+This is the order in `tools/windows-services/README.md`. The startup script refuses to run while any of the four is still running (for example *TMOfficeWeb is not stopped*); stop it and run the script again.
 
 Update the **existing service checkout** to the reviewed commit, preserving all environment/service files. Repeat the dependency installation, frontend build, `migrate_database`, `check_database` and `showmigrations groups` commands above, this time after verifying the production database target. Preserve the old commit and built assets for rollback.
 
