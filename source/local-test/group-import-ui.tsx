@@ -1,3 +1,4 @@
+import { InternalImportSource } from './group-sharing-ui';
 // V5.5 Groups · Import data from Excel, in eight steps: upload, worksheets, header rows, rows and columns, mapping,
 // check (the server works out exactly what would happen, nothing is saved), import, and the result. The server checks
 // everything again when importing; importing the same upload twice never adds its rows twice.
@@ -51,6 +52,7 @@ function parseRows(text: string): number[] | null | 'error' {
 }
 
 export function ImportWizard({ groupId, groupName, columns, canCreateColumns, onClose, onDone }: { groupId: string; groupName: string; columns: Row[]; canCreateColumns: boolean; onClose: () => void; onDone: () => void }) {
+  const [sourceKind, setSourceKind] = useState('file');
   const [step, setStep] = useState(0), [busy, setBusy] = useState(''), [error, setError] = useState('');
   const [imp, setImp] = useState<Row | null>(null), [chosen, setChosen] = useState<number[]>([]), [plans, setPlans] = useState<Record<number, SheetPlan>>({});
   const [mode, setMode] = useState<'append' | 'update'>('append'), [unmatched, setUnmatched] = useState<'add' | 'skip'>('add'), [createLabels, setCreateLabels] = useState(false);
@@ -80,6 +82,13 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
       })));
       setStep(1);
     } catch (e) { setError((e as Error).message); } finally { setBusy(''); }
+  };
+
+  const internalReady = (next: Row) => {
+    const sheet = next.sheets[0], heads = headersOf(sheet, 1), map: Record<number, Mapping> = {};
+    heads.forEach((name, i) => { const same = targets.find(c => nameKey(c.name) === nameKey(name)); map[i] = same ? { target: same.id } : canCreateColumns ? { new: { name, type: next.source_columns[i].type } } : { skip: true }; });
+    setImp(next); setChosen([0]); setPlans({ 0: { header_row: 1, rows: '', cols: heads.map((_, i) => i), map, key: null } });
+    setResult(null); setPreview(null); setPeople({}); setStep(4);
   };
 
   // ---------------------------------------------------------------- 5. mapping defaults (by header name)
@@ -136,13 +145,14 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
         <DialogHeader><DialogTitle><FileSpreadsheet aria-hidden="true" className="inline-icon" />Import data into “{groupName}”</DialogTitle>
           <DialogDescription>{imp ? `${imp.file_name} · ${sheets.length} ${plural(sheets.length, 'worksheet')}` : 'From an Excel workbook (.xlsx). Nothing is saved until you confirm.'}</DialogDescription></DialogHeader>
         <ol className="wizard-steps" aria-label="Import steps">
-          {STEPS.map((s, i) => <li key={s} className={i === step ? 'is-current' : i < step ? 'is-done' : ''} aria-current={i === step ? 'step' : undefined}><span className="wizard-dot num" aria-hidden="true">{i < step ? <Check /> : i + 1}</span><span className="wizard-label">{s}</span></li>)}
+          {STEPS.map((s, i) => imp?.internal && i > 0 && i < 4 ? null : <li key={s} className={i === step ? 'is-current' : i < step ? 'is-done' : ''} aria-current={i === step ? 'step' : undefined}><span className="wizard-dot num" aria-hidden="true">{i < step ? <Check /> : imp?.internal && i >= 4 ? i - 2 : i + 1}</span><span className="wizard-label">{i === 0 ? 'Source' : s}</span></li>)}
         </ol>
         <div className="dialog-body stack import-body">
           {error && <Alert tone="danger" title="Check this" live>{error}</Alert>}
           {busy && <p className="import-busy" role="status"><Loader2 className="spin" aria-hidden="true" />{busy}</p>}
 
-          {step === 0 && <div className="import-drop">
+          {step === 0 && <><Picker label="Import source" value={sourceKind} allowNone={false} options={[["file", "Excel file (.xlsx)"], ["group", "Another Group / shared data"]]} onChange={setSourceKind} />{sourceKind === 'group' && <InternalImportSource groupId={groupId} onReady={internalReady} />}</>}
+          {step === 0 && sourceKind === 'file' && <div className="import-drop">
             <Upload aria-hidden="true" />
             <p><strong>Choose an Excel workbook</strong> (.xlsx, up to {GROUP_LIMITS.importBytes / 1048576} MB). Every worksheet is read; you choose which to import next.</p>
             <input ref={fileRef} type="file" aria-label="Excel workbook to import" tabIndex={-1} accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} />
@@ -204,7 +214,7 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
           {step === 7 && result && <ImportResult result={result} />}
         </div>
         <div className="dialog-footer">
-          {step > 0 && step < 6 && <div className="footer-start"><Button type="button" variant="ghost" disabled={!!busy} onClick={() => { setError(''); setStep(step === 5 ? 4 : step - 1); }}><ChevronLeft />Back</Button></div>}
+          {step > 0 && step < 6 && <div className="footer-start"><Button type="button" variant="ghost" disabled={!!busy} onClick={() => { setError(''); setStep(imp?.internal && step === 4 ? 0 : step === 5 ? 4 : step - 1); }}><ChevronLeft />Back</Button></div>}
           <Button type="button" variant="outline" disabled={!!busy && step !== 0} onClick={onClose}>{step === 7 ? 'Close' : 'Cancel'}</Button>
           {step >= 1 && step <= 4 && <Button type="button" disabled={!canNext || !!busy} onClick={next}>{step === 4 ? 'Check the import' : 'Next'}<ChevronRight /></Button>}
           {step === 5 && preview && (preview.unresolved?.length ? <Button type="button" disabled={!!busy || preview.unresolved.some((u: Row) => !people[u.text])} onClick={() => void check()}>Check again</Button>

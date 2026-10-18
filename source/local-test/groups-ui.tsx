@@ -1,3 +1,9 @@
+import { Share2 } from 'lucide-react';
+import { CheckboxField } from './ui-kit';
+import { formatColumnNumber, cellColors } from './group-presentation';
+import { CellFormatControl } from './group-cell-format';
+import { GroupDelivery } from './group-delivery-ui';
+import { ShareDataDialog } from './group-sharing-ui';
 // Task Management → Workspace → Groups → a group (V5.4). A group is a customizable table: its own columns (Text, Date,
 // Number, Status, In Charge, Support, Formula, and V5.6.9 Attachment), rows, sharing and formulas. The server checks and calculates everything;
 // this screen previews formulas with the same rules (group-domain.mjs) and never shows a save before the server confirms it.
@@ -18,7 +24,7 @@ import type { Row } from './components';
 import type { Workspace } from './ui';
 import {
   COLUMN_TYPES, COLUMN_HINTS, STATUS_COLORS, DEFAULT_STATUS_LABELS, LEVELS, LEVEL_LABELS, LEVEL_HINTS, FORMULA_FUNCTIONS, FORMULA_RULES, FORMULA_ERRORS, GROUP_LIMITS,
-  groupCaps, cellText, formatNumber, formatResult, formatDay, cleanCell, columnNameError, compileFormula, previewFormula, statusLabels, emptyValue, levelKey,
+  groupCaps, cellText, formatResult, formatDay, cleanCell, columnNameError, compileFormula, previewFormula, statusLabels, emptyValue, levelKey,
 } from './group-domain.mjs';
 import { groupCommand, groupRead, type GroupError } from './group-api';
 import { GroupFilePreview } from './file-preview';
@@ -165,6 +171,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   const [search, setSearch] = useState(view.q);
   const [active, setActive] = useState<{ row: string; col: string } | null>(null);
   const [cells, setCells] = useState<Record<string, CellState>>({});
+  const [shareColumn, setShareColumn] = useState<Row | null>(null);
   const [columnDialog, setColumnDialog] = useState<{ column?: Row; after?: string } | null>(null);
   const [cellDialog, setCellDialog] = useState<{ row: Row; col: Row } | null>(null);
   const [showAccess, setShowAccess] = useState(false), [showActivity, setShowActivity] = useState(false), [filterFor, setFilterFor] = useState<Row | null>(null), [busy, setBusy] = useState(false);
@@ -909,7 +916,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                           onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); moveColumnBy(c.id, e.key === 'ArrowLeft' ? -1 : 1); } }}><GripVertical aria-hidden="true" /></button>
                         <ColumnMenu col={c} caps={caps} sort={view.sort?.col === c.id ? view.sort?.dir ?? null : null} columns={columns}
                           onSort={dir => setV({ sort: dir ? { col: c.id, dir } : null })} onFilter={() => setFilterFor(c)} onHide={() => hideColumn(c)} onEdit={() => setColumnDialog({ column: c })} onInsert={() => setColumnDialog({ after: c.id })}
-                          onRestrict={() => setRuleFor({ kind: 'column', column: c })} onDelete={() => void deleteColumn(c)} />
+                          onShare={() => setShareColumn(c)} onRestrict={() => setRuleFor({ kind: 'column', column: c })} onDelete={() => void deleteColumn(c)} />
                       </div>
                       <ResizeHandle name={c.name} width={widthOf(c)} onResize={v => setWidths(s => ({ ...s, [c.id]: v }))} onCommit={() => commitWidth(c)} />
                     </th>
@@ -948,7 +955,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
               {Object.keys(page.totals || {}).some(k => shown.some(c => c.id === k)) && rows.length > 0 && <tfoot>
                 <tr>
                   <th scope="row" className="grid-rownum"><span className="small" title={`Totals of all ${page.total} matching rows`}>Σ</span></th>
-                  {shown.map((c, i) => { const t = page.totals[c.id]; return <td key={c.id} data-column-id={c.id} style={columnStyle(c.id)} data-lifted={drag?.id === c.id || undefined} className={t ? 'grid-total num' : 'grid-total'}>{t ? (t.errors ? <span className="text-danger small" title="Some rows have an error in this column, so no total is shown.">{t.errors} {plural(t.errors, 'error')}</span> : <span title={`Total of ${page.total} ${plural(page.total, 'row')}`}>{formatNumber(t.sum, c.settings?.decimals)}</span>) : i === 0 ? <span className="muted small">Total of {sizeText(page.total)}</span> : null}</td>; })}
+                  {shown.map((c, i) => { const t = page.totals[c.id]; return <td key={c.id} data-column-id={c.id} style={columnStyle(c.id)} data-lifted={drag?.id === c.id || undefined} className={t ? 'grid-total num' : 'grid-total'}>{t ? (t.errors ? <span className="text-danger small" title="Some rows have an error in this column, so no total is shown.">{t.errors} {plural(t.errors, 'error')}</span> : <span title={`Total of ${page.total} ${plural(page.total, 'row')}`}>{formatColumnNumber(t.sum, c.settings)}</span>) : i === 0 ? <span className="muted small">Total of {sizeText(page.total)}</span> : null}</td>; })}
                 </tr>
               </tfoot>}
             </table>
@@ -967,8 +974,8 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                   </div>
                   <dl className="row-card-fields">
                     {shown.map(c => (
-                      <div key={c.id} className="row-card-field">
-                        <dt>{c.name}</dt>
+                      <div key={c.id} className="row-card-field" style={cellColors(r, c)}>
+                        <dt>{c.name}{caps.editRows && <CellFormatControl groupId={id} row={r} col={c} onSaved={replaceRow} />}</dt>
                         <dd>{c.type === 'ATTACHMENT' ? <AttachmentCell row={r} col={c} groupId={id} caps={caps} replaceRow={replaceRow} inline /> : <CellDisplay row={r} col={c} value={valueOf(c, r)} nameOf={nameOf} />}
                           {caps.editRows && c.type !== 'FORMULA' && c.type !== 'ATTACHMENT' && <IconButton label={`Edit ${c.name}`} icon={Pencil} onClick={() => setCellDialog({ row: r, col: c })} />}
                           {cells[cellKey(r.id, c.id)]?.state === 'error' && <span className="text-danger small">{cells[cellKey(r.id, c.id)]?.message}</span>}
@@ -988,6 +995,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
         <Button size="sm" variant="outline" disabled={(view.page + 1) * view.size >= page.total} onClick={() => setV({ page: view.page + 1 })}>Next<ChevronRight /></Button>
         <label className="page-size small">Rows per page <select className="control" value={view.size} onChange={e => setV({ size: Number(e.target.value) })}>{PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       </nav>}
+      {shareColumn && <ShareDataDialog groupId={id} columns={columns} initialColumn={shareColumn.id} onClose={() => setShareColumn(null)} />}
       {columnDialog && <ColumnDialog w={w} group={g} columns={columns} rows={rows} column={columnDialog.column} after={columnDialog.after} onClose={() => setColumnDialog(null)}
         onSaved={async message => { setColumnDialog(null); await load(true); void w.refresh({ quiet: true }); toast.success(message); }} />}
       {cellDialog && <CellDialog row={cellDialog.row} col={cellDialog.col} {...editors} onClose={() => setCellDialog(null)} />}
@@ -1047,8 +1055,8 @@ function ResizeHandle({ name, width, onResize, onCommit, limits = GROUP_LIMITS.w
   );
 }
 
-function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit, onInsert, onRestrict, onDelete }: {
-  col: Row; caps: Row; sort: 'asc' | 'desc' | null; columns: Row[]; onSort: (d: 'asc' | 'desc' | null) => void; onFilter: () => void; onHide: () => void; onEdit: () => void; onInsert: () => void; onRestrict: () => void; onDelete: () => void;
+function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit, onInsert, onRestrict, onShare, onDelete }: {
+  col: Row; caps: Row; sort: 'asc' | 'desc' | null; columns: Row[]; onShare: () => void; onSort: (d: 'asc' | 'desc' | null) => void; onFilter: () => void; onHide: () => void; onEdit: () => void; onInsert: () => void; onRestrict: () => void; onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const Icon = TYPE_ICON[col.type], formula = col.type === 'FORMULA' ? col.settings?.display : '';
@@ -1075,6 +1083,7 @@ function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit
           <DropdownMenuItem onSelect={onEdit}><Pencil />{col.type === 'FORMULA' ? 'Edit formula and column…' : 'Rename or change column…'}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onInsert}><Plus />Add column after</DropdownMenuItem>
         </>}
+        {caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShare}><Share2 />Share Data…</DropdownMenuItem>}
         {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />Restrict access…</DropdownMenuItem>}
         {caps.deleteColumns && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />Delete column…</DropdownMenuItem></>}
       </DropdownMenuContent>
@@ -1134,9 +1143,9 @@ function CellDisplay({ row, col, value, nameOf }: { row: Row; col: Row; value: u
   switch (col.type) {
     case 'FORMULA': {
       if (value && typeof value === 'object') { const code = (value as Row).error; return <span className="cell-error" title={FORMULA_ERRORS[code as keyof typeof FORMULA_ERRORS]}><CircleAlert aria-hidden="true" />{code}<span className="sr-only">: {FORMULA_ERRORS[code as keyof typeof FORMULA_ERRORS]}</span></span>; }
-      return <span className="num">{formatResult(value, col.settings?.decimals)}</span>;
+      return <span className="num">{formatColumnNumber(value, col.settings)}</span>;
     }
-    case 'NUMBER': return <span className="num">{formatNumber(value as number, col.settings?.decimals)}</span>;
+    case 'NUMBER': return <span className="num">{formatColumnNumber(value, col.settings)}</span>;
     case 'DATE': return <span className="nowrap">{formatDay(value as string)}</span>;
     case 'STATUS': return <StatusChip label={statusLabels(col).find((l: Row) => l.id === value)} />;
     case 'IN_CHARGE': return <span className="person-cell small"><Avatar name={nameOf(value as string)} size="sm" />{nameOf(value as string)}</span>;
@@ -1152,7 +1161,7 @@ function GridCell(props: Editors & { row: Row; col: Row; onExpand: () => void; l
   if (props.col.type === 'ATTACHMENT') return <AttachmentCell row={props.row} col={props.col} groupId={props.groupId} caps={props.caps} replaceRow={props.replaceRow} lifted={props.lifted} />;
   return <EditableCell {...props} />;
 }
-function EditableCell({ row, col, active, setActive, cells, saveCell, discard, groupId, w, nameOf, caps, advance, lastRowId, enterTo, seed, onExpand, lifted }: Editors & { row: Row; col: Row; onExpand: () => void; lifted?: boolean }) {
+function EditableCell({ row, col, active, setActive, cells, saveCell, discard, groupId, w, nameOf, caps, advance, lastRowId, enterTo, seed, onExpand, lifted, replaceRow }: Editors & { row: Row; col: Row; onExpand: () => void; lifted?: boolean }) {
   const key = cellKey(row.id, col.id), st = cells[key], editable = caps.editRows && col.type !== 'FORMULA';
   const isActive = active?.row === row.id && active?.col === col.id;
   const value = col.type === 'FORMULA' ? row.computed?.[col.id] : row.values?.[col.id];
@@ -1173,6 +1182,7 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
   // “Undo my change” puts the saved value back: the editor closes without saving (pressing the button does not count as
   // leaving the editor, so the rejected value is not sent again).
   const error = st?.state === 'error' ? <span className="cell-message" role="alert">{st.message} <button type="button" className="text-link" onMouseDown={e => e.preventDefault()} onClick={() => { discard(row, col); close(); }}>Undo my change</button></span> : null;
+  const colorControl = caps.editRows ? <CellFormatControl groupId={groupId} row={row} col={col} onSaved={replaceRow} /> : null;
   if (isActive) {
     const typed = seed.current?.key === key ? seed.current.text : null;
     const initial = typed !== null ? typed : st?.state === 'error' || st?.state === 'saving' ? st.draft : value;
@@ -1188,17 +1198,17 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
       const ok = await saveCell(row, col, v); if (ok) close(); return ok;
     };
     const opened = () => { if (enterTo.current === key) enterTo.current = ''; if (seed.current?.key === key) seed.current = null; };
-    return <td data-column-id={col.id} style={columnStyle(col.id)} className={className}><CellEditor row={row} col={col} initial={initial} groupId={groupId} w={w} nameOf={nameOf} onSave={onSave} onCancel={() => { discard(row, col); close(); }} onExpand={onExpand} saving={st?.state === 'saving'}
+    return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className}><CellEditor row={row} col={col} initial={initial} groupId={groupId} w={w} nameOf={nameOf} onSave={onSave} onCancel={() => { discard(row, col); close(); }} onExpand={onExpand} saving={st?.state === 'saving'}
       lastRow={lastRowId === row.id} selectAll={typed === null && enterTo.current === key} seeded={typed !== null} onOpened={opened} />{error}</td>;
   }
-  if (!editable) return <td data-column-id={col.id} style={columnStyle(col.id)} className={className} title={col.type === 'FORMULA' ? `${col.settings?.display || ''}${value && typeof value === 'object' ? ` · ${FORMULA_ERRORS[(value as Row).error as keyof typeof FORMULA_ERRORS] || ''}` : ''}` : undefined}><div className="grid-cell-view"><CellDisplay row={row} col={col} value={value} nameOf={nameOf} /></div></td>;
+  if (!editable) return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className} title={col.type === 'FORMULA' ? `${col.settings?.display || ''}${value && typeof value === 'object' ? ` · ${FORMULA_ERRORS[(value as Row).error as keyof typeof FORMULA_ERRORS] || ''}` : ''}` : undefined}><div className="grid-cell-view"><CellDisplay row={row} col={col} value={value} nameOf={nameOf} /></div>{colorControl}</td>;
   return (
-    <td data-column-id={col.id} style={columnStyle(col.id)} className={className}>
+    <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className}>
       <button ref={viewRef} type="button" className="grid-cell-view" data-cell={key} onClick={start} onKeyDown={e => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); start(); } }}
         aria-label={`${col.name}: ${cellText(col, shownValue, nameOf) || 'empty'}. Edit`}>
         <CellDisplay row={row} col={col} value={shownValue} nameOf={nameOf} />{status}
       </button>
-      {error}
+      {error}{colorControl}
     </td>
   );
 }
@@ -1269,6 +1279,7 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
             {editable && <button type="button" className="attach-action" aria-label={`Remove ${f.name}`} title="Remove" disabled={!!busy} onClick={() => void remove(f)}><Trash2 aria-hidden="true" /></button>}
           </li>)}
         </ul> : <p className="muted small attach-empty">No files in this cell yet.</p>}
+        {!!files.length && <GroupDelivery groupId={groupId} files={files} command={groupCommand} read={delivery => groupRead('/api/tasks/group/delivery', { id: groupId, delivery })} />}
         {editable && <div className="attach-foot">
           <input ref={input} type="file" multiple accept={TASK_FILE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => void upload(e.target.files)} />
           <Button type="button" size="sm" loading={!!busy} disabled={!!busy || files.length >= GROUP_LIMITS.files} onClick={() => input.current?.click()}><Upload />{busy ? `Uploading ${busy}…` : 'Upload files'}</Button>
@@ -1276,10 +1287,10 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
         </div>}
       </PopoverContent>
     </Popover>
-    {preview && <GroupFilePreview groupId={groupId} file={preview as Row & { id: string; name: string; mime: string }} onClose={() => setPreview(null)} />}
+    {preview && <GroupFilePreview groupId={groupId} file={preview as Row & { id: string; name: string; mime: string }} navigation={{ index: files.findIndex(f => f.id === preview.id), total: files.length, onSelect: i => setPreview({ ...files[i], detail: col.name }) }} onClose={() => setPreview(null)} />}
   </>);
   if (inline) return panel;
-  return <td data-column-id={col.id} style={columnStyle(col.id)} className={`grid-cell type-attachment${lifted ? ' is-dragging' : ''}`}>{panel}</td>;
+  return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={`grid-cell type-attachment${lifted ? ' is-dragging' : ''}`}>{panel}{caps.editRows && <CellFormatControl groupId={groupId} row={row} col={col} onSaved={replaceRow} />}</td>;
 }
 
 /** The editor inside a cell: Enter saves and moves to the row below (V5.5.1: on the last row it adds a new row), Escape
@@ -1636,6 +1647,7 @@ const DECIMAL_OPTIONS: [string, string][] = [['auto', 'As entered (up to 6)'], .
 function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved }: { w: Workspace; group: Row; columns: Row[]; rows: Row[]; column?: Row; after?: string; onClose: () => void; onSaved: (message: string) => void | Promise<void> }) {
   const isNew = !column;
   const [d, setD] = useState<Row>(() => ({
+    format: column?.settings?.format || 'GENERAL', prefix: column?.settings?.prefix || '', suffix: column?.settings?.suffix || '', grouping: column?.settings?.grouping !== false,
     name: column?.name || '', type: column?.type || 'TEXT', decimals: column?.settings?.decimals ?? '',
     labels: column?.type === 'STATUS' ? statusLabels(column).map((l: Row) => ({ ...l })) : DEFAULT_STATUS_LABELS.map(([name, color]) => ({ name, color })),
     expression: column?.type === 'FORMULA' ? column.settings?.display || '' : '',
@@ -1652,7 +1664,7 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
     setBusy(true); setError('');
     try {
       const settings: Row = {};
-      if (d.type === 'NUMBER' || d.type === 'FORMULA') settings.decimals = d.decimals === '' ? null : Number(d.decimals);
+      if (d.type === 'NUMBER' || d.type === 'FORMULA') Object.assign(settings, { decimals: d.decimals === '' ? null : Number(d.decimals), format: d.format, prefix: d.prefix, suffix: d.suffix, grouping: d.grouping });
       if (d.type === 'STATUS') settings.labels = d.labels.map((l: Row) => ({ ...(l.id ? { id: l.id } : {}), name: l.name, color: l.color }));
       if (d.type === 'FORMULA') settings.expression = d.expression;
       const r = await groupCommand('tm.group.column.save', { group_id: group.id, ...(column ? { id: column.id, expected_version: column.version } : after ? { after } : {}), name: d.name, type: d.type, settings, ...extra });
@@ -1709,6 +1721,7 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
               </fieldset>
               {typeChanged && dependents.length > 0 && !['NUMBER', 'FORMULA'].includes(d.type) && <Alert tone="warning" title="Used by formulas">{dependents.join(', ')} {dependents.length === 1 ? 'uses' : 'use'} this column. Change {dependents.length === 1 ? 'that formula' : 'those formulas'} before changing its type.</Alert>}
               {(d.type === 'NUMBER' || d.type === 'FORMULA') && <FormSection columns={2}><Picker label="Decimal places shown" value={d.decimals === '' || d.decimals === null || d.decimals === undefined ? 'auto' : String(d.decimals)} allowNone={false} options={DECIMAL_OPTIONS} onChange={v => set('decimals', v === 'auto' ? '' : v)} hint="Only changes how numbers are shown; stored values keep their full precision." /></FormSection>}
+              {['NUMBER', 'FORMULA'].includes(d.type) && <FormSection columns={2}><Picker label="Display format" value={d.format} allowNone={false} options={[["GENERAL", "General number"], ["USD", "USD ($)"], ["KHR", "Cambodian Riel (៛)"], ["PERCENT", "Percentage (%)"], ["CUSTOM", "Custom prefix / suffix"]]} onChange={v => set('format', v)} /><CheckboxField label="Thousands separators" checked={d.grouping} onChange={v => set('grouping', v)} />{d.format === 'CUSTOM' && <><Field label="Prefix" value={d.prefix} onChange={v => set('prefix', v)} maxLength={12} /><Field label="Suffix" value={d.suffix} onChange={v => set('suffix', v)} maxLength={12} /></>}<p className="field-hint">Example: {formatColumnNumber(d.format === 'PERCENT' ? 25 : 1500, { ...d, decimals: d.decimals === '' ? null : Number(d.decimals) })}. Percentage adds a % symbol; 25 stays 25.</p></FormSection>}
               {d.type === 'STATUS' && <StatusLabelsEditor labels={d.labels} onChange={v => set('labels', v)} used={column?.type === 'STATUS' ? Object.fromEntries(statusLabels(column).map((l: Row) => [l.id, rows.filter(r => r.values?.[column.id] === l.id).length])) : {}} />}
               {d.type === 'FORMULA' && <FormulaEditor columns={columns} selfId={column?.id || null} name={d.name || 'this column'} ownName={d.name || ''} value={d.expression} onChange={v => set('expression', v)} rows={rows} formulaColumns={formulaColumns} />}
             </div>

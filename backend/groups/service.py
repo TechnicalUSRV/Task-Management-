@@ -442,6 +442,8 @@ class GroupService:
         key, at, settings = old['id'] if old else next_id('tm-board-col', 'COL'), self.now(), {}
         if col_type in ('NUMBER', 'FORMULA'):
             settings['decimals'] = self.decimals_input(s['decimals'] if 'decimals' in s else prev.get('decimals'))
+            from .presentation import number_settings
+            settings.update(number_settings(s, prev))
         replacements = {}
         if col_type == 'STATUS':
             old_labels = dm.status_labels(old) if old and old['type'] == 'STATUS' else []
@@ -651,10 +653,21 @@ class GroupService:
         return out
 
     @staticmethod
-    def row_out(r, s, prepared, extra=None):
+    def styles_by_row(row_ids, s):
+        """Cell colors for many rows in one query (only the columns this person may see)."""
+        from .models import BoardCellStyle
+        out = {}
+        if row_ids and s['colIds']:
+            for x in BoardCellStyle.objects.filter(row_id__in=list(row_ids), column_id__in=list(s['colIds'])).values(
+                    'row_id', 'column_id', 'text_color', 'background_color'):
+                out.setdefault(x['row_id'], {})[x['column_id']] = {'text_color': x['text_color'], 'background_color': x['background_color']}
+        return out
+
+    @staticmethod
+    def row_out(r, s, prepared, extra=None, styles=None):
         """A row as one person may see it: only the values of their visible columns (formula results computed from all the
         columns, but only for formulas whose every input they can see), with its note count and, for the people who manage
-        the group, its access rule."""
+        the group, its access rule. styles: this row's cell colors when the caller loaded a whole page at once."""
         computed = dm.compute_row(r['values'], s['all'], prepared)
         values, results = {}, {}
         for c in s['columns']:
@@ -669,6 +682,10 @@ class GroupService:
                     'updated_by': r['updated_by'], 'updated_at': r['updated_at']})
         if s['seeAll']:
             out['access'] = s['rules']['rows'].get(r['id']) or None
+        if styles is None:
+            styles = GroupService.styles_by_row([r['id']], s).get(r['id'], {})
+        if styles:
+            out['styles'] = styles
         out.update(extra or {})
         return out
 
@@ -851,11 +868,12 @@ class GroupService:
         self.record(actor, b, 'File removed', f"{r['id']} · {col['name']} · {f.get('name')}")
         return {'id': f['id'], 'type': 'tm_group_file', 'message': f"{f.get('name')} removed.", 'row': out}
 
-    def file(self, key, staff, file_id):
+    def file(self, key, staff, file_id, metadata_only=False):
         """One file of an Attachment cell, for someone who may see that row and that column."""
         b, caps = self.open_board(key, staff)
         s = self.sight(b, staff, caps)
-        f = BoardFile.objects.filter(id=str(file_id or '')[:60], board_id=b['id']).first()
+        query = BoardFile.objects.filter(id=str(file_id or '')[:60], board_id=b['id'])
+        f = (query.defer('content') if metadata_only else query).first()
         if not f or not s['rowOk'](f.row_id) or f.column_id not in s['colIds']:
             fail('File not found.', 404)
         return f
@@ -1157,6 +1175,16 @@ class GroupService:
 
     # ------------------------------------------------------------ commands
     def handle(self, action, d, actor):
+        if action == 'tm.group.cell.format':
+            from .presentation import style_cell
+            return style_cell(self, d, actor)
+        if action.startswith('tm.group.data-share.') or action == 'tm.group.import.internal':
+            from .sharing import DataSharing
+            sharing = DataSharing(self)
+            return sharing.stage(d, actor) if action.endswith('.internal') else sharing.save(d, actor)
+        if action == 'tm.group.delivery.create':
+            from .delivery import enqueue
+            return enqueue(self, d, actor)
         handlers = {
             'tm.group.save': self.save_board, 'tm.group.archive': self.archive_board, 'tm.group.delete': self.delete_board,
             'tm.group.column.save': self.column_save, 'tm.group.column.move': self.column_move, 'tm.group.column.delete': self.column_delete,
@@ -1263,9 +1291,11 @@ class GroupService:
         prepared, counts = dm.prepare_formulas(s['all']), self.note_counts(b['id'])
         visible = {r['id'] for r in self.rows_of(b['id']) if s['rowOk'](r['id'])}
         hidden_mine = sum(1 for x in (self.view_of(b['id'], staff).get('hidden_rows') or []) if x in visible)
+        shown = items[offset:offset + limit]
+        styles = self.styles_by_row([x['r']['id'] for x in shown], s)  # one query for the page, not one per row
         return {'group_id': b['id'], 'version': b['version'], 'total': len(items), 'all': len(visible), 'hidden_mine': hidden_mine,
                 'match_key': self.match_key(items), 'offset': offset, 'limit': limit,
-                'rows': [self.row_out(x['r'], s, prepared, {'notes': counts.get(x['r']['id'], 0)}) for x in items[offset:offset + limit]],
+                'rows': [self.row_out(x['r'], s, prepared, {'notes': counts.get(x['r']['id'], 0)}, styles.get(x['r']['id'], {})) for x in shown],
                 'totals': self.totals_of(items, s)}
 
     @staticmethod

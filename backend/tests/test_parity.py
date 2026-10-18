@@ -385,11 +385,26 @@ def as_deployed(value):
     return value
 
 
+def legacy_mini_contract(step, answer):
+    """Only the four new Mini App Group fields are outside the V5.7.7 contract.
+
+    They are verified against the scoped office state by test_group_enhancements.
+    Every pre-existing field still has to match the original implementation exactly.
+    """
+    if step.get('read') != 'mini' or not answer.get('ok'):
+        return answer
+    result = dict(answer['result'])
+    for key in ('tm_boards', 'tm_board_access', 'tm_board_summaries', 'tm_group_workspaces'):
+        assert key in result and isinstance(result[key], list), key
+        result.pop(key)
+    return {**answer, 'result': result}
+
+
 def compare_reads(scenario):
     """Like compare(), for steps that read the state, reports or the dashboard: compares them key by key."""
     expected, actual = node_run(scenario), Scenario().play(scenario)
     for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
-        want, got = unvolatile(as_deployed(want)), unvolatile(got)
+        want, got = unvolatile(as_deployed(want)), unvolatile(legacy_mini_contract(scenario['steps'][i], got))
         if want == got:
             continue
         step = scenario['steps'][i]

@@ -16,7 +16,7 @@ TASK_WORK = re.compile(r'^tm\.(task\.(accept|decline|progress|stuck|resume|submi
                        r'|change\.(decide|withdraw)|due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)'
                        r'|request\.(save|withdraw|decide|forward)|notification\.read)$')
 GROUP_COMMAND = re.compile(r'^tm\.group\.(save|archive|delete|column\.(save|move|delete|access)|row\.(add|update|move|delete|access)'
-                           r'|file\.(add|remove)|view\.save|layout\.save|note\.(add|edit|delete)|import\.(upload|commit))$')
+                           r'|file\.(add|remove)|view\.save|layout\.save|note\.(add|edit|delete)|import\.(upload|commit|internal)|cell\.format|data-share\.save|delivery\.create)$')
 CRM_RESOURCES = {'CONTACT': 'crm.contacts', 'LEAD': 'crm.leads', 'OPPORTUNITY': 'crm.opportunities', 'ACCOUNT': 'crm.accounts',
                  'OPERATIONS': 'ops.job'}
 
@@ -81,7 +81,7 @@ def authorize(user, action, d):
         resource = 'tasks.groups'
         if action == 'tm.group.save':
             verb = 'update' if d.get('id') else 'create'
-        elif action == 'tm.group.view.save':
+        elif action in ('tm.group.view.save', 'tm.group.delivery.create'):
             verb = 'view'
         elif re.match(r'^tm\.group\.(note|layout|row\.access|column\.access)', action):
             verb = 'update'

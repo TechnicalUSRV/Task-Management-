@@ -40,6 +40,8 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  width: number
+  setWidth: (width: number) => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -66,6 +68,14 @@ function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
+  const [width, saveWidth] = React.useState(() => {
+    try { const n = Number(localStorage.getItem("tcm.sidebar.width")); return n >= 224 && n <= 384 ? n : 248 } catch { return 248 }
+  })
+  const setWidth = React.useCallback((n: number) => {
+    const value = Math.min(384, Math.max(224, Math.round(n)))
+    saveWidth(value)
+    try { localStorage.setItem("tcm.sidebar.width", String(value)) } catch { /* private browsing */ }
+  }, [])
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
@@ -121,9 +131,9 @@ function SidebarProvider({
       isMobile,
       openMobile,
       setOpenMobile,
-      toggleSidebar,
+      toggleSidebar, width, setWidth,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, width, setWidth]
   )
 
   return (
@@ -133,7 +143,7 @@ function SidebarProvider({
           data-slot="sidebar-wrapper"
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width": width === 248 ? SIDEBAR_WIDTH : `${width}px`,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
             } as React.CSSProperties
