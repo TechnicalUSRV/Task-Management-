@@ -5,8 +5,8 @@ It serves the existing React app and Telegram Mini App with the same API contrac
 `/api/changes`, `/api/command`, files, reports, `/tg/api`), plus read-only REST resources under `/api/v1/`.
 The browser never connects to SQL Server; only Django does, with the least-privilege login `taskmanagement_app`.
 
-The V5.7.7 Node/SQLite version in `source/local-test/` is unchanged and still runs on its own (`npm start`) until the
-Django version has been accepted.
+The V5.7.7 Node/SQLite backend in `source/local-test/` remains a regression reference. The new Group enhancements
+target the Django deployment; use Django plus `npm run dev` for development, rather than the old `npm start` API.
 
 ## 1. What you need on the computer
 
@@ -156,3 +156,13 @@ from the earlier `.env.example` says `tasks.groups,admin.integrations`; remove `
 | `groups` | Groups: tm_boards, tm_board_access, tm_board_columns, tm_board_rows, tm_board_notes (+ revisions), row and column access rules, layouts, Excel imports, files in Attachment columns |
 | `audit` | tm_events |
 | `compat` | the V5.7.7 API contract (state, commands, files, reports, dashboard) and `/api/v1/` resources |
+
+## 8. Groups / Telegram enhancements (17 Oct 2026)
+
+Numeric display formats, individual cell colors, controlled column-data sharing and Group-to-Group copying, queued
+Telegram document delivery/PDF merging, same-cell file navigation, mobile Groups and sidebar resizing are documented
+in [the implementation report](../docs/group-enhancements/IMPLEMENTATION.md).
+
+Install the updated Python dependencies (`pypdf==6.21.0`), apply `groups.0003_presentation_sharing_delivery`, rebuild the
+frontend and restart the existing worker. Follow [the staging, backup and rollback instructions](../docs/group-enhancements/DEPLOYMENT.md)
+before production use. `run_workers --no-telegram` disables document delivery as well as the bot.

@@ -42,6 +42,13 @@ class GroupReadView(APIView):
         access.require_permission(user, 'tasks.groups', 'export' if self.kind == 'xlsx' else 'view')
         groups, staff = service(), user.staff_id
         key, p = str(request.query_params.get('id') or '')[:60], request.query_params.dict()
+        if self.kind in ('shares', 'import-sources', 'import-source'):
+            from .sharing import DataSharing
+            sharing = DataSharing(groups)
+            return Response(sharing.describe(key, staff) if self.kind == 'shares' else sharing.sources(key, staff) if self.kind == 'import-sources' else sharing.browse(key, p.get('source'), staff))
+        if self.kind == 'delivery':
+            from .delivery import status
+            return Response(status(groups, key, staff, p.get('delivery')))
         if self.kind == 'group':
             return Response(groups.read(key, staff, p))
         if self.kind == 'rows':

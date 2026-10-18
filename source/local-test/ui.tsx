@@ -1,3 +1,4 @@
+import { CalendarDays, Clock3, FolderKanban, Inbox, ListTodo, Network, Table2 } from 'lucide-react';
 import {Identity} from './identity-ui';
 import { apiFetch, apiPath, openCompany } from './api-client';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -58,7 +59,9 @@ export function LocalERP() {
   return <ConfirmProvider><AuthGate>{(user, signOut) => <ERPWorkspace user={user} signOut={signOut} />}</AuthGate></ConfirmProvider>;
 }
 
-type NavItem = { id: string; label: string; icon: LucideIcon; href: string; visible: boolean; badge?: number; alert?: boolean; children?: { id: string; label: string; href: string; count?: number }[] };
+type NavItem = { id: string; label: string; icon: LucideIcon; href: string; visible: boolean; badge?: number; alert?: boolean; children?: { id: string; label: string; href: string; count?: number; icon?: LucideIcon }[] };
+
+const TASK_NAV_ICONS: Record<string, LucideIcon> = { workspace: FolderKanban, users: UsersRound, organization: Network, tasks: ListTodo, requests: Inbox, groups: Table2, calendar: CalendarDays, timesheets: Clock3, reports: ChartNoAxesCombined };
 
 function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<void> }) {
   const [data, setData] = useState<Data | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [refreshing, setRefreshing] = useState(false);
@@ -186,7 +189,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
     const groups: { label?: string; items: NavItem[] }[] = [
       { items: [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '#/dashboard', visible: can('dashboard') }] },
       { label: 'Customers', items: [{ id: 'crm', label: 'CRM', icon: UsersRound, href: '#/crm', visible: prefix('crm.'), children: [{ id: 'workflow', label: 'Overview', href: '#/crm' }, ...CRM_TYPES.filter(([t]) => can('crm.' + TABLES[t])).map(([t, label, slug]) => ({ id: slug, label, href: `#/crm/${slug}`, count: data[TABLES[t]].length }))] }] },
-      { label: 'Work', items: [{ id: 'tasks', label: 'Task Management', icon: ClipboardCheck, href: `#/tasks/${taskTabs[0]?.[0] || 'workspace'}`, visible: taskTabs.length > 0, badge: waiting || undefined, alert: waiting > 0, children: taskTabs.map(([key, label]) => ({ id: key, label, href: `#/tasks/${key}` })) }] },
+      { label: 'Work', items: [{ id: 'tasks', label: 'Task Management', icon: ClipboardCheck, href: `#/tasks/${taskTabs[0]?.[0] || 'workspace'}`, visible: taskTabs.length > 0, badge: waiting || undefined, alert: waiting > 0, children: taskTabs.map(([key, label]) => ({ id: key, label, href: `#/tasks/${key}`, icon: TASK_NAV_ICONS[key] })) }] },
       { label: 'Operations', items: [
         { id: 'operations', label: 'Operations', icon: Truck, href: '#/operations', visible: prefix('ops.'), badge: alerts || undefined, alert: alerts > 0 },
         { id: 'finance', label: 'Finance', icon: Landmark, href: '#/finance', visible: can('ops.finance') },
@@ -372,7 +375,7 @@ function AppSidebar({ nav, active, activeChild, company }: { nav: { label?: stri
                               <SidebarMenuSubItem key={child.id}>
                                 <SidebarMenuSubButton href={child.href} isActive={activeChild === child.id} aria-current={activeChild === child.id ? 'page' : undefined}
                                   onClick={() => { closeOnMobile(); if (window.location.hash === child.href) window.dispatchEvent(new CustomEvent('erp:reselect', { detail: child.href })); }}>
-                                  <span>{child.label}</span>
+                                  {child.icon && <child.icon aria-hidden="true" />}<span>{child.label}</span>
                                   {child.count !== undefined && <span className="nav-badge">{child.count}</span>}
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
@@ -388,8 +391,20 @@ function AppSidebar({ nav, active, activeChild, company }: { nav: { label?: stri
           ))}
         </nav>
       </SidebarContent>
+      <SidebarWidthHandle />
     </Sidebar>
   );
+}
+
+function SidebarWidthHandle() {
+  const { width, setWidth, state, isMobile } = useSidebar();
+  const drag = useRef<{ x: number; width: number } | null>(null);
+  if (isMobile || state === 'collapsed') return null;
+  const finish = () => { drag.current = null; document.documentElement.classList.remove('resizing-sidebar'); };
+  return <div role="separator" aria-label="Sidebar width" aria-orientation="vertical" aria-valuemin={224} aria-valuemax={384} aria-valuenow={width} tabIndex={0} className="sidebar-resize-handle" title="Drag to resize. Double-click to reset."
+    onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, width }; document.documentElement.classList.add('resizing-sidebar'); }}
+    onPointerMove={e => { if (drag.current) setWidth(drag.current.width + e.clientX - drag.current.x); }} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}
+    onDoubleClick={() => setWidth(248)} onKeyDown={e => { if (['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) { e.preventDefault(); setWidth(e.key === 'Home' ? 248 : width + (e.key === 'ArrowRight' ? 8 : -8)); } }} />;
 }
 
 function UserMenu({ name, role, email, onProfile, telegram, onTelegram, onSignOut }: { name: string; role: string; email: string; onProfile?: () => void; telegram?: 'connected' | 'available'; onTelegram: () => void; onSignOut: () => void }) {

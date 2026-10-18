@@ -1,3 +1,6 @@
+import { MiniGroups, MiniGroupAttachments } from './tg-groups';
+import { statusLabels } from './group-domain.mjs';
+import { Table2 } from 'lucide-react';
 import {MeetingApprovals} from './meeting-approval-ui';
 import {timeRange} from './time-range.mjs';
 import {Identity} from './identity-ui';
@@ -146,9 +149,9 @@ function linkedView(q: URLSearchParams, start: string): View | null {
 }
 const reminderStart = (days: unknown): Row => { const l = reminderDays(days as string); return { d1: l.includes(1), d2: l.includes(2), d3: l.includes(3), other: l.filter((n: number) => !REMINDER_PRESETS.includes(n)).join(', ') }; };
 
-type View = {kind:'timesheets'} | { kind: 'organization'; id?: string } | { kind: 'task'; id: string } | { kind: 'task-form'; id?: string } | { kind: 'request'; id: string } | { kind: 'request-form'; id?: string } | { kind: 'settings' }
+type View = { kind: 'group-files'; groupId: string; files: Row[]; title: string } | {kind:'timesheets'} | { kind: 'organization'; id?: string } | { kind: 'task'; id: string } | { kind: 'task-form'; id?: string } | { kind: 'request'; id: string } | { kind: 'request-form'; id?: string } | { kind: 'settings' }
   | { kind: 'meeting'; id: string } | { kind: 'meeting-form'; id?: string; day?: string } | { kind: 'note-form'; id?: string; day?: string };
-type Tab = 'home' | 'tasks' | 'calendar' | 'requests' | 'reports' | 'alerts';
+type Tab = 'groups' | 'home' | 'tasks' | 'calendar' | 'requests' | 'reports' | 'alerts';
 type Person = { id: string; name: string; detail?: string; note?: string; you?: boolean };
 type Field = { key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'progress' | 'select' | 'person' | 'checkbox' | 'offsets'; required?: boolean; options?: [string, string][]; people?: Person[]; min?: string; hint?: string; placeholder?: string; start?: string };
 // secondary: a second, destructive action under the form; `next` replaces the sheet with a confirmation first.
@@ -298,7 +301,7 @@ export function MiniApp() {
   const names = new Map<string, string>((data.lookups || []).map((l: Row) => [l.id, l.name]));
   const photos = new Map<string, number>((data.staff_photos || []).map((p: Row) => [p.staff_id, p.version]));
   const token = encodeURIComponent(media.current);
-  const fileUrl = (f: Row, inline = false) => `${API}/file?id=${encodeURIComponent(f.id)}${inline ? '&inline=1' : ''}&t=${token}`;
+  const fileUrl = (f: Row, inline = false) => f.group_id ? `${API}/group-file?id=${encodeURIComponent(f.group_id)}&file=${encodeURIComponent(f.id)}${inline ? '&inline=1' : ''}&t=${token}` : `${API}/file?id=${encodeURIComponent(f.id)}${inline ? '&inline=1' : ''}&t=${token}`;
   const download = (f: Row) => {
     const url = new URL(fileUrl(f), location.href).href, app = tgApp();
     try {
@@ -313,9 +316,9 @@ export function MiniApp() {
     who: (id, lower = false) => (id && id === me ? (lower ? 'you' : 'You') : first(name(id))),
     photo: id => (id && token && photos.has(id) ? `${API}/photo?staff=${encodeURIComponent(id)}&v=${photos.get(id)}&t=${token}` : undefined),
     open: v => setStack(s => [...s, v]), back, sheet: s => setSheet({ spec: s, key: ++sheetSeq.current }), setTab: t => { setStack([]); setTab(t); }, showTasks: sc => { setScope(sc); setArea('mine'); setStack([]); setTab('tasks'); },
-    fileUrl, previewUrl: f => `${API}/file-preview?id=${encodeURIComponent(f.id)}&t=${token}`, download,
+    fileUrl, previewUrl: f => f.group_id ? `${API}/group-file-preview?id=${encodeURIComponent(f.group_id)}&file=${encodeURIComponent(f.id)}&t=${token}` : `${API}/file-preview?id=${encodeURIComponent(f.id)}&t=${token}`, download,
     // Images, PDFs and Word, Excel, PowerPoint, CSV and text files open in the in-app preview; anything else downloads.
-    viewFile: f => (previewKind(f.mime) !== 'none' ? setViewer(f) : download(f)),
+    viewFile: f => (f.group_id || previewKind(f.mime) !== 'none' ? setViewer(f) : download(f)),
   };
   const view = stack[stack.length - 1];
   const unread = (data.tm_notifications || []).filter((n: Row) => !n.read_at).length;
@@ -326,7 +329,7 @@ export function MiniApp() {
     <div className={`app${view ? ' has-stack' : ''}`}>
       {orgView && <main className="screen" hidden={view !== orgView} key={`org:${orgAt}:${orgView.id ?? '-'}`}><OrganizationView c={c} requestId={orgView.id} /></main>}
       {view !== orgView && <main className="screen" key={view ? `${view.kind}:${'id' in view ? view.id : ''}:${stack.length}` : tab}>
-        {view?.kind === 'task' ? <TaskView c={c} id={view.id} />
+        {view?.kind === 'group-files' ? <MiniGroupAttachments groupId={view.groupId} files={view.files} title={view.title} read={call} command={perform} viewFile={c.viewFile} download={c.download} onClose={c.back} /> : view?.kind === 'task' ? <TaskView c={c} id={view.id} />
           : view?.kind === 'task-form' ? <TaskForm c={c} id={view.id} />
             : view?.kind === 'request' ? <RequestView c={c} id={view.id} />
               : view?.kind === 'request-form' ? <RequestForm c={c} id={view.id} />
@@ -336,6 +339,7 @@ export function MiniApp() {
                   : view?.kind === 'note-form' ? <NoteForm c={c} id={view.id} day={view.day} />
                   : tab === 'home' ? <HomeView c={c} />
                     : tab === 'tasks' ? (area === 'company' ? <CompanyTasks c={c} area={area} setArea={setArea} /> : <TaskList c={c} scope={scope} setScope={setScope} area={area} setArea={setArea} />)
+                      : tab === 'groups' ? <MiniGroups data={data} me={me} can={can} name={name} read={call} command={perform} edit={(gid, row, col, saved) => editGroupCell(c, gid, row, col, saved)} attachments={(groupId, files, title) => c.open({ kind: 'group-files', groupId, files, title })} />
                       : tab === 'calendar' ? <CalendarView c={c} />
                       : tab === 'requests' ? <RequestList c={c} />
                         : tab === 'reports' ? <ReportView c={c} />
@@ -343,11 +347,11 @@ export function MiniApp() {
       </main>}
       {!view && (
         <nav className="tabbar" aria-label="Main">
-          {([['home', 'Home', Home], ['tasks', 'Tasks', ListChecks], ['calendar', 'Calendar', CalendarDays], ['requests', 'Requests', Inbox], ['reports', 'Reports', PieChart], ['alerts', 'Alerts', Bell]] as [Tab, string, LucideIcon][]).map(([id, label, Icon]) => {
+          {([['home', 'Home', Home], ['tasks', 'Tasks', ListChecks], ['calendar', 'Calendar', CalendarDays], ['groups', 'Groups', Table2], ['reports', 'Reports', PieChart], ['alerts', 'Alerts', Bell]] as [Tab, string, LucideIcon][]).map(([id, label, Icon]) => {
             // V5.6.8: Home shows the same number as its "Waiting for you" list.
-            const n = id === 'alerts' ? unread : id === 'requests' ? waiting.requests.length : id === 'home' ? waiting.total : 0;
+            const n = id === 'alerts' ? unread : id === 'tasks' ? waiting.requests.length : id === 'home' ? waiting.total : 0;
             return (
-              <button key={id} type="button" className="tab" aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}
+              <button key={id} type="button" className="tab" aria-current={tab === id || tab === 'requests' && id === 'tasks' ? 'page' : undefined} onClick={() => setTab(id)}
                 aria-label={n ? `${label}, ${n} ${id === 'alerts' ? 'unread' : 'waiting for you'}` : undefined}>
                 <span className="tab-icon" aria-hidden="true"><Icon />{n > 0 && <span className="dot-count">{n > 9 ? '9+' : n}</span>}</span>
                 <span>{label}</span>
@@ -357,7 +361,7 @@ export function MiniApp() {
         </nav>
       )}
       {sheet && <Sheet key={sheet.key} c={c} spec={sheet.spec} onClose={() => setSheet(null)} />}
-      {viewer && <Viewer c={c} file={viewer} onClose={() => setViewer(null)} />}
+      {viewer && <Viewer c={c} file={viewer} onFile={i => setViewer({ ...viewer.cell_files[i], group_id: viewer.group_id, cell_files: viewer.cell_files })} onClose={() => setViewer(null)} />}
       <div className="toast-region" aria-live="polite">{toast && <div key={toast.id} className={`toast tone-${toast.tone}`}>{toast.tone === 'danger' ? <AlertTriangle aria-hidden="true" /> : <Check aria-hidden="true" />}<span>{toast.text}</span></div>}</div>
     </div>
   );
@@ -682,13 +686,13 @@ function FieldInput({ c, f, value, onChange, invalid }: { c: Ctx; f: Field; valu
 /** A file attached to a task, full screen: images and PDFs (zoom, pages) and readable Word, Excel, PowerPoint, CSV and
  *  text files, with a download button. Telegram's Back button closes it. The short-lived media link is checked by the
  *  server exactly like a download. */
-function Viewer({ c, file, onClose }: { c: Ctx; file: Row; onClose: () => void }) {
+function Viewer({ c, file, onClose, onFile }: { c: Ctx; file: Row; onClose: () => void; onFile: (i: number) => void }) {
   useLayer(onClose);
   const source = useMemo<PreviewSource>(() => ({ file: { id: file.id, name: file.name, mime: file.mime, size: file.size }, bytesUrl: c.fileUrl(file, true),
     previewUrl: c.previewUrl(file), load: url => fetch(url, { credentials: API_BASE ? 'include' : 'same-origin' }), download: () => c.download(file) }), [file.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="viewer" role="dialog" aria-modal="true" aria-label={file.name}>
-      <PreviewPane source={source} onClose={onClose} dark />
+      <PreviewPane key={source.bytesUrl} source={source} onClose={onClose} dark navigation={file.cell_files ? { index: file.cell_files.findIndex((f: Row) => f.id === file.id), total: file.cell_files.length, onSelect: onFile } : undefined} />
     </div>
   );
 }
@@ -697,6 +701,33 @@ function Viewer({ c, file, onClose }: { c: Ctx; file: Row; onClose: () => void }
 /** Workspaces where this person may create tasks or meetings. */
 const creatableWorkspaces = (c: Ctx, keep?: string | null): Row[] => [...(c.data.tm_workspaces || []), ...(c.data.tm_workspace_refs || [])].filter((w: Row) => (w.status === 'ACTIVE' && w.org_access?.can_create !== false) || (!!keep && w.id === keep));
 const byDue = (a: Row, b: Row) => a.due_date.localeCompare(b.due_date);
+function TaskActions({ c }: { c: Ctx }) {
+  return <div className="actions-row" aria-label="Task actions">
+    {c.can('tasks.tasks', 'create') && <button type="button" className="btn primary" onClick={() => c.open({ kind: 'task-form' })}><Plus />New Task</button>}
+    {c.can('tasks.requests', 'create') && <button type="button" className="btn" onClick={() => c.open({ kind: 'request-form' })}><Send />Request Task</button>}
+    <button type="button" className="btn" onClick={() => c.setTab('requests')}><Inbox />Requests</button>
+  </div>;
+}
+
+async function editGroupCell(c: Ctx, groupId: string, row: Row, column: Row, saved: () => void) {
+  const current = row.values?.[column.id] ?? null;
+  let people: Person[] = [];
+  if (['IN_CHARGE', 'SUPPORT'].includes(column.type)) {
+    let offset = 0;
+    do { const page = await call('/group-members?' + new URLSearchParams({ id: groupId, offset: String(offset), limit: '100' })); people.push(...page.items.map((p: Row) => ({ id: p.id, name: p.name, detail: [p.department, p.position].filter(Boolean).join(' · ') }))); offset += page.items.length; if (offset >= page.total || !page.items.length) break; } while (true);
+    for (const id of column.type === 'SUPPORT' ? current || [] : current ? [current] : []) if (!people.some(p => p.id === id)) people.push({ id, name: c.name(id), detail: 'Previously selected' });
+  }
+  const multi = column.type === 'SUPPORT';
+  const fields: Field[] = multi ? people.map(p => ({ key: p.id, label: p.name, type: 'checkbox' })) : [{ key: 'value', label: column.name,
+    type: column.type === 'DATE' ? 'date' : column.type === 'STATUS' ? 'select' : column.type === 'IN_CHARGE' ? 'person' : column.type === 'TEXT' ? 'textarea' : 'text',
+    options: column.type === 'STATUS' ? statusLabels(column).map((l: Row) => [l.id, l.name]) : undefined, people,
+    hint: column.type === 'NUMBER' ? 'Enter the raw number. Display symbols do not change its value.' : undefined }];
+  c.sheet({ title: column.name, fields, confirm: 'Save cell', initial: multi ? Object.fromEntries((current || []).map((id: string) => [id, true])) : { value: current ?? '' }, run: async values => {
+    const value = multi ? people.filter(p => values[p.id]).map(p => p.id) : values.value === '' ? null : values.value;
+    await c.perform('tm.group.row.update', { group_id: groupId, id: row.id, expected_version: row.version, values: { [column.id]: value } }); saved();
+  } });
+}
+
 function HomeView({ c }: { c: Ctx }) {
   const { tasks, me, data } = c, open = tasks.filter(t => OPEN_TASK_STATUSES.includes(t.status));
   // V5.4: the dashboard shows responsibility: work in my charge, work I gave to others, and what waits for my decision.
@@ -731,10 +762,7 @@ function HomeView({ c }: { c: Ctx }) {
         <button type="button" className={`tile${stuck.length ? ' tone-danger' : ''}`} onClick={() => c.showTasks('stuck')}><span className="tile-value">{stuck.length}</span><span className="tile-label">Stuck</span></button>
       </div>
       <button type="button" className="btn block" onClick={() => c.open({ kind: 'timesheets' })}><Clock3 aria-hidden="true" />Timesheets</button>
-      <div className="actions-row">
-        <button type="button" className="btn primary" onClick={() => c.open({ kind: 'task-form' })}><Plus aria-hidden="true" />New task</button>
-        <button type="button" className="btn" onClick={() => c.open({ kind: 'request-form' })}><Send aria-hidden="true" />Request a task</button>
-      </div>
+      <button type="button" className="btn block primary" onClick={() => c.setTab('tasks')}><ListChecks aria-hidden="true" />Tasks · New / Request</button>
       <Section title="Waiting for you" count={w.total}>
         {w.total ? <div className="list">
           {w.org > 0 && <button type="button" className="list-row" onClick={() => c.open({ kind: 'organization', id: '' })}><span className="row-icon" aria-hidden="true"><ShieldCheck /></span><span className="row-main"><span className="row-title">{w.org} organization {w.org === 1 ? 'request' : 'requests'} to review</span><span className="row-meta">Organizational Structure · Approvals</span></span><ChevronRight className="chev" aria-hidden="true" /></button>}
@@ -781,7 +809,7 @@ function TaskList({ c, scope, setScope, area, setArea }: { c: Ctx; scope: string
     .sort((a, b) => (scope === 'done' ? String(b.completed_at).localeCompare(String(a.completed_at)) : a.due_date.localeCompare(b.due_date)));
   return (
     <>
-      <Header title="Tasks" action={<button type="button" className="icon-btn filled" onClick={() => c.open({ kind: 'task-form' })} aria-label="New task"><Plus aria-hidden="true" /></button>} />
+      <Header title="Tasks" /><TaskActions c={c} />
       <AreaSwitch area={area} setArea={setArea} />
       <Chips label="Show" value={scope} onChange={setScope} options={SCOPES.map(([id, l]) => [id, l, counts[id]])} />
       <label className="search"><span className="sr-only">Search tasks</span><input className="input" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search tasks…" /></label>
@@ -811,7 +839,7 @@ function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; 
     + (!scope.company && others.length ? ` Also tasks you can see through ${andList(others)} (viewing only).` : '');
   return (
     <>
-      <Header title="Tasks" subtitle={reach} />
+      <Header title="Tasks" subtitle={reach} /><TaskActions c={c} />
       <AreaSwitch area={area} setArea={setArea} />
       <label className="search"><span className="sr-only">Search company tasks</span><input className="input" type="search" value={f.q} onChange={e => set({ q: e.target.value })} placeholder="Search tasks or people…" /></label>
       <div className="filter-grid">

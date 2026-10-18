@@ -190,6 +190,7 @@ class BoardImport(models.Model):
     file_name = models.CharField(max_length=400)
     file_size = models.IntegerField()
     sheets_json = models.TextField()
+    source_json = models.TextField(default='{}')
     status = models.CharField(max_length=10)
     result_json = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField()
@@ -218,3 +219,63 @@ class BoardFile(models.Model):
         db_table = 'tm_board_files'
         indexes = [models.Index(fields=['row', 'column'], name='tm_board_file_cell'),
                    models.Index(fields=['board'], name='tm_board_file_board')]
+
+
+class BoardCellStyle(models.Model):
+    """Presentation only. Values, formulas, filters and sorting remain on BoardRow."""
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='cell_styles')
+    row = models.ForeignKey(BoardRow, on_delete=models.CASCADE, related_name='cell_styles')
+    column = models.ForeignKey(BoardColumn, on_delete=models.CASCADE, related_name='cell_styles')
+    text_color = models.CharField(max_length=7, blank=True, default='')
+    background_color = models.CharField(max_length=7, blank=True, default='')
+    updated_by = person('updated_by', null=False)
+    updated_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_board_cell_styles'
+        constraints = [models.UniqueConstraint(fields=['row', 'column'], name='tm_cell_style_unique')]
+
+
+class BoardDataShare(models.Model):
+    """Read/copy grant, never workspace membership or permission to open the source Group."""
+    id = models.CharField(max_length=60, primary_key=True)
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='data_shares')
+    recipient = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+    column_ids_json = models.TextField(default='[]')
+    active = models.BooleanField(default=True)
+    version = models.IntegerField(default=0)
+    created_by = person('created_by', null=False)
+    created_at = models.DateTimeField()
+    updated_by = person('updated_by', null=False)
+    updated_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_board_data_shares'
+        constraints = [models.UniqueConstraint(fields=['board', 'recipient'], name='tm_data_share_recipient')]
+        indexes = [models.Index(fields=['recipient', 'active'], name='tm_data_share_active')]
+
+
+class BoardDelivery(models.Model):
+    """Durable self-delivery jobs; originals stay in BoardFile, merged bytes are never stored."""
+    id = models.CharField(max_length=60, primary_key=True)
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='deliveries')
+    staff = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+    request_key = models.CharField(max_length=64)
+    row_id_snapshot = models.CharField(max_length=60)
+    column_id_snapshot = models.CharField(max_length=60)
+    file_ids_json = models.TextField()
+    mode = models.CharField(max_length=16)
+    telegram_user_id = models.BigIntegerField()
+    telegram_linked_at = models.DateTimeField()
+    status = models.CharField(max_length=16, default='QUEUED')
+    result_json = models.TextField(default='[]')
+    error = models.CharField(max_length=500, blank=True, default='')
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_board_deliveries'
+        constraints = [models.UniqueConstraint(fields=['staff', 'request_key'], name='tm_delivery_request'),
+                       models.CheckConstraint(condition=Q(mode__in=['SEPARATE', 'MERGED_PDF']), name='tm_delivery_mode'),
+                       models.CheckConstraint(condition=Q(status__in=['QUEUED', 'SENDING', 'SENT', 'PARTIAL', 'FAILED', 'UNKNOWN']), name='tm_delivery_status')]
+        indexes = [models.Index(fields=['status', 'created_at'], name='tm_delivery_queue')]

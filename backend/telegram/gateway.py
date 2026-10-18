@@ -34,7 +34,7 @@ MINI_APP_ACTIONS = re.compile(
     r'request\.(decide|cancel))|tm\.(workspace\.(delete|restore|member\.(add|remove))|task\.(save|accept|decline|progress|stuck|resume|submit|pass|'
     r'return|close|cancel|reopen|note|handover|remind|reminders)|change\.(decide|withdraw)|request\.(save|withdraw|forward|decide)|'
     r'due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)|notification\.read|meeting\.(save|follow|decide|withdraw)|'
-    r'time\.(save|delete)|calnote\.(save|delete))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
+    r'time\.(save|delete)|calnote\.(save|delete)|group\.(row\.update|view\.save|delivery\.create))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
 CSP = ("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; "
        "connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'")
 MEDIA_HOURS = 12
@@ -229,7 +229,7 @@ def _api(request, rest):
     s = telegram.settings()
     if not s['enabled'] or not s['bot_token']:
         raise GatewayError(503, 'Telegram is turned off for this company.', 'off')
-    if request.method == 'GET' and rest in ('/api/photo', '/api/file', '/api/file-preview'):
+    if request.method == 'GET' and rest in ('/api/photo', '/api/file', '/api/file-preview', '/api/group-file', '/api/group-file-preview'):
         return _media(request, rest, company, s)
     raw = re.sub(r'^tma ', '', str(request.headers.get('Authorization', '')))
     init = validate_init_data(raw, s['bot_token'], max_age=INIT_MAX_AGE)
@@ -283,6 +283,16 @@ def _api(request, rest):
     if rest == '/api/organization' and request.method == 'GET':
         access.require_permission(user, 'tasks.organization')
         return send(200, Governance().query(user.staff_id, request.GET.dict()))
+    if rest in ('/api/group', '/api/group-rows', '/api/group-members', '/api/group-delivery') and request.method == 'GET':
+        access.require_permission(user, 'tasks.groups', 'view')
+        from groups.views import service
+        groups, key, actor = service(), request.GET.get('id'), user.staff_id
+        if rest == '/api/group-delivery':
+            from groups.delivery import status
+            return send(200, status(groups, key, actor, request.GET.get('delivery')))
+        if rest == '/api/group-members':
+            return send(200, groups.members(key, actor, request.GET.get('q') or '', request.GET.get('offset'), request.GET.get('limit')))
+        return send(200, groups.read(key, actor, request.GET.dict()) if rest == '/api/group' else groups.query(key, actor, request.GET.dict()))
     if rest == '/api/state' and request.method == 'GET':
         token = media_token(company, tg_user['id'], s['bot_token'], bind=link['linked_at'] or '')
         return send(200, {**reports.mini_state(user, token), 'company_context': {'id': company}})
@@ -331,6 +341,17 @@ def _media(request, rest, company, s):
             raise GatewayError(404, 'Photo not found.')
         cache = 'private, max-age=86400' if request.GET.get('v') == str(photo.version) else 'no-store'
         return send(200, bytes(photo.content), photo.mime, cache, headers)
+    if rest in ('/api/group-file', '/api/group-file-preview'):
+        access.require_permission(user, 'tasks.groups', 'view')
+        from groups.views import service
+        from tasks.preview import describe, INLINE_TYPES
+        from compat.views import attachment_name
+        f = service().file(request.GET.get('id'), user.staff_id, request.GET.get('file'))
+        if rest == '/api/group-file-preview':
+            return send(200, describe(f.name, f.mime, f.size, bytes(f.content)))
+        inline = request.GET.get('inline') == '1' and f.mime in INLINE_TYPES
+        headers['Content-Disposition'] = f"{'inline' if inline else 'attachment'}; filename=\"group-file\"; filename*=UTF-8''{attachment_name(f.name)}"
+        return send(200, bytes(f.content), f.mime if inline else 'application/octet-stream', 'no-store', headers)
     from compat.views import task_file_preview, task_file_response
     try:
         if rest == '/api/file-preview':

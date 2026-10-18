@@ -64,6 +64,8 @@ class Workers:
         threads = [self._loop('due-reminders', due_reminders, self.first, self.every),
                    self._loop('calendar-reminders', event_reminders, self.event_every, self.event_every)]
         if self.telegram:
+            from groups.delivery import process_next
+            threads.append(self._loop('group-delivery', process_next, 2, 2))
             from telegram import services as tg
             from telegram.bot import Runtime
             self.runtime = Runtime(app_url=lambda: tg.app_url())

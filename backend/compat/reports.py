@@ -774,6 +774,7 @@ def mini_state(user, media='', gov=None):
     link = telegram.link_for_staff(user.staff_id)
     me = access.public_user(user)
     return {
+        **{k: s.get(k, []) for k in ('tm_boards', 'tm_board_access', 'tm_board_summaries', 'tm_group_workspaces')},
         'company': {'name': (s['company'] or {}).get('name')}, 'app_version': s['app_version'], 'today': now_iso(), 'media_token': media,
         'auth': {'user': {'staff_id': user.staff_id, 'name': me['name'], 'username': me['username'], 'role_name': me['role_name'], 'email': me['email']},
                  'permissions': {k: v for k, v in s['auth']['permissions'].items() if k.startswith('tasks.')}},

@@ -92,7 +92,10 @@ class GroupImport:
         imp = BoardImport.objects.filter(id=js.to_js_string(key or '')).first()
         if not imp or imp.staff_id != staff:
             fail('This upload was not found. Upload the file again.', 404)
-        return row(imp)
+        from .sharing import DataSharing
+        result = row(imp)
+        DataSharing(self.g).validate(result, staff)
+        return result
 
     @staticmethod
     def headers_of(sheet, header_row):
@@ -610,7 +613,7 @@ class GroupImport:
                   'imported_at': iso(at)}
         update(BoardImport, imp['id'], {'status': 'IMPORTED', 'result_json': js.dumps(result), 'imported_at': at, 'sheets_json': '[]'})
         g.touch(b)
-        g.record(actor, b, 'Imported from Excel', f"{imp['file_name']} · {added} added · {updated} updated · {result['skipped']} skipped · {result['failed']} not imported")
+        g.record(actor, b, 'Imported from Group' if js.loads(imp['source_json'], {}) else 'Imported from Excel', f"{imp['file_name']} · {added} added · {updated} updated · {result['skipped']} skipped · {result['failed']} not imported")
         done = ', '.join(x for x in [f"{added} row{'' if added == 1 else 's'} added", plan['mode'] == 'update' and f'{updated} updated',
                                      unchanged and f'{unchanged} already up to date'] if x)
         return {'id': imp['id'], 'type': 'tm_group_import', 'result': result,

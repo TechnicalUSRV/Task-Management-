@@ -28,7 +28,7 @@ class MiniBoundaryTests(unittest.TestCase):
             ("/assets/pdf.worker.min-rsCePomN.mjs", "GET"),
         ]
         routes += [(f"/c/default/tg/api/{x}", "GET") for x in
-                   ("state", "changes", "organization", "report", "photo", "file", "file-preview")]
+                   ("state", "changes", "organization", "report", "photo", "file", "file-preview", "group", "group-rows", "group-members", "group-delivery", "group-file", "group-file-preview")]
         routes += [(f"/c/default/tg/api/{x}", "POST") for x in ("login", "link", "command")]
         for path, method in routes:
             with self.subTest(path=path, method=method):
@@ -41,7 +41,7 @@ class MiniBoundaryTests(unittest.TestCase):
             "/", "/index.html", "/tg.html", "/c/default/", "/api/state",
             "/TaskManagement", "/TaskManagement/", "/TaskManagement/api/state",
             "/api/auth/login", "/c/default/api/command", "/admin/",
-            "/c/other/tg/", "/c/default/tg/api/auth/setup",
+            "/c/default/tg/api/group/shares", "/c/default/tg/api/group-file/../state", "/api/tasks/group", "/c/other/tg/", "/c/default/tg/api/auth/setup",
             "/assets/../index.html", "/assets/%2e%2e/index.html",
             "/assets/%252e%252e/index.html", "/assets/..\\index.html",
             "/assets/file.js/../../api/state", "//c/default/tg/",
