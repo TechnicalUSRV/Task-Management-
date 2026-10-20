@@ -400,11 +400,45 @@ def legacy_mini_contract(step, answer):
     return {**answer, 'result': result}
 
 
+MANAGEMENT_ACCESS = ('manager_ids', 'can_set_managers', 'can_make_public', 'manager_options')
+
+
+def management_contract(step, answer):
+    """Fields added for responsible managers, additional reporting lines and Under My Management are outside the V5.7.7
+    contract. Each must be present with its shape (they are verified by test_management_scope); they are then removed so
+    every pre-existing field is still compared exactly with the original implementation."""
+    if not isinstance(answer, dict) or not answer.get('ok') or not isinstance(answer.get('result'), dict):
+        return answer
+    result = dict(answer['result'])
+
+    def strip_access(w):
+        access = w.get('org_access')
+        if isinstance(access, dict) and 'manager_ids' in access:
+            assert all(k in access for k in MANAGEMENT_ACCESS), access
+            w = {**w, 'org_access': {k: v for k, v in access.items() if k not in MANAGEMENT_ACCESS}}
+        return w
+    if step.get('read') in ('state', 'mini'):
+        for key in ('management_people', 'workspace_setup'):
+            if key in result:
+                result.pop(key)
+        if isinstance(result.get('tm_workspaces'), list):
+            result['tm_workspaces'] = [strip_access(w) for w in result['tm_workspaces']]
+        board = result.get('workspace_dashboard')
+        if isinstance(board, dict):
+            result['workspace_dashboard'] = {k: ([strip_access(w) for w in v] if k in ('my', 'managed', 'shared') else v) for k, v in board.items()}
+    if step.get('read') == 'org':
+        if isinstance(result.get('rows'), list):
+            result['rows'] = [({k: v for k, v in r.items() if k != 'additional_manager_ids'} if isinstance(r, dict) else r) for r in result['rows']]
+            result['rows'] = [strip_access(r) if isinstance(r, dict) else r for r in result['rows']]
+        result.pop('additional_manager_ids', None)
+    return {**answer, 'result': result}
+
+
 def compare_reads(scenario):
     """Like compare(), for steps that read the state, reports or the dashboard: compares them key by key."""
     expected, actual = node_run(scenario), Scenario().play(scenario)
     for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
-        want, got = unvolatile(as_deployed(want)), unvolatile(legacy_mini_contract(scenario['steps'][i], got))
+        want, got = unvolatile(as_deployed(want)), unvolatile(management_contract(scenario['steps'][i], legacy_mini_contract(scenario['steps'][i], got)))
         if want == got:
             continue
         step = scenario['steps'][i]

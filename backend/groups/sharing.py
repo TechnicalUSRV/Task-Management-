@@ -52,9 +52,9 @@ class DataSharing:
             fail('Choose columns to share.')
         ids = list(dict.fromkeys(ids))
         visible = self.g.sight(b, actor, caps)['columns']
-        selectable = dm.visible_columns(visible, lambda c: c['id'] in ids and c['type'] != 'ATTACHMENT')
+        selectable = dm.visible_columns(visible, lambda c: c['id'] in ids and c['type'] not in ('ATTACHMENT', 'LINKED'))
         if active and (not ids or set(ids) != {c['id'] for c in selectable}):
-            fail('Select visible data columns. Include a formula’s input columns. Attachments cannot be copied by this import.')
+            fail('Select visible data columns. Include a formula’s input columns. Attachments and Live Data columns cannot be copied by this import.')
         if not old and not active:
             fail('Share not found.', 404)
         now = self.g.now()
@@ -91,7 +91,8 @@ class DataSharing:
             sight['columns'] = dm.visible_columns(sight['columns'], lambda c: c['id'] in allowed)
             sight['colIds'] = {c['id'] for c in sight['columns']}
         self.g.archived_check(b)
-        columns = [c for c in sight['columns'] if c['type'] != 'ATTACHMENT']
+        # Live Data columns belong to another group: they are never copied onward (nor formulas using them).
+        columns = dm.visible_columns([c for c in sight['columns'] if c['type'] != 'ATTACHMENT'], lambda c: c['type'] != 'LINKED')
         return b, sight, columns, grant
 
     def sources(self, destination, actor):

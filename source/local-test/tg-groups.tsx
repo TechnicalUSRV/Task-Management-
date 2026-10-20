@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Columns3, Download, FolderOpen, ListFilter, Paperclip, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Columns3, Download, FolderOpen, ListFilter, Paperclip, RefreshCw, Send } from 'lucide-react';
 import type { Row } from './components';
 import { cellText, COLUMN_TYPES, statusLabels } from './group-domain.mjs';
 import { cellColors, formatColumnNumber } from './group-presentation';
-import { GroupDelivery } from './group-delivery-ui';
+import { MiniDeliverySheet, fileKind, fileSize } from './group-delivery-ui';
+import { viewColumn } from './group-live-ui';
 import './styles/tg-groups.css';
 
 type Common = { read: (path: string) => Promise<Row>; command: (action: string, data: Row) => Promise<Row> };
@@ -27,7 +28,8 @@ export function MiniGroups({ data, me, can, name, read, command, edit, attachmen
   const workspaceIds = [...new Set<string>(scoped.map(g => g.workspace_id))];
   const workspaceName = (key: string) => (data.tm_workspaces || []).find((w: Row) => w.id === key)?.name || (data.tm_workspace_refs || []).find((w: Row) => w.id === key)?.name || 'Shared workspace';
   const available = scoped.filter(g => !workspace || g.workspace_id === workspace);
-  const columns: Row[] = board?.columns || [];
+  // Live Data columns read and edit as their source's type; Viewer columns are read-only (the server checks again).
+  const columns: Row[] = (board?.columns || []).map(viewColumn);
   const shown = columns.filter(c => !hidden.includes(c.id) && (!kind || c.type === kind));
   const permitted = !!can('tasks.groups');
   // Both initial data and changes come from the same scoped backend as the office web app.
@@ -54,7 +56,7 @@ export function MiniGroups({ data, me, can, name, read, command, edit, attachmen
   useEffect(() => { if (page && restore.current && wrap.current) { wrap.current.scrollTo(restore.current); restore.current = null; } }, [page, board]);
   const select = (key: string) => { setId(key); setBoard(null); setPage(null); setQ(''); setFilter(''); setValue(''); setOffset(0); };
   const saveColumns = async () => { setError(''); try { await command('tm.group.view.save', { group_id: id, view: { hidden_columns: hidden } }); } catch(e) { setError((e as Error).message); } };
-  const text = (c: Row, r: Row) => { const v = c.type === 'FORMULA' ? r.computed?.[c.id] : r.values?.[c.id]; return ['NUMBER', 'FORMULA'].includes(c.type) ? formatColumnNumber(v, c.settings) : cellText(c, v, name); };
+  const text = (c: Row, r: Row) => { const v = c.type === 'FORMULA' ? r.computed?.[c.id] : r.values?.[c.id]; if (c.linked && v && typeof v === 'object' && !Array.isArray(v)) return String(v.error || ''); return ['NUMBER', 'FORMULA'].includes(c.type) ? formatColumnNumber(v, c.settings) : cellText(c, v, name); };
   if (!permitted) return <div className="callout">Your role does not include Groups.</div>;
   const statusColumns = columns.filter(c => c.type === 'STATUS'), filtered = !!(filter && value);
   // Table-first layout: compact pickers and one tools row, then the table fills the rest of the screen and scrolls by
@@ -78,15 +80,23 @@ export function MiniGroups({ data, me, can, name, read, command, edit, attachmen
         {filter && <select className="input" aria-label="Status value" value={value} onChange={e => { setValue(e.target.value); setOffset(0); }}><option value="">All statuses</option>{statusLabels(columns.find(c => c.id === filter)).map((l: Row) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>}
         {filtered && <button type="button" className="btn" onClick={() => { setFilter(''); setValue(''); setOffset(0); }}>Clear filter</button>}</div></details>}
     </div>
-      <div ref={wrap} className="mg-table-wrap" onScroll={e => { memory.top = e.currentTarget.scrollTop; memory.left = e.currentTarget.scrollLeft; }} role="region" tabIndex={0} aria-label={`${board.group.name} records`}><table className="mg-table"><thead><tr><th>#</th>{shown.map(c => <th key={c.id}>{c.name}</th>)}</tr></thead><tbody>{(page?.rows || []).map((r: Row, i: number) => <tr key={r.id}><th>{offset + i + 1}</th>{shown.map(c => <td key={c.id} style={cellColors(r, c)}>{c.type === 'ATTACHMENT' ? <button type="button" onClick={() => attachments(id, r.values?.[c.id] || [], c.name)}><Paperclip size={15} />{(r.values?.[c.id] || []).length} files</button> : board.group.caps.editRows && c.type !== 'FORMULA' ? <button type="button" aria-label={`Edit ${c.name}: ${text(c, r) || 'empty'}`} onClick={() => { void edit(id, r, c, () => setRefresh(s => s + 1)).catch(e => setError(e.message)); }}>{text(c, r) || '—'}</button> : <span>{text(c, r) || '—'}</span>}</td>)}</tr>)}</tbody></table>
+      <div ref={wrap} className="mg-table-wrap" onScroll={e => { memory.top = e.currentTarget.scrollTop; memory.left = e.currentTarget.scrollLeft; }} role="region" tabIndex={0} aria-label={`${board.group.name} records`}><table className="mg-table"><thead><tr><th>#</th>{shown.map(c => <th key={c.id} className={c.linked ? 'mg-live' : undefined} title={c.linked ? `Live Data${c.linked.source_group_name ? ` from ${c.linked.source_group_name}` : ''}${c.linked.readOnly ? ' · view only' : ''}` : undefined}>{c.name}{c.linked && <span className="sr-only"> (Live Data{c.linked.readOnly ? ', view only' : ''})</span>}</th>)}</tr></thead><tbody>{(page?.rows || []).map((r: Row, i: number) => <tr key={r.id}><th>{offset + i + 1}</th>{shown.map(c => <td key={c.id} style={cellColors(r, c)}>{c.type === 'ATTACHMENT' ? <button type="button" onClick={() => attachments(id, r.values?.[c.id] || [], c.name)}><Paperclip size={15} />{(r.values?.[c.id] || []).length} files</button> : board.group.caps.editRows && c.type !== 'FORMULA' && !c.linked?.readOnly ? <button type="button" aria-label={`Edit ${c.name}: ${text(c, r) || 'empty'}`} onClick={() => { void edit(id, r, c, () => setRefresh(s => s + 1)).catch(e => setError(e.message)); }}>{text(c, r) || '—'}</button> : <span>{text(c, r) || '—'}</span>}</td>)}</tr>)}</tbody></table>
         {!shown.length && <p className="hint mg-note">Choose at least one column to display.</p>}{page && !page.rows.length && <p className="hint mg-note">No matching records.</p>}</div>
       {page && <div className="mg-paging"><button type="button" className="btn" disabled={busy || offset === 0} aria-label="Previous records" onClick={() => setOffset(n => Math.max(0, n - 50))}><ChevronLeft /></button><span>{page.total ? offset + 1 : 0}–{offset + page.rows.length} / {page.total}</span><button type="button" className="btn" disabled={busy || offset + page.rows.length >= page.total} aria-label="Next records" onClick={() => setOffset(n => n + 50)}><ChevronRight /></button></div>}
     </>}
   </section>;
 }
 
-export function MiniGroupAttachments({ groupId, files, title, read, command, viewFile, download, onClose }: Common & { groupId: string; files: Row[]; title: string; viewFile: (f: Row) => void; download: (f: Row) => void; onClose: () => void }) {
+export function MiniGroupAttachments({ groupId, files, title, read, command, viewFile, download, onClose, layer }: Common & { groupId: string; files: Row[]; title: string; viewFile: (f: Row) => void; download: (f: Row) => void; onClose: () => void; layer: (close: () => void) => void }) {
   const delivery = useCallback((key: string) => read('/group-delivery?' + new URLSearchParams({ id: groupId, delivery: key })), [groupId, read]);
   const withCell = (f: Row) => ({ ...f, group_id: groupId, cell_files: files });
-  return <section className="mini-groups"><header className="page-header"><button type="button" className="icon-btn" onClick={onClose} aria-label="Close attachments"><ChevronLeft /></button><h1>{title}</h1></header><ul className="mg-files">{files.map(f => <li key={f.id}><button type="button" className="mg-filename" onClick={() => viewFile(withCell(f))}>{f.name}</button><button type="button" className="icon-btn" aria-label={`Download ${f.name}`} onClick={() => download(withCell(f))}><Download /></button></li>)}</ul>{files.length ? <GroupDelivery groupId={groupId} files={files} read={delivery} command={command} /> : <p className="hint">No files in this cell.</p>}</section>;
+  const [sending, setSending] = useState(false);
+  // Send to Telegram sits above the files (no scrolling to find it) and opens a full-screen selection sheet.
+  return <section className="mini-groups mg-attachments"><header className="page-header"><button type="button" className="icon-btn" onClick={onClose} aria-label="Close attachments"><ChevronLeft /></button><h1>{title}</h1></header>
+    {files.length > 0 && <div className="mg-send-bar"><button type="button" className="btn primary mg-send-open" onClick={() => setSending(true)}><Send aria-hidden="true" />Send to Telegram</button>
+      <span className="hint small">{files.length} {files.length === 1 ? 'file' : 'files'} · choose which to send</span></div>}
+    {files.length ? <ul className="mg-files">{files.map(f => <li key={f.id}><button type="button" className="mg-filename" onClick={() => viewFile(withCell(f))}><span className="mg-file-name">{f.name}</span><span className="mg-file-meta">{fileKind(f)}{f.size ? ` · ${fileSize(f.size)}` : ''}</span></button><button type="button" className="icon-btn" aria-label={`Download ${f.name}`} onClick={() => download(withCell(f))}><Download /></button></li>)}</ul>
+      : <p className="hint">No files in this cell.</p>}
+    {sending && <MiniDeliverySheet groupId={groupId} files={files} read={delivery} command={command} layer={layer} onClose={() => setSending(false)} />}
+  </section>;
 }

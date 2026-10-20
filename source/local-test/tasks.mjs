@@ -372,8 +372,10 @@ export function createTasks(c){
     if(!hasChanges)return {id:key,type:'tm_task',unchanged:true,message:'Nothing was changed.'};
     // A personal task still needs a second responsible party for a detail modification.
     // Proposing a distinct reviewer/PIC grants only pending-decision visibility until approved.
-    approver=[old.reviewer_id,old.created_by,values.reviewer_id,values.pic_id].find(who=>who&&who!==actor&&reachable(who)&&accountOf(who)?.active&&hooks.canStaff(who,'tasks.tasks','view'));
-    if(!approver)fail('Choose another active reviewer or person in charge to approve this change. The task remains unchanged until approved.',409);
+    // Approval counts distinct people: when the editor holds every responsible role, nobody else approves (saved directly).
+    const others=[old.reviewer_id,old.created_by,values.reviewer_id,values.pic_id].filter(who=>who&&who!==actor);
+    approver=others.find(who=>reachable(who)&&accountOf(who)?.active&&hooks.canStaff(who,'tasks.tasks','view'));
+    if(others.length&&!approver)fail('Choose another active reviewer or person in charge to approve this change. The task remains unchanged until approved.',409);
    }
    if(approver){
     const diff=[],payload={};

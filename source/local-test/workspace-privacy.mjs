@@ -13,10 +13,10 @@ export function migrateWorkspacePrivacy({db,get,all,run}) {
   run('UPDATE org_settings SET revision=revision+1 WHERE id=1');
   run('INSERT INTO schema_version(version) VALUES(19)');
  }
- // Enforce conversion for every membership write, including old clients and imports.
- const convert=`UPDATE tm_workspaces SET visibility='PUBLIC',version=version+1,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=NEW.workspace_id AND visibility='PERSONAL' AND owner_id<>NEW.staff_id;`;
- db.exec(`CREATE TRIGGER IF NOT EXISTS workspace_member_public_insert AFTER INSERT ON tm_members BEGIN ${convert} END;
- CREATE TRIGGER IF NOT EXISTS workspace_member_public_update AFTER UPDATE OF workspace_id,staff_id ON tm_members BEGIN ${convert} END;
+ // Personal workspaces stay Personal when members are added (the automatic conversion trigger is retired); an explicit
+ // change to Public is still recorded.
+ db.exec(`DROP TRIGGER IF EXISTS workspace_member_public_insert;
+ DROP TRIGGER IF EXISTS workspace_member_public_update;
  CREATE TRIGGER IF NOT EXISTS workspace_public_audit AFTER UPDATE OF visibility ON tm_workspaces
  WHEN OLD.visibility='PERSONAL' AND NEW.visibility='PUBLIC' BEGIN
  INSERT INTO org_audit(actor_id,action,workspace_id,before_json,after_json,reason,created_at)

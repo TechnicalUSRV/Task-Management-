@@ -169,3 +169,7 @@
    and in the day panel), so titles stay readable. */
 @media (max-width: 1100px) { .cal-month .cal-item-time { display: none; } }
 @media (pointer: coarse) { .cal-add { width: 36px; height: 36px; } .cal-day-number { min-width: 36px; height: 36px; } .calendar .cal-item { min-height: 40px; } .calendar .cal-month .cal-item { min-height: 24px; } }
+
+/* Under My Management: one quiet line saying whose calendar is shown and that notes stay private. */
+.cal-scope-note { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; }
+.cal-scope-note .inline-icon { width: 15px; height: 15px; flex-shrink: 0; }

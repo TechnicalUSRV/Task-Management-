@@ -10,13 +10,15 @@ from core.errors import InputError, fail
 from core.services import write_lock
 from telegram import services as telegram
 from telegram.models import TelegramLink
-from tasks.filecheck import content_matches
+from core.validation import text
+from tasks.filecheck import clean_file_name, content_matches
 from . import js
 from .models import BoardDelivery
 
 MAX_DOCUMENT = 50_000_000
 MAX_MERGE = 100_000_000
 MAX_PAGES = 1000
+MERGED_NAME = 'Combined-documents.pdf'
 # Telegram asks bots to send about one message per second to one chat; bursts beyond that are refused with 429.
 SEND_INTERVAL = 1.1
 
@@ -53,8 +55,24 @@ def files_for(g, board, actor, ids, mode, inspect_pdf=True):
     return files
 
 
+def merged_name(value, mode):
+    """The file name a person chose for a combined PDF: cleaned like an uploaded file's name, always ending in .pdf."""
+    if value in (None, ''):
+        return ''
+    if mode != 'MERGED_PDF':
+        fail('A file name can be chosen only when PDFs are combined.')
+    import re
+    name = re.sub(r'[<>:"|?*]+', '-', clean_file_name(text(value, 'File name', 120, True))).strip()
+    if name.lower().endswith('.pdf'):
+        name = name[:-4]
+    name = name.strip().strip('.').strip()
+    if not name:
+        fail('Enter a file name for the combined PDF.')
+    return f'{name}.pdf'
+
+
 def public(job):
-    return {'id': job.id, 'status': job.status, 'mode': job.mode, 'results': js.loads(job.result_json, []),
+    return {'id': job.id, 'status': job.status, 'mode': job.mode, 'results': js.loads(job.result_json, []), 'file_name': job.file_name or '',
             'error': job.error, 'total': 1 if job.mode == 'MERGED_PDF' else len(js.loads(job.file_ids_json, []))}
 
 
@@ -76,9 +94,11 @@ def enqueue(g, d, actor):
         key = str(uuid.UUID(str(d.get('request_key'))))
     except (ValueError, TypeError, AttributeError):
         fail('A valid delivery request ID is required.')
+    name = merged_name(d.get('file_name'), d.get('mode'))
     old = BoardDelivery.objects.filter(staff_id=actor, request_key=key).first()
     if old:
-        if old.board_id != b['id'] or js.loads(old.file_ids_json, []) != d.get('file_ids') or old.mode != d.get('mode'):
+        if (old.board_id != b['id'] or js.loads(old.file_ids_json, []) != d.get('file_ids') or old.mode != d.get('mode')
+                or (old.file_name or '') != name):
             fail('This request ID was already used for a different delivery.', 409)
         return {'message': 'Delivery already recorded.', 'delivery': public(old)}
     cfg = telegram.settings()
@@ -92,13 +112,13 @@ def enqueue(g, d, actor):
     if jobs.filter(status__in=['QUEUED', 'SENDING']).count() >= 3 or jobs.filter(created_at__gt=g.now() - timedelta(hours=1)).count() >= 30:
         fail('Too many deliveries. Wait for current deliveries to finish and try later.', 429)
     job = BoardDelivery.objects.create(id=uuid.uuid4().hex, board_id=b['id'], staff_id=actor, request_key=key,
-        row_id_snapshot=files[0].row_id, column_id_snapshot=files[0].column_id, file_ids_json=js.dumps(d['file_ids']), mode=d['mode'],
+        row_id_snapshot=files[0].row_id, column_id_snapshot=files[0].column_id, file_ids_json=js.dumps(d['file_ids']), mode=d['mode'], file_name=name,
         telegram_user_id=link.tg_user_id, telegram_linked_at=link.linked_at, created_at=g.now(), updated_at=g.now())
-    g.record(actor, b, 'Telegram delivery queued', f'{len(files)} files · {job.mode} · {job.id}')
+    g.record(actor, b, 'Telegram delivery queued', f"{len(files)} files · {job.mode}{' · ' + name if name else ''} · {job.id}")
     return {'message': 'Delivery queued.', 'delivery': public(job)}
 
 
-def merge_pdfs(files):
+def merge_pdfs(files, name=None):
     from pypdf import PdfReader, PdfWriter
     writer, count = PdfWriter(), 0
     try:
@@ -122,7 +142,7 @@ def merge_pdfs(files):
             writer.write(out)
             if out.tell() > MAX_DOCUMENT:
                 fail('The combined PDF exceeds Telegram’s 50 MB limit. Select fewer files.', 413)
-            return {'name': 'Combined-documents.pdf', 'mime': 'application/pdf', 'content': out.getvalue()}
+            return {'name': name or MERGED_NAME, 'mime': 'application/pdf', 'content': out.getvalue()}
     except InputError:
         raise
     except Exception:
@@ -154,7 +174,7 @@ def process_next(transport=None):
             fail('Your account is inactive.', 403)
         ids = js.loads(job.file_ids_json, [])
         files = files_for(g, job.board_id, job.staff_id, ids, job.mode)
-        merged = merge_pdfs(files) if job.mode == 'MERGED_PDF' else None
+        merged = merge_pdfs(files, job.file_name) if job.mode == 'MERGED_PDF' else None
         del files
         for i in range(1 if merged else len(ids)):
             if i:

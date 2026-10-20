@@ -1,9 +1,13 @@
 """Workspaces and their members (V5.7.7 tm_workspaces, tm_members).
 
-Privacy (V5.7.7, schema 19): `visibility` PERSONAL = owner and the Administrator role only; PUBLIC = owner, members,
-the owner's real reporting managers and authorized Administration. `kind` keeps the governance model (LEGACY,
-PERSONAL, ORGANIZATIONAL). Adding a non-owner member converts PERSONAL to PUBLIC atomically — enforced by database
-triggers created in migration 0003, so every writer obeys it. Workspaces are never hard-deleted.
+Privacy: `visibility` PERSONAL = owner, explicitly added members and the Administrator role; PUBLIC = owner, members,
+the workspace's responsible managers and authorized Administration. `kind` keeps the governance model (LEGACY,
+PERSONAL, ORGANIZATIONAL). Adding a member no longer converts PERSONAL to PUBLIC (migration 0003 removed that database
+trigger); a workspace becomes Public only through the owner's explicit, audited visibility change.
+
+Responsible managers (WorkspaceManager, `tm_workspace_managers`): the managers whose authority a Public or
+Organizational workspace falls under. When none are recorded (every workspace created before this change), the
+workspace keeps the original rule: the owner's real (primary) reporting line. Workspaces are never hard-deleted.
 """
 from django.db import models
 from django.db.models import Q
@@ -71,3 +75,17 @@ class WorkspaceMember(models.Model):
             models.CheckConstraint(condition=Q(member_role__in=MEMBER_ROLES), name='tm_member_role_valid'),
         ]
         indexes = [models.Index(fields=['staff'], name='tm_member_staff')]
+
+
+class WorkspaceManager(models.Model):
+    """A responsible manager selected for a workspace (its management scope). Separate from ownership, membership and
+    the Level 2 governing manager: being selected grants management visibility, never membership or editing rights."""
+    workspace = models.ForeignKey(Workspace, on_delete=models.PROTECT, related_name='responsible_managers')
+    manager = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+    created_by = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+', db_column='created_by')
+    created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_workspace_managers'
+        constraints = [models.UniqueConstraint(fields=['workspace', 'manager'], name='tm_workspace_manager_unique')]
+        indexes = [models.Index(fields=['manager'], name='tm_workspace_manager_staff')]

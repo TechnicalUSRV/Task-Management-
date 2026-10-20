@@ -76,7 +76,7 @@ export function OrganizationPage(p:Props){
  const choose=(t:string)=>{setTab(t);setPage(1);setQ('');setFilters(t==='requests'?requestDefaults():{});};
  const open=(kind:string,title:string,data:Row={})=>{if(canManage)setEdit({kind,title,data});};
  const action=async(a:string,d:Row)=>{const r=await p.perform(a,d,{quiet:true});setNotice(r.message||'Saved');setTick(v=>v+1);return r;};
- const change=(r:Row)=>open('structure','Reporting relationship',{changes:[{staff_id:r.staff_id,level:r.org_level||3,manager_id:r.manager_id||''}],reason:''});
+ const change=(r:Row)=>open('structure','Reporting relationship',{changes:[{staff_id:r.staff_id,level:r.org_level||3,manager_id:r.manager_id||'',additional_manager_ids:r.additional_manager_ids??[]}],reason:''});
  const delegation=(r:Row)=>{const g=org.grants?.find((g:Row)=>g.capabilities.includes('delegate_request')),t=org.templates?.find((x:Row)=>x.active&&x.id==='OWNER')||org.templates?.find((x:Row)=>x.active);open('delegation','Grant or request delegated authority',{beneficiary_id:r.staff_id,template_id:t?.id||'',capabilities:(t?.capabilities||[]).filter((k:string)=>manager||g?.capabilities.includes(k)),parent_grant_id:g?.id||'',workspace_id:manager?'':g?.workspace_id||'',reason:''});};
  const newWorkspace=()=>open('workspace','New workspace',{kind:'PERSONAL',owner_id:p.actor,color:'BLUE',name:'',description:'',department:'',reason:''});
  const people:[string,string][]=(org.directory||p.data.tm_people||[]).map((x:Row)=>[x.staff_id,x.name]);
@@ -105,6 +105,7 @@ export function OrganizationPage(p:Props){
    <p className="org-muted">{levelText(person.org_level)}{levelName(person.org_level)?` · ${levelName(person.org_level)}`:''}{person.active===0?' · Inactive':''}{me.is_admin&&<span className="id-text"> · {person.staff_id}</span>}</p>
    <dl className="org-facts">
     <div><dt>Manager</dt><dd>{person.manager_id?name(person.manager_id):'Top of the organization'}</dd></div>
+    {!!person.additional_manager_ids?.length&&<div><dt>Also reports to</dt><dd>{person.additional_manager_ids.map(name).join(', ')}</dd></div>}
     {person.org_level!==1&&<div><dt>Level 2 authority</dt><dd>{person.governing_manager_id?name(person.governing_manager_id):'Not configured'}</dd></div>}
     <div><dt>Direct reports</dt><dd>{person.direct_reports?.length?person.direct_reports.map((x:Row)=>x.name).join(', '):'None'}</dd></div>
    </dl>
@@ -366,6 +367,7 @@ function OrganizationEditor({p,edit,close,run,revision,name,wsName}:{p:Props;edi
   await run(action,payload);close();
  }catch(err){setFormError((err as Error).message);if(body.current)body.current.scrollTop=0;}finally{setBusy(false);}};
  const levelOptions:[string,string][]=(org.levels||[]).filter((l:Row)=>me.is_admin||l.id>=3).map((l:Row)=>[String(l.id),`Level ${l.id} · ${l.name}`]);
+ const levelOf=(id:string)=>p.data.tm_profiles?.find((pr:Row)=>pr.staff_id===id)?.org_level as number|undefined;
  const setChange=(i:number,k:string,v:any)=>set('changes',d.changes.map((x:Row,j:number)=>i===j?{...x,[k]:v}:x),`changes.${i}.${k}`);
  const governingManagers=people.filter(([id])=>p.data.tm_profiles?.some((pr:Row)=>pr.staff_id===id&&pr.org_level===2));
  const grantOptions:[string,string][]=[...(org.grants||[]).map((g:Row)=>[g.id,g.workspace_id?`${g.title} · ${wsName(g.workspace_id)}`:g.title] as [string,string]),...(d.owner_grant_id&&!(org.grants||[]).some((g:Row)=>g.id===d.owner_grant_id)?[[d.owner_grant_id,d.owner_grant_id] as [string,string]]:[])];
@@ -383,7 +385,11 @@ function OrganizationEditor({p,edit,close,run,revision,name,wsName}:{p:Props;edi
      {pick(`changes.${i}.staff_id`,'Employee',people,{required:true,none:'Select employee',value:c.staff_id||'',onChange:v=>setChange(i,'staff_id',v||null)})}
      {pick(`changes.${i}.manager_id`,'Reporting manager',people,{required:c.level>1,none:'Nobody (top of the organization)',value:c.manager_id||'',onChange:v=>setChange(i,'manager_id',v||null)})}
      {pick(`changes.${i}.level`,'Organizational level',levelOptions,{none:'Not mapped',value:c.level?String(c.level):'',onChange:v=>setChange(i,'level',v?Number(v):null)})}
-    </div></div>)}
+    </div>
+    {c.staff_id&&<fieldset className="org-fieldset"><legend className="field-label">Additional reporting managers</legend>
+     <p className="field-hint">Optional. The primary manager keeps levels, Level 2 governance and approvals. An additional manager sees this employee’s work only where the employee chooses them as a responsible manager.</p>
+     <div className="org-check-list">{people.filter(([id])=>{const lv=levelOf(id);return id!==c.staff_id&&id!==c.manager_id&&!!lv&&!!c.level&&lv<c.level&&(c.level>=3?lv>=2:lv===1);}).map(([id,label])=><Check key={id} label={label} disabled={busy} checked={(c.additional_manager_ids??[]).includes(id)} onChange={v=>setChange(i,'additional_manager_ids',v?[...(c.additional_manager_ids??[]),id]:(c.additional_manager_ids??[]).filter((x:string)=>x!==id))}/>)}</div></fieldset>}
+    </div>)}
    <div className="span-2"><Btn size="sm" icon={Plus} disabled={busy} onClick={()=>set('changes',[...d.changes,{staff_id:'',level:3,manager_id:''}])}>Add related employee change</Btn></div></>}
   {kind==='delegation'&&<>{pick('beneficiary_id','Employee',people,{required:true,none:'Select employee'})}
    {pick('template_id','Title template',(org.templates||[]).filter((t:Row)=>t.active).map((t:Row)=>[t.id,t.name]),{required:true,onChange:v=>{const t=org.templates.find((t:Row)=>t.id===v);setD(s=>({...s,template_id:v,capabilities:(t?.capabilities||[]).filter((k:string)=>manager||supportingGrant?.capabilities.includes(k))}));setDirty(true);}})}
@@ -393,11 +399,11 @@ function OrganizationEditor({p,edit,close,run,revision,name,wsName}:{p:Props;edi
    <p className="field-hint span-2">The responsible Level 2 manager is derived from the employee’s reporting branch. Pending capabilities cannot be used.</p></>}
   {['membership','remove'].includes(kind)&&<>{d.self_join?<p className="span-2">You are asking to join <strong>{members?.name||d._workspace||wsName(d.workspace_id)}</strong>.</p>
     :pick('beneficiary_id',kind==='remove'?'Member to remove':'Employee',(kind==='remove'?(p.data.tm_members||[]).filter((m:Row)=>m.workspace_id===d.workspace_id&&m.staff_id!==members?.owner_id).map((m:Row)=>({id:m.staff_id,name:name(m.staff_id)})):members?.org_access?.can_add_members?members.org_access.member_candidates:people.map(([id,n])=>({id,name:n}))).map((x:Row)=>[x.id,x.name]),{required:true,none:'Select employee',wide:true})}
-   {kind==='membership'&&<>{pick('member_role','Requested role',[['MEMBER','Member'],['VIEWER','Viewer']],{required:true,wide:true})}<p className="field-hint span-2">{d.self_join?'Access begins when the responsible manager approves your request.':isPersonal?'Adding another member automatically makes this workspace Public, visible to the owner’s reporting managers.':members?.org_access?.can_add_members?'Your authorized approval will be recorded with this addition.':'Access begins only after the governing Level 2 manager approves.'}</p></>}
+   {kind==='membership'&&<>{pick('member_role','Requested role',[['MEMBER','Member'],['VIEWER','Viewer']],{required:true,wide:true})}<p className="field-hint span-2">{d.self_join?'Access begins when the responsible manager approves your request.':isPersonal?'The workspace stays Personal: only its owner, members and authorized Administration can open it.':members?.org_access?.can_add_members?'Your authorized approval will be recorded with this addition.':'Access begins only after the governing Level 2 manager approves.'}</p></>}
    {kind==='remove'&&<p className="field-hint span-2">Membership access ends immediately. Independently authorized task/meeting participation is retained.</p>}</>}
   {['workspace','classify'].includes(kind)&&<>{kind==='workspace'&&<>{text('name','Workspace name',{required:true})}{text('department','Department')}{text('description','Description',{textarea:true,wide:true})}</>}
    {pick('kind','Classification',[['PERSONAL','Personal — owner only'],['PUBLIC','Public — owner managed'],...(kind!=='workspace'||d.id||canCreateOrganization?[['ORGANIZATIONAL','Organizational — governed by Level 2'] as [string,string]]:[])],{required:true,wide:true,value:d.kind==='PERSONAL'&&d.visibility==='PUBLIC'?'PUBLIC':d.kind,disabled:kind==='workspace'&&!!d.id,onChange:v=>{set('kind',v);if(v==='PERSONAL'||v==='PUBLIC')set('owner_id',p.actor);else if(me.is_admin&&!d.id)set('owner_id','');}})}
-   {['PERSONAL','PUBLIC'].includes(d.kind)?<p className="field-hint span-2">Owner: {name(d.owner_id)}. New workspaces start with only their owner. Adding another member makes a Personal workspace Public. Use the separate Add member action.</p>:<>
+   {['PERSONAL','PUBLIC'].includes(d.kind)?<p className="field-hint span-2">Owner: {name(d.owner_id)}. New workspaces start with only their owner. A Personal workspace stays Personal when members are added; choose responsible managers in My Workspaces. Use the separate Add member action.</p>:<>
     {pick('owner_id','Operational owner',people,{required:true,none:'Select employee'})}
     {pick('governing_manager_id','Responsible Level 2 manager',governingManagers,{none:'From the owner’s reporting branch',hint:'If empty, the manager is derived from the owner’s reporting branch.'})}
     {pick('owner_grant_id','Owner grant',grantOptions,{none:'Use a matching active grant',hint:'Delegated owners need an approved grant.'})}
@@ -407,7 +413,7 @@ function OrganizationEditor({p,edit,close,run,revision,name,wsName}:{p:Props;edi
   {kind==='decision'&&<><dl className="org-facts span-2">
     <div><dt>Requested by</dt><dd>{name(d.requester_id)}</dd></div>{d.beneficiary_id&&d.beneficiary_id!==d.requester_id&&<div><dt>For</dt><dd>{name(d.beneficiary_id)}</dd></div>}
     {d.workspace_id&&<div><dt>Workspace</dt><dd>{wsName(d.workspace_id)}</dd></div>}{d.reason&&<div><dt>Reason</dt><dd>{d.reason}</dd></div>}
-    {!!d.payload?.changes?.length&&<div><dt>Changes</dt><dd>{d.payload.changes.map((c:Row)=><span className="org-line" key={c.staff_id}>{name(c.staff_id)} → Level {c.level}, reports to {c.manager_id?name(c.manager_id):'nobody'}</span>)}</dd></div>}
+    {!!d.payload?.changes?.length&&<div><dt>Changes</dt><dd>{d.payload.changes.map((c:Row)=><span className="org-line" key={c.staff_id}>{name(c.staff_id)} → Level {c.level}, reports to {c.manager_id?name(c.manager_id):'nobody'}{c.additional_manager_ids?.length?` and also to ${c.additional_manager_ids.map(name).join(', ')}`:''}</span>)}</dd></div>}
     {d.payload?.capabilities&&<div><dt>Capabilities</dt><dd>{d.payload.capabilities.map((k:string)=>org.capabilities[k]).join(' · ')}</dd></div>}
    </dl>{text('note','Decision note',{textarea:true,wide:true,required:d.decision==='REJECT',hint:d.decision==='REJECT'?'The requester sees this note.':'Optional. The requester sees this note.'})}</>}
   {kind==='cancel'&&<p className="span-2">Withdraw this {(REQUEST_KIND[d._kind]||'request').toLowerCase()}? Its approver will no longer be asked to decide. You can submit a new request later.</p>}

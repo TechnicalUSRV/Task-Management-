@@ -16,7 +16,8 @@ TASK_WORK = re.compile(r'^tm\.(task\.(accept|decline|progress|stuck|resume|submi
                        r'|change\.(decide|withdraw)|due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)'
                        r'|request\.(save|withdraw|decide|forward)|notification\.read)$')
 GROUP_COMMAND = re.compile(r'^tm\.group\.(save|archive|delete|column\.(save|move|delete|access)|row\.(add|update|move|delete|access)'
-                           r'|file\.(add|remove)|view\.save|layout\.save|note\.(add|edit|delete)|import\.(upload|commit|internal)|cell\.format|data-share\.save|delivery\.create)$')
+                           r'|file\.(add|remove)|view\.save|layout\.save|note\.(add|edit|delete)|import\.(upload|commit|internal)|cell\.format|data-share\.save|delivery\.create'
+                           r'|live-share\.save|live\.(update|rows))$')
 CRM_RESOURCES = {'CONTACT': 'crm.contacts', 'LEAD': 'crm.leads', 'OPPORTUNITY': 'crm.opportunities', 'ACCOUNT': 'crm.accounts',
                  'OPERATIONS': 'ops.job'}
 
@@ -89,7 +90,7 @@ def authorize(user, action, d):
             verb = 'create'
         elif re.search(r'\.(archive|delete)$', action):
             verb = 'delete'
-        elif action == 'tm.group.row.add':
+        elif action in ('tm.group.row.add', 'tm.group.live.rows'):
             verb = 'create'
         else:
             verb = 'update'

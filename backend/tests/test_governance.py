@@ -112,25 +112,29 @@ def test_failed_member_addition_rolls_back_conversion_membership_and_audit(world
     assert OrgAudit.objects.count() == audits
 
 
-def test_adding_a_member_converts_personal_to_public_with_audit(world):
+def test_adding_a_member_keeps_a_personal_workspace_personal(world):
+    # Changed rule (requirement 2.5): adding a member no longer converts Personal to Public. Only the explicitly added
+    # member gains access; the owner's managers do not, and authorized Administration keeps its exception.
     world.ok('B', 'tm.workspace.member.add', {'workspace_id': world.personal, 'beneficiary_id': world.ids['D'],
                                               'member_role': 'VIEWER', 'reason': 'Share with sibling'})
     w = Workspace.objects.get(id=world.personal)
-    assert w.visibility == 'PUBLIC'
-    assert OrgAudit.objects.filter(workspace_id=world.personal, action='workspace.public').exists()
+    assert w.visibility == 'PERSONAL' and w.kind == 'PERSONAL'
+    assert not OrgAudit.objects.filter(workspace_id=world.personal, action='workspace.public').exists()
+    assert OrgAudit.objects.filter(workspace_id=world.personal, action='personal.shared', employee_id=world.ids['D']).exists()
     assert WorkspaceMember.objects.get(workspace_id=world.personal, staff_id=world.ids['D']).member_role == 'VIEWER'
-    assert world.sees('A', world.personal) and world.sees('D', world.personal) and not world.sees('C', world.personal)
+    assert world.sees('D', world.personal) and world.sees('R', world.personal)
+    assert not world.sees('A', world.personal) and not world.sees('C', world.personal) and not world.sees('E', world.personal)
 
 
-def test_the_database_itself_converts_personal_to_public_on_any_membership_write(world):
+def test_the_database_no_longer_converts_personal_to_public_on_membership_writes(world):
     revision = rev()
     WorkspaceMember.objects.create(workspace_id=world.personal, staff_id=world.ids['E'])
-    assert Workspace.objects.get(id=world.personal).visibility == 'PUBLIC'
-    assert OrgAudit.objects.filter(workspace_id=world.personal, action='workspace.public').count() == 1
-    assert rev() == revision + 1
+    assert Workspace.objects.get(id=world.personal).visibility == 'PERSONAL'
+    assert not OrgAudit.objects.filter(workspace_id=world.personal, action='workspace.public').exists()
+    assert rev() == revision
 
 
-def test_member_removal_keeps_public_and_needs_current_revision(world):
+def test_member_removal_keeps_personal_and_needs_current_revision(world):
     world.ok('B', 'tm.workspace.member.add', {'workspace_id': world.personal, 'beneficiary_id': world.ids['D'], 'reason': 'Share'})
     stale = world.cmd('B', 'tm.workspace.member.remove', {'workspace_id': world.personal, 'beneficiary_id': world.ids['D'],
                                                           'expected_revision': -1, 'reason': 'Stale'})
@@ -138,8 +142,8 @@ def test_member_removal_keeps_public_and_needs_current_revision(world):
     world.ok('B', 'tm.workspace.member.remove', {'workspace_id': world.personal, 'beneficiary_id': world.ids['D'],
                                                  'expected_revision': rev(), 'reason': 'Membership no longer needed'})
     assert OrgAudit.objects.filter(action='membership.revoked', workspace_id=world.personal).exists()
-    assert Workspace.objects.get(id=world.personal).visibility == 'PUBLIC'
-    assert not world.sees('D', world.personal) and world.sees('A', world.personal)
+    assert Workspace.objects.get(id=world.personal).visibility == 'PERSONAL'
+    assert not world.sees('D', world.personal) and not world.sees('A', world.personal)
 
 
 def test_owner_cannot_be_removed_and_legacy_creator_with_delete_can_remove(world):
@@ -246,7 +250,9 @@ def test_governed_membership_request_waits_for_the_level2_approver(world):
 def test_delete_and_restore_are_for_the_creator_and_block_other_commands(world):
     world.ok('B', 'tm.workspace.member.add', {'workspace_id': world.personal, 'beneficiary_id': world.ids['D'], 'reason': 'Share'})
     w = Workspace.objects.get(id=world.personal)
-    assert world.cmd('A', 'tm.workspace.delete', {'id': w.id, 'expected_version': w.version, 'acknowledged': True}).status_code == 403
+    # The workspace stays Personal: B's manager A is told it does not exist; member D sees it but did not create it.
+    assert world.cmd('A', 'tm.workspace.delete', {'id': w.id, 'expected_version': w.version, 'acknowledged': True}).status_code == 404
+    assert world.cmd('D', 'tm.workspace.delete', {'id': w.id, 'expected_version': w.version, 'acknowledged': True}).status_code == 403
     world.ok('B', 'tm.workspace.delete', {'id': w.id, 'expected_version': w.version, 'acknowledged': True})
     w = Workspace.objects.get(id=world.personal)
     assert w.deleted_at is not None and w.status == 'ARCHIVED' and w.deleted_from_status == 'ACTIVE'

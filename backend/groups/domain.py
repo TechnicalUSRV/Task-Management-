@@ -12,7 +12,7 @@ from datetime import datetime
 from . import js
 
 COLUMN_TYPES = {'TEXT': 'Text', 'DATE': 'Date', 'NUMBER': 'Number', 'STATUS': 'Status', 'IN_CHARGE': 'In Charge', 'SUPPORT': 'Support',
-                'FORMULA': 'Formula', 'ATTACHMENT': 'Attachment'}
+                'FORMULA': 'Formula', 'ATTACHMENT': 'Attachment', 'LINKED': 'Live Data'}
 STATUS_COLORS = {'GRAY': 'Gray', 'BLUE': 'Blue', 'GREEN': 'Green', 'ORANGE': 'Orange', 'RED': 'Red', 'PURPLE': 'Purple', 'TEAL': 'Teal',
                  'PINK': 'Pink', 'YELLOW': 'Yellow'}
 DEFAULT_STATUS_LABELS = [('Not Started', 'GRAY'), ('In Progress', 'BLUE'), ('On Hold', 'ORANGE'), ('Done', 'GREEN')]
@@ -31,6 +31,21 @@ class Undefined:
 
 
 UNDEF = Undefined()
+
+
+# ------------------------------------------------------------------ Live Data columns
+def effective(col):
+    """A Live Data (LINKED) column read, filtered, sorted and shown as its source column's type and settings."""
+    if not col or col.get('type') != 'LINKED':
+        return col
+    source = (col.get('settings') or {}).get('source') or {}
+    return {**col, 'type': source.get('type') if source.get('type') in COLUMN_TYPES and source.get('type') != 'LINKED' else 'TEXT',
+            'settings': source.get('settings') or {}}
+
+
+def numeric(col):
+    """Columns a formula may use: Number, Formula, and Live Data columns whose source is a Number or Formula."""
+    return bool(col) and (col['type'] in ('NUMBER', 'FORMULA') or (col['type'] == 'LINKED' and effective(col)['type'] in ('NUMBER', 'FORMULA')))
 
 
 # ------------------------------------------------------------------ access
@@ -95,6 +110,7 @@ def _has(v):
 
 
 def matches_filter(col, value, f, text):
+    col = effective(col)
     t = col['type']
     if t in ('NUMBER', 'FORMULA'):
         if not js.is_number(value):
@@ -120,7 +136,8 @@ def matches_filter(col, value, f, text):
 
 
 def sort_key(col, value, text):
-    if empty_value(value):
+    col = effective(col)
+    if empty_value(value) or (isinstance(value, dict) and col['type'] != 'FORMULA'):
         return None
     t = col['type']
     if t == 'NUMBER':
@@ -264,6 +281,8 @@ def empty_value(v):
 def clean_cell(col, value, eligible=None, current=None):
     """Checks a value typed for a cell. eligible: staff IDs that may be chosen now; current: the value already in the cell."""
     t = col['type']
+    if t == 'LINKED':
+        return {'ok': False, 'error': 'This Live Data cell belongs to another group: change it in the table, where its source is updated.'}
     if t == 'FORMULA':
         return {'ok': False, 'error': 'Formula results are calculated for each row; they can’t be typed in.'}
     if t == 'ATTACHMENT':
@@ -339,6 +358,9 @@ def cell_text(col, value, name_of=lambda x: x):
     """A cell as plain text (search, sorting of text, Excel export)."""
     if empty_value(value):
         return ''
+    col = effective(col)
+    if isinstance(value, dict) and 'error' in value:
+        return js.to_js_string(value.get('error'))
     t = col['type']
     settings = col.get('settings') or {}
     if t == 'FORMULA':
@@ -622,7 +644,7 @@ def compile_formula(text, columns, self_id=None):
                 _bad(f"There’s no column named {{{clean_name(tk['v'])}}}. Check the spelling, or insert the column from the list.")
             if col['id'] == self_id:
                 _bad(f"A formula can’t use its own column ({{{col['name']}}}).")
-            if col['type'] not in ('NUMBER', 'FORMULA'):
+            if not numeric(col):
                 _bad(f"{{{col['name']}}} is a {COLUMN_TYPES[col['type']]} column. Formulas can use Number and Formula columns only.")
             if col['id'] not in refs:
                 refs.append(col['id'])
@@ -797,7 +819,7 @@ def prepare_formulas(columns):
             bind(ast)
             refs = formula_refs(expression)
             broken = ('#REF!' if any(x not in by_id for x in refs) else
-                      '#VALUE!' if any(by_id[x]['type'] not in ('NUMBER', 'FORMULA') for x in refs) else None)
+                      '#VALUE!' if any(not numeric(by_id[x]) for x in refs) else None)
             out[c['id']] = {'error': broken, 'refs': refs} if broken else {'ast': ast, 'refs': refs}
         except FormulaError:
             out[c['id']] = {'error': '#VALUE!', 'refs': []}
@@ -816,6 +838,12 @@ def compute_row(values, columns, prepared=None):
             return {'error': '#REF!'}
         if col['type'] == 'NUMBER':
             v = values.get(key)
+            return v if js.is_number(v) and math.isfinite(v) else None
+        if col['type'] == 'LINKED':
+            # The live value (filled in by groups.live for this reader), an error such as #N/A, or empty.
+            v = values.get(key)
+            if isinstance(v, dict):
+                return v
             return v if js.is_number(v) and math.isfinite(v) else None
         if col['type'] != 'FORMULA':
             return {'error': '#VALUE!'}

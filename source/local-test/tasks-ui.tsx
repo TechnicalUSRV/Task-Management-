@@ -44,7 +44,8 @@ export function taskDraft(w: Workspace, kind: Kind, row: Row = {}, workspace = '
   const d = w.data, wid = row.workspace_id || workspace || d.tm_workspaces.find((r: Row) => r.status === 'ACTIVE' && r.org_access?.can_create !== false)?.id || '';
   const members = d.tm_members.filter((m: Row) => m.workspace_id === wid).map((m: Row) => m.staff_id), owner = members.includes(w.actor) ? w.actor : members[0] || w.actor;
   const common = { ...row, expected_version: row.version, request_key: uuid() };
-  if (kind === 'workspace') return { kind: d.organization?.enabled ? 'PERSONAL' : 'LEGACY', name: '', description: '', department: '', owner_id: w.actor, color: 'BLUE', member_ids: row.id ? d.tm_members.filter((m: Row) => m.workspace_id === row.id).map((m: Row) => m.staff_id) : [w.actor], ...common };
+  if (kind === 'workspace') return { kind: d.organization?.enabled ? 'PERSONAL' : 'LEGACY', name: '', description: '', department: '', owner_id: w.actor, color: 'BLUE', member_ids: row.id ? d.tm_members.filter((m: Row) => m.workspace_id === row.id).map((m: Row) => m.staff_id) : [w.actor],
+    manager_ids: row.id ? [...(row.org_access?.manager_ids || [])] : d.workspace_setup?.primary_manager_id ? [d.workspace_setup.primary_manager_id] : [], team_ids: [], ...common };
   if (kind === 'profile') return { name: '', email: '', phone: '', position: '', department: '', active: 1, ...common, ...(row.username ? {name:row.username} : {}) };
   if (kind === 'task') {
     // Supporting people who rejected are kept on record but are not in the list (they can be asked again).
@@ -221,7 +222,7 @@ function Workspaces({ w, open, actions, onViewTasks, onViewGroups }: { w: Worksp
                 <span className="ws-icon" aria-hidden="true"><FolderKanban /></span>
                 <div className="ws-card-heading">
                   <h3>{r.reference_only ? r.name : <button type="button" className="ws-name" onClick={() => open('workspace', d.tm_workspaces.find((x:Row)=>x.id===r.id)||r)}>{r.name}</button>}</h3>
-                  <p className="ws-meta">{r.department || 'No department'} · owner <Identity name={w.lookup(r.owner_id)}/></p>
+                  <p className="ws-meta">{r.department || 'No department'} · owner <Identity name={w.lookup(r.owner_id)}/>{r.org_access?.manager_ids?.length ? <> · managed by {r.org_access.manager_ids.map((m: string) => w.lookup(m)).join(', ')}</> : null}</p>
                 </div>
                 <span className="ws-card-badges">
                   {r.kind && r.kind !== 'LEGACY' && <StatusBadge value={r.kind} label={r.visibility==='PUBLIC'?'Public':r.kind === 'PERSONAL' ? 'Personal' : 'Public'} />}
@@ -276,7 +277,7 @@ function WorkspaceMemberDialog({ w, workspace, onClose, remove=false }: { w: Wor
   // V5.6.8: the standard dialog layout (padded body, footer with the buttons), like every other form.
   return <Dialog open onOpenChange={open => { if (!open && !busy) onClose(); }}>
     <DialogContent className="dialog-md" onInteractOutside={e => busy && e.preventDefault()}>
-      <DialogHeader><DialogTitle>{remove?'Remove member from':'Add member to'} {workspace.name}</DialogTitle><DialogDescription>{remove?'Membership-based access will be revoked. Existing tasks, history and independently authorized participation are retained.':workspace.visibility==='PERSONAL'?'Adding another member automatically makes this workspace Public, visible to your direct and indirect reporting managers.':'Your authorized addition is recorded with this membership. Adding a member does not change their level or reporting manager.'}</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle>{remove?'Remove member from':'Add member to'} {workspace.name}</DialogTitle><DialogDescription>{remove?'Membership-based access will be revoked. Existing tasks, history and independently authorized participation are retained.':workspace.visibility==='PERSONAL'?'The workspace stays Personal: only you, its members and authorized Administration can open it. Your managers do not gain access.':'Your authorized addition is recorded with this membership. Adding a member does not change their level or reporting manager.'}</DialogDescription></DialogHeader>
       <form className="dialog-form" onSubmit={submit} noValidate>
         <fieldset disabled={busy}>
           <div className="dialog-body">
@@ -657,7 +658,8 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
   const taskRoles = current ? taskActions(current, w.actor, { canApprove: canApproveOn(w, current) }) : null;
   // V5.4: once both sides are on the task, either side proposes changes and the other side approves them.
   // (Also for a completed or cancelled task both sides had agreed to: its record changes only with the other side.)
-  const target: string | null = current ? editApprovalTarget(current, w.actor) || [current.reviewer_id,d.reviewer_id,d.pic_id].find(x=>x&&x!==w.actor) || null : null;
+  // Approval is needed only from another person: when the editor holds every responsible role, changes save directly.
+  const target: string | null = current ? editApprovalTarget(current, w.actor) || [current.reviewer_id,current.created_by,d.reviewer_id,d.pic_id].find(x=>x&&x!==w.actor) || null : null;
   const locked = !!taskRoles && !taskRoles.roles.isGovernor && !target;
   // V5.4: a workspace's members edit its details; only its owner and workspace managers (Workspace Delete) change its
   // owner or members, because membership opens the workspace's Groups.
@@ -703,15 +705,39 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
   const isEdit = !!(d.id || (k === 'profile' && d.staff_id));
   const noun = ({ workspace: 'workspace', profile: 'team member', task: 'task', time: 'time entry', meeting: 'meeting' } as Row)[k];
   let body: ReactNode;
+  // Responsible managers (management scope) and, for an Organizational workspace you own, members from your approved
+  // branch. Creator, owner, responsible managers and members stay separate; the server checks every choice again.
+  const setup: Row = w.data.workspace_setup || { managers: [], subordinates: [] };
+  const wsAccess: Row = wsOriginal?.org_access || {};
+  const makingPublic = !!d.id && wsOriginal?.visibility === 'PERSONAL' && d.visibility === 'PUBLIC';
+  const scopeVisible = k === 'workspace' && (!d.id ? ['PUBLIC', 'ORGANIZATIONAL'].includes(d.kind) && setup.managers.length > 0 && (d.kind !== 'ORGANIZATIONAL' || d.owner_id === w.actor)
+    : (wsOriginal?.visibility === 'PUBLIC' && !!wsAccess.can_set_managers) || makingPublic);
+  const managerChoices: PersonOption[] = (!d.id ? setup.managers : wsAccess.manager_options || []).map((m: Row) => ({ id: m.id, name: m.name, detail: [m.title, m.direct ? 'reports directly' : ''].filter(Boolean).join(' · ') || undefined }));
+  const teamChoices: PersonOption[] = (setup.subordinates || []).map((m: Row) => ({ id: m.id, name: m.name }));
+  const governedScope = k === 'workspace' && d.kind && d.kind !== 'LEGACY' ? <>
+    {!!d.id && wsAccess.can_make_public && <FormSection title="Visibility" columns={1}>
+      <CheckboxField label="Make this workspace Public" checked={makingPublic} onChange={v => set('visibility', v ? 'PUBLIC' : 'PERSONAL')}
+        description="Its responsible managers will be able to see it and its tasks. This cannot be undone here." />
+      {makingPublic && <CheckboxField label="I understand that the responsible managers below will see this workspace." checked={!!d.acknowledged} onChange={v => set('acknowledged', v)} error={form.errors.acknowledged} />}
+    </FormSection>}
+    {scopeVisible && <FormSection title="Responsible managers" columns={1} description="Whose management this workspace falls under. Only the managers you choose (and the people above them) see it through management; another manager of yours does not see it unless you choose them or add them as a member.">
+      <PeoplePicker label="Responsible managers" people={managerChoices} value={d.manager_ids || []} onChange={v => set('manager_ids', v)} addLabel="Add a manager" max={10}
+        hint={(d.manager_ids || []).length ? undefined : 'None chosen: your primary reporting line manages it, as before.'} disabled={!canSave} />
+    </FormSection>}
+    {!d.id && d.kind === 'ORGANIZATIONAL' && d.owner_id === w.actor && teamChoices.length > 0 && <FormSection title="Members from your team" columns={1} description="Employees of your approved branch are added when the workspace is created; anyone else needs the governing manager’s approval.">
+      <PeoplePicker label="Team members" people={teamChoices} value={d.team_ids || []} onChange={v => set('team_ids', v)} addLabel="Add a team member" disabled={!canSave} />
+    </FormSection>}
+  </> : null;
   if (k === 'workspace') body = <>
     <FormSection title="Workspace">
       {!d.id && pick('kind', 'Workspace classification', [['PERSONAL','Personal — owner only'],['PUBLIC','Public — owner managed'],['ORGANIZATIONAL','Organizational — Level 2 governance']], { required: true, wide: true, onChange: v => { setD(s => ({...s,kind:v,...(['PERSONAL','PUBLIC'].includes(v)?{owner_id:w.actor}: {})})); setDirty(true); } })}
-      {d.kind && d.kind !== 'LEGACY' && <p className="span-2 muted small">{['PERSONAL','PUBLIC'].includes(d.kind) ? 'Personal workspaces are private. Adding another member makes them Public, visible to reporting managers.' : 'An approved Owner grant or Level 2 authority is required. The governing manager comes from the owner’s reporting branch.'} Manage membership and governance in Organizational Structure.</p>}
+      {d.kind && d.kind !== 'LEGACY' && <p className="span-2 muted small">{d.kind === 'PERSONAL' ? 'Personal workspaces stay private: only you, the members you add and authorized Administration can open them.' : d.kind === 'PUBLIC' ? 'Public workspaces are visible to their members and to the responsible managers you choose below.' : 'An approved Owner grant or Level 2 authority is required. The governing manager comes from the owner’s reporting branch.'} Manage membership and governance in Organizational Structure.</p>}
       {field('name', 'Workspace name', 'text', true, true)}{field('department', 'Department')}
       {person('owner_id', 'Workspace owner', profiles, { required: true, disabled: !wsManager || ['PERSONAL','PUBLIC'].includes(d.kind) || !!d.id && d.kind === 'ORGANIZATIONAL', hint: d.id && d.kind === 'ORGANIZATIONAL' ? 'Change ownership in Organizational Structure after reviewing the affected scope.' : wsManager ? undefined : 'Only the owner or a workspace manager can change the owner.', onChange: v => { setD(s => ({ ...s, owner_id: v, member_ids: [...new Set([...(s.member_ids || []), v])] })); setDirty(true); form.clear('owner_id'); } })}
       {pick('color', 'Color', Object.keys(TASK_COLORS).map(c => [c, c.charAt(0) + c.slice(1).toLowerCase()]), { required: true })}
       {field('description', 'Description', 'textarea', true)}
     </FormSection>
+    {governedScope}
     {(!d.kind || d.kind === 'LEGACY') && <FormSection title="Members" columns={1}><PeoplePicker label="Workspace members" people={profiles} value={d.member_ids || []} locked={[d.owner_id]} disabled={!wsManager} onChange={v => set('member_ids', v)} addLabel="Add a member" hint={wsManager ? 'The owner is always included. Members can open the workspace’s team groups. People that members choose for a task or meeting here are added automatically.' : 'Only the owner or a workspace manager can change the members.'} /></FormSection>}
   </>;
   else if (k === 'profile') {
@@ -757,7 +783,7 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
         {isTask ? field('description', 'Expectation', 'textarea', true, true, { placeholder: 'The result you expect: what is delivered, to what standard, and how you will know it is done.', aliases: ['description'] }) : field('agenda', 'Agenda', 'textarea', true, false, { disabled: meetingLocked })}
       </FormSection>
       {isTask ? <>
-        {d.id && <p className="hint small">Detail changes need another responsible party’s approval. For a task you manage alone, choose a different reviewer in the proposed change.</p>}
+        {d.id && !target && <p className="hint small">You hold every responsible role on this task, so your changes are saved directly.</p>}
         {target && <Alert tone="info" icon={Scale} className="mb-4" title={`Changes need ${w.lookup(target)}’s approval`}>When you save, your changes are sent to {firstName(w.lookup(target))}. The task stays exactly as it is until they approve; they can also reject the change with a reason.</Alert>}
         {locked && <Alert tone="neutral" className="mb-4" title="You are the person in charge">You can change the expectation, supporting people, estimate and department note. {w.lookup(current?.reviewer_id)} manages the title, dates, repeat, priority and people — use “Ask for a new due date” in the task to move the date, or “Hand over” to give it to someone else.</Alert>}
         <FormSection title="People" description="Everyone who uses Task Management can be chosen. The person in charge, supporting people and the reviewer are each asked to accept or reject (unless you choose yourself).">
@@ -844,6 +870,12 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
       if (k === 'task' && d.id) { delete body.status; delete body.progress; }
       const governedWorkspace = k === 'workspace' && d.kind && d.kind !== 'LEGACY';
       if (governedWorkspace) delete body.member_ids;
+      if (k === 'workspace') {
+        if (governedWorkspace && !d.id && (d.team_ids || []).length) body.member_ids = d.team_ids;
+        if (!scopeVisible) delete body.manager_ids;
+        if (!makingPublic) { delete body.visibility; delete body.acknowledged; }
+        delete body.team_ids;
+      }
       const result = await w.perform(`tm.${k}.save`, body);
       onClose();
       if (!d.id && result?.id) onCreated?.(result.id);

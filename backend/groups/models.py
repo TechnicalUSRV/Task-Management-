@@ -20,7 +20,8 @@ AUDIENCES = ['WORKSPACE', 'SELECTED']
 WORKSPACE_LEVELS = ['VIEW', 'EDIT']
 ACCESS_LEVELS = ['VIEW', 'EDIT', 'MANAGE']
 STATUSES = ['ACTIVE', 'ARCHIVED']
-COLUMN_TYPES = ['TEXT', 'DATE', 'NUMBER', 'STATUS', 'IN_CHARGE', 'SUPPORT', 'FORMULA', 'ATTACHMENT']
+COLUMN_TYPES = ['TEXT', 'DATE', 'NUMBER', 'STATUS', 'IN_CHARGE', 'SUPPORT', 'FORMULA', 'ATTACHMENT', 'LINKED']
+LIVE_PERMISSIONS = ['VIEW', 'EDIT']
 PRINCIPALS = ['USER', 'ROLE']
 NOTE_ACTIONS = ['EDIT', 'DELETE']
 IMPORT_STATUSES = ['UPLOADED', 'IMPORTED']
@@ -190,7 +191,9 @@ class BoardImport(models.Model):
     file_name = models.CharField(max_length=400)
     file_size = models.IntegerField()
     sheets_json = models.TextField()
-    source_json = models.TextField(default='{}')
+    # db_default: SQL Server keeps a DEFAULT constraint, so code from before this column existed can still insert rows
+    # (a code-only rollback stays safe while the migration stays applied).
+    source_json = models.TextField(default='{}', db_default='{}')
     status = models.CharField(max_length=10)
     result_json = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField()
@@ -268,6 +271,8 @@ class BoardDelivery(models.Model):
     telegram_user_id = models.BigIntegerField()
     telegram_linked_at = models.DateTimeField()
     status = models.CharField(max_length=16, default='QUEUED')
+    # The name the person chose for a combined PDF (empty: the standard name). Originals keep their names.
+    file_name = models.CharField(max_length=160, blank=True, default='', db_default='')   # db_default: see BoardImport.source_json
     result_json = models.TextField(default='[]')
     error = models.CharField(max_length=500, blank=True, default='')
     created_at = models.DateTimeField()
@@ -279,3 +284,63 @@ class BoardDelivery(models.Model):
                        models.CheckConstraint(condition=Q(mode__in=['SEPARATE', 'MERGED_PDF']), name='tm_delivery_mode'),
                        models.CheckConstraint(condition=Q(status__in=['QUEUED', 'SENDING', 'SENT', 'PARTIAL', 'FAILED', 'UNKNOWN']), name='tm_delivery_status')]
         indexes = [models.Index(fields=['status', 'created_at'], name='tm_delivery_queue')]
+
+
+class BoardLiveShare(models.Model):
+    """Share Live Data: a recipient reads (and, column by column, edits) the source Group's own cells.
+
+    Unlike BoardDataShare (an independent copy), nothing is copied: a Live Data column in the recipient's Group shows the
+    source cells as they are now. It never grants workspace membership or opening the source Group. The grant is checked
+    again on every read and write (issuer authority, recipient scope, the columns' own access rules)."""
+    id = models.CharField(max_length=60, primary_key=True)
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='live_shares')
+    recipient = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+    active = models.BooleanField(default=True)
+    version = models.IntegerField(default=0)
+    created_by = person('created_by', null=False)
+    created_at = models.DateTimeField()
+    updated_by = person('updated_by', null=False)
+    updated_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'tm_board_live_shares'
+        constraints = [models.UniqueConstraint(fields=['board', 'recipient'], name='tm_live_share_recipient')]
+        indexes = [models.Index(fields=['recipient', 'active'], name='tm_live_share_active')]
+
+
+class BoardLiveColumn(models.Model):
+    """One shared source column of a Live Data share, with its permission (VIEW: Viewer, EDIT: Can Edit)."""
+    share = models.ForeignKey(BoardLiveShare, on_delete=models.CASCADE, related_name='columns')
+    column = models.ForeignKey(BoardColumn, on_delete=models.CASCADE, related_name='live_columns')
+    permission = models.CharField(max_length=10)
+
+    class Meta:
+        db_table = 'tm_board_live_columns'
+        constraints = [models.UniqueConstraint(fields=['share', 'column'], name='tm_live_column_unique'),
+                       models.CheckConstraint(condition=Q(permission__in=LIVE_PERMISSIONS), name='tm_live_column_permission')]
+
+
+class BoardLiveEdit(models.Model):
+    """Edit history of live-shared source cells: who, when, which row and column, the value before and after, and how.
+
+    Rows and columns are kept by ID and name (not foreign keys), so the history stays after a row is deleted. Written by
+    the application only (never updated); deleting the source Group removes it with the Group, like its notes."""
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='live_history')
+    row_ref = models.CharField(max_length=60)
+    column_ref = models.CharField(max_length=60)
+    column_name = models.CharField(max_length=200)
+    actor = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
+    action = models.CharField(max_length=12)
+    before_json = models.TextField(default='null')
+    after_json = models.TextField(default='null')
+    via = models.CharField(max_length=12)
+    share_ref = models.CharField(max_length=60, blank=True, default='')
+    created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_board_live_history'
+        constraints = [models.CheckConstraint(condition=Q(action__in=['EDIT', 'ADD_ROW', 'DELETE_ROW', 'IMPORT']), name='tm_live_history_action'),
+                       models.CheckConstraint(condition=Q(via__in=['group', 'live', 'import']), name='tm_live_history_via')]
+        indexes = [models.Index(fields=['board', 'created_at'], name='tm_live_history_board'),
+                   models.Index(fields=['board', 'column_ref', 'created_at'], name='tm_live_history_column')]

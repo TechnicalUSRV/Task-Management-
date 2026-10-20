@@ -330,7 +330,7 @@ export function MiniApp() {
     <div className={`app${view ? ' has-stack' : ''}`}>
       {orgView && <main className="screen" hidden={view !== orgView} key={`org:${orgAt}:${orgView.id ?? '-'}`}><OrganizationView c={c} requestId={orgView.id} /></main>}
       {view !== orgView && <main className="screen" key={view ? `${view.kind}:${'id' in view ? view.id : ''}:${stack.length}` : tab}>
-        {view?.kind === 'group-files' ? <MiniGroupAttachments groupId={view.groupId} files={view.files} title={view.title} read={call} command={perform} viewFile={c.viewFile} download={c.download} onClose={c.back} /> : view?.kind === 'task' ? <TaskView c={c} id={view.id} />
+        {view?.kind === 'group-files' ? <MiniGroupAttachments groupId={view.groupId} files={view.files} title={view.title} read={call} command={perform} viewFile={c.viewFile} download={c.download} onClose={c.back} layer={useLayer} /> : view?.kind === 'task' ? <TaskView c={c} id={view.id} />
           : view?.kind === 'task-form' ? <TaskForm c={c} id={view.id} />
             : view?.kind === 'request' ? <RequestView c={c} id={view.id} />
               : view?.kind === 'request-form' ? <RequestForm c={c} id={view.id} />
@@ -724,10 +724,11 @@ async function editGroupCell(c: Ctx, groupId: string, row: Row, column: Row, sav
   const fields: Field[] = multi ? people.map(p => ({ key: p.id, label: p.name, type: 'checkbox' })) : [{ key: 'value', label: column.name,
     type: column.type === 'DATE' ? 'date' : column.type === 'STATUS' ? 'select' : column.type === 'IN_CHARGE' ? 'person' : column.type === 'TEXT' ? 'textarea' : 'text',
     options: column.type === 'STATUS' ? statusLabels(column).map((l: Row) => [l.id, l.name]) : undefined, people,
-    hint: column.type === 'NUMBER' ? 'Enter the raw number. Display symbols do not change its value.' : undefined }];
+    hint: column.linked ? `Live Data from ${column.linked.source_group_name}: saving changes it there for everyone it is shared with.` : column.type === 'NUMBER' ? 'Enter the raw number. Display symbols do not change its value.' : undefined }];
   c.sheet({ title: column.name, fields, confirm: 'Save cell', initial: multi ? Object.fromEntries((current || []).map((id: string) => [id, true])) : { value: current ?? '' }, run: async values => {
     const value = multi ? people.filter(p => values[p.id]).map(p => p.id) : values.value === '' ? null : values.value;
-    await c.perform('tm.group.row.update', { group_id: groupId, id: row.id, expected_version: row.version, values: { [column.id]: value } }); saved();
+    // A Live Data cell belongs to another group: it is checked against the value shown (not this row's version).
+    await c.perform('tm.group.row.update', { group_id: groupId, id: row.id, ...(column.linked ? { expected: { [column.id]: current } } : { expected_version: row.version }), values: { [column.id]: value } }); saved();
   } });
 }
 
@@ -1085,7 +1086,8 @@ function TaskForm({ c, id }: { c: Ctx; id?: string }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [step, setStep] = useState(''), [invalid, setInvalid] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   // V5.4: once both sides are on the task, either side proposes changes and the other side approves them.
-  const target: string | null = t ? editApprovalTarget(t, c.me) || [t.reviewer_id,d.reviewer_id,d.pic_id].find(x=>x&&x!==c.me) || null : null;
+  // Same rule as the server: only another responsible person approves; a task one person runs alone saves directly.
+  const target: string | null = t ? editApprovalTarget(t, c.me) || [t.reviewer_id,t.created_by,d.reviewer_id,d.pic_id].find(x=>x&&x!==c.me) || null : null;
   const roles = t ? taskActions(t, c.me, { canApprove: c.approver && involved(t) }).roles : null, locked = !!roles && !roles.isGovernor && !target;
   const [otherDay, setOtherDay] = useState('');
   const { saved } = useDirty([d, step, otherDay, outside]);

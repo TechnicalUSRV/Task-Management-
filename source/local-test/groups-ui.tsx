@@ -4,6 +4,8 @@ import { formatColumnNumber, cellColors } from './group-presentation';
 import { CellFormatControl } from './group-cell-format';
 import { GroupDelivery } from './group-delivery-ui';
 import { ShareDataDialog } from './group-sharing-ui';
+import { AddLiveColumnDialog, LIVE_ERRORS, LiveHistoryDialog, ShareLiveDialog, viewColumn } from './group-live-ui';
+import './styles/group-live.css';
 // Task Management → Workspace → Groups → a group (V5.4). A group is a customizable table: its own columns (Text, Date,
 // Number, Status, In Charge, Support, Formula, and V5.6.9 Attachment), rows, sharing and formulas. The server checks and calculates everything;
 // this screen previews formulas with the same rules (group-domain.mjs) and never shows a save before the server confirms it.
@@ -11,7 +13,7 @@ import { apiFetch, apiPath } from './api-client';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type Dispatch, type FormEvent, type KeyboardEvent, type MouseEvent, type MutableRefObject, type PointerEvent as ReactPointerEvent, type SetStateAction } from 'react';
 import {
   Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Calculator, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Columns3, Download, Expand, Eye, EyeOff, GripVertical, Hash, History,
-  LayoutList, ListFilter, Loader2, Lock, MessageSquareText, MoreHorizontal, MoreVertical, Paperclip, FileText, FileImage, Pencil, Plus, RotateCcw, Save, Search, Settings2, Sheet, Tags, Trash2, Type, Upload, User, Users, X, type LucideIcon,
+  LayoutList, Link2, ListFilter, Loader2, Lock, MessageSquareText, MoreHorizontal, MoreVertical, Paperclip, FileText, FileImage, Pencil, Plus, RotateCcw, Save, Search, Settings2, Sheet, Tags, Trash2, Type, Upload, User, Users, X, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -172,6 +174,9 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   const [active, setActive] = useState<{ row: string; col: string } | null>(null);
   const [cells, setCells] = useState<Record<string, CellState>>({});
   const [shareColumn, setShareColumn] = useState<Row | null>(null);
+  // Share Live Data (connected data) for a column or the whole group, a new Live Data column, and the edit history.
+  const [liveShare, setLiveShare] = useState<{ column?: string } | null>(null), [liveColumn, setLiveColumn] = useState<{ after?: string } | null>(null);
+  const [liveHistory, setLiveHistory] = useState<{ group: string; name?: string; column?: string } | null>(null);
   const [columnDialog, setColumnDialog] = useState<{ column?: Row; after?: string } | null>(null);
   const [cellDialog, setCellDialog] = useState<{ row: Row; col: Row } | null>(null);
   const [showAccess, setShowAccess] = useState(false), [showActivity, setShowActivity] = useState(false), [filterFor, setFilterFor] = useState<Row | null>(null), [busy, setBusy] = useState(false);
@@ -356,7 +361,8 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   if (loading && !data) return <div className="group-loading" role="status"><Loader2 className="spin" aria-hidden="true" />Opening the group…</div>;
   if (error && !data) return <><Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft />All groups</Button><ErrorState message={error} onRetry={() => void load()} /></>;
   if (!data) return null;
-  const g: Row = data.group, columns: Row[] = data.columns, page: Row = data.page, rows: Row[] = page.rows, caps: Row = g.caps;
+  // Live Data columns are shown, filtered and edited as their source column's type (`linked` keeps the connection).
+  const g: Row = data.group, columns: Row[] = data.columns.map(viewColumn), page: Row = data.page, rows: Row[] = page.rows, caps: Row = g.caps;
   rowsRef.current = rows;
   const personal: Row = data.view || {}, sharedLayout: Row = data.layout || {};
   const nameOf = (x: string) => personName(w, x, inactive);
@@ -816,6 +822,10 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
         {fit >= 1 && caps.import && <DropdownMenuItem disabled={busy} onSelect={() => setImporting(true)}><Upload />Import data</DropdownMenuItem>}
         {fit >= 1 && caps.export && <DropdownMenuItem onSelect={() => setExporting(true)}><Download />Export data</DropdownMenuItem>}
         {moved && <DropdownMenuSeparator />}
+        {(caps.structure || (caps.share && caps.export)) && <DropdownMenuLabel>Live Data</DropdownMenuLabel>}
+        {caps.share && caps.export && <DropdownMenuItem disabled={busy} onSelect={() => setLiveShare({})}><Share2 />Share Live Data…</DropdownMenuItem>}
+        {caps.structure && <DropdownMenuItem disabled={busy || columns.length >= GROUP_LIMITS.columns} onSelect={() => setLiveColumn({})}><Link2 />Add Live Data column…</DropdownMenuItem>}
+        {(caps.structure || (caps.share && caps.export)) && <DropdownMenuSeparator />}
         {data.activity && <DropdownMenuItem onSelect={() => setShowActivity(true)}><History />Recent changes</DropdownMenuItem>}
         <DropdownMenuItem onSelect={() => setShowAccess(true)}><Users />Who can open it</DropdownMenuItem>
         {g.description && <DropdownMenuLabel className="group-menu-desc">{g.description.slice(0, 200)}</DropdownMenuLabel>}
@@ -916,7 +926,9 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                           onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); moveColumnBy(c.id, e.key === 'ArrowLeft' ? -1 : 1); } }}><GripVertical aria-hidden="true" /></button>
                         <ColumnMenu col={c} caps={caps} sort={view.sort?.col === c.id ? view.sort?.dir ?? null : null} columns={columns}
                           onSort={dir => setV({ sort: dir ? { col: c.id, dir } : null })} onFilter={() => setFilterFor(c)} onHide={() => hideColumn(c)} onEdit={() => setColumnDialog({ column: c })} onInsert={() => setColumnDialog({ after: c.id })}
-                          onShare={() => setShareColumn(c)} onRestrict={() => setRuleFor({ kind: 'column', column: c })} onDelete={() => void deleteColumn(c)} />
+                          onShare={() => setShareColumn(c)} onRestrict={() => setRuleFor({ kind: 'column', column: c })} onDelete={() => void deleteColumn(c)}
+                          onShareLive={() => setLiveShare({ column: c.id })} onHistory={() => c.linked ? setLiveHistory({ group: c.linked.source_group_id, name: c.linked.source_group_name, column: c.linked.source_column_id }) : setLiveHistory({ group: id, name: g.name, column: c.id })}
+                          onAddRows={() => void structure('tm.group.live.rows', { column_id: c.id })} />
                       </div>
                       <ResizeHandle name={c.name} width={widthOf(c)} onResize={v => setWidths(s => ({ ...s, [c.id]: v }))} onCommit={() => commitWidth(c)} />
                     </th>
@@ -977,7 +989,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                       <div key={c.id} className="row-card-field" style={cellColors(r, c)}>
                         <dt>{c.name}{caps.editRows && <CellFormatControl groupId={id} row={r} col={c} onSaved={replaceRow} />}</dt>
                         <dd>{c.type === 'ATTACHMENT' ? <AttachmentCell row={r} col={c} groupId={id} caps={caps} replaceRow={replaceRow} inline /> : <CellDisplay row={r} col={c} value={valueOf(c, r)} nameOf={nameOf} />}
-                          {caps.editRows && c.type !== 'FORMULA' && c.type !== 'ATTACHMENT' && <IconButton label={`Edit ${c.name}`} icon={Pencil} onClick={() => setCellDialog({ row: r, col: c })} />}
+                          {caps.editRows && c.type !== 'FORMULA' && c.type !== 'ATTACHMENT' && !c.linked?.readOnly && <IconButton label={`Edit ${c.name}`} icon={Pencil} onClick={() => setCellDialog({ row: r, col: c })} />}
                           {cells[cellKey(r.id, c.id)]?.state === 'error' && <span className="text-danger small">{cells[cellKey(r.id, c.id)]?.message}</span>}
                         </dd>
                       </div>
@@ -995,7 +1007,11 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
         <Button size="sm" variant="outline" disabled={(view.page + 1) * view.size >= page.total} onClick={() => setV({ page: view.page + 1 })}>Next<ChevronRight /></Button>
         <label className="page-size small">Rows per page <select className="control" value={view.size} onChange={e => setV({ size: Number(e.target.value) })}>{PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       </nav>}
-      {shareColumn && <ShareDataDialog groupId={id} columns={columns} initialColumn={shareColumn.id} onClose={() => setShareColumn(null)} />}
+      {shareColumn && <ShareDataDialog groupId={id} columns={columns.filter(c => !c.linked)} initialColumn={shareColumn.id} onClose={() => setShareColumn(null)} />}
+      {liveShare && <ShareLiveDialog groupId={id} groupName={g.name} initialColumn={liveShare.column} onClose={() => setLiveShare(null)} />}
+      {liveColumn && <AddLiveColumnDialog groupId={id} columns={columns} after={liveColumn.after} onClose={() => setLiveColumn(null)}
+        onSaved={async message => { setLiveColumn(null); await load(true); void w.refresh({ quiet: true }); toast.success(message); }} />}
+      {liveHistory && <LiveHistoryDialog groupId={liveHistory.group} groupName={liveHistory.name} column={liveHistory.column} onClose={() => setLiveHistory(null)} />}
       {columnDialog && <ColumnDialog w={w} group={g} columns={columns} rows={rows} column={columnDialog.column} after={columnDialog.after} onClose={() => setColumnDialog(null)}
         onSaved={async message => { setColumnDialog(null); await load(true); void w.refresh({ quiet: true }); toast.success(message); }} />}
       {cellDialog && <CellDialog row={cellDialog.row} col={cellDialog.col} {...editors} onClose={() => setCellDialog(null)} />}
@@ -1005,7 +1021,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
       {notesFor && <NotesDrawer w={w} groupId={id} row={notesFor.row} title={notesFor.title} onClose={() => setNotesFor(null)} onChanged={() => void load(true)} />}
       {ruleFor && <AccessRuleDialog groupId={id} target={ruleFor} onClose={() => setRuleFor(null)} onSaved={async message => { setRuleFor(null); setSelected({}); toast.success(message); await load(true); }} />}
       {exporting && <ExportDialog groupId={id} name={g.name} all={page.all} filtered={page.total} selectedIds={allMatching ? null : ids.length ? ids : null} query={query} filteredActive={filtering || allMatching} hiddenColumns={hiddenCols.size} onClose={() => setExporting(false)} />}
-      {importing && <ImportWizard groupId={id} groupName={g.name} columns={columns} canCreateColumns={!!caps.structure} onClose={() => setImporting(false)} onDone={() => { void load(true); void w.refresh({ quiet: true }); }} />}
+      {importing && <ImportWizard groupId={id} groupName={g.name} columns={columns.filter(c => !c.linked)} canCreateColumns={!!caps.structure} onClose={() => setImporting(false)} onDone={() => { void load(true); void w.refresh({ quiet: true }); }} />}
     </div>
   );
 }
@@ -1055,24 +1071,27 @@ function ResizeHandle({ name, width, onResize, onCommit, limits = GROUP_LIMITS.w
   );
 }
 
-function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit, onInsert, onRestrict, onShare, onDelete }: {
+function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit, onInsert, onRestrict, onShare, onDelete, onShareLive, onHistory, onAddRows }: {
   col: Row; caps: Row; sort: 'asc' | 'desc' | null; columns: Row[]; onShare: () => void; onSort: (d: 'asc' | 'desc' | null) => void; onFilter: () => void; onHide: () => void; onEdit: () => void; onInsert: () => void; onRestrict: () => void; onDelete: () => void;
+  onShareLive: () => void; onHistory: () => void; onAddRows: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const Icon = TYPE_ICON[col.type], formula = col.type === 'FORMULA' ? col.settings?.display : '';
+  const live: Row | undefined = col.linked;
+  const Icon = live ? Link2 : TYPE_ICON[col.type], formula = col.type === 'FORMULA' ? col.settings?.display : '';
+  const liveText = live ? (live.state === 'ok' ? `Live Data from ${live.source_group_name} · ${live.permission === 'EDIT' ? 'Can edit' : 'Viewer'}` : live.state === 'broken' ? 'Live Data · the source column was removed' : 'Live Data · not available to you') : '';
   const usedBy = (col.used_by || []).map((x: string) => columns.find(c => c.id === x)?.name).filter(Boolean), restricted = !!col.access?.length;
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="grid-head-button" onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) e.preventDefault(); }} onClick={() => setOpen(value => !value)} title={formula ? `${col.name} ${formula}` : `${col.name} · ${COLUMN_TYPES[col.type as ColumnType]} · Drag to move`}>
+        <button type="button" className={`grid-head-button${live ? ' is-live' : ''}`} onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) e.preventDefault(); }} onClick={() => setOpen(value => !value)} title={formula ? `${col.name} ${formula}` : live ? `${col.name} · ${liveText}` : `${col.name} · ${COLUMN_TYPES[col.type as ColumnType]} · Drag to move`}>
           <Icon aria-hidden="true" className="grid-type-icon" /><span className="grid-head-name">{col.name}</span>
           {restricted && <Lock aria-hidden="true" className="grid-lock" />}
           {sort && (sort === 'asc' ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />)}
-          <span className="sr-only">, {COLUMN_TYPES[col.type as ColumnType]} column{restricted ? ', visible to some people only' : ''}{sort ? `, sorted ${sort === 'asc' ? 'ascending' : 'descending'}` : ''}. Open the column menu.</span>
+          <span className="sr-only">, {live ? liveText : `${COLUMN_TYPES[col.type as ColumnType]} column`}{restricted ? ', visible to some people only' : ''}{sort ? `, sorted ${sort === 'asc' ? 'ascending' : 'descending'}` : ''}. Open the column menu.</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="column-menu">
-        <DropdownMenuLabel>{COLUMN_TYPES[col.type as ColumnType]}{formula ? <code className="column-menu-formula">{formula}</code> : null}{usedBy.length ? <span className="column-menu-note">Used by {usedBy.join(', ')}</span> : null}{restricted ? <span className="column-menu-note">Visible to some people only</span> : null}</DropdownMenuLabel>
+        <DropdownMenuLabel>{live ? liveText : COLUMN_TYPES[col.type as ColumnType]}{live?.state === 'ok' ? <span className="column-menu-note">Matched by {live.source_key_name} = {columns.find(c => c.id === live.key_column_id)?.name || 'a column of this group'}</span> : null}{formula ? <code className="column-menu-formula">{formula}</code> : null}{usedBy.length ? <span className="column-menu-note">Used by {usedBy.join(', ')}</span> : null}{restricted ? <span className="column-menu-note">Visible to some people only</span> : null}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => onSort('asc')}><ArrowUp />Sort ascending</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onSort('desc')}><ArrowDown />Sort descending</DropdownMenuItem>
         {sort && <DropdownMenuItem onSelect={() => onSort(null)}><ArrowUpDown />Clear sorting</DropdownMenuItem>}
@@ -1080,10 +1099,13 @@ function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit
         <DropdownMenuItem onSelect={onHide}><EyeOff />Hide in my view</DropdownMenuItem>
         {caps.structure && <>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onEdit}><Pencil />{col.type === 'FORMULA' ? 'Edit formula and column…' : 'Rename or change column…'}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onEdit}><Pencil />{live ? 'Rename Live Data column…' : col.type === 'FORMULA' ? 'Edit formula and column…' : 'Rename or change column…'}</DropdownMenuItem>
           <DropdownMenuItem onSelect={onInsert}><Plus />Add column after</DropdownMenuItem>
         </>}
-        {caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShare}><Share2 />Share Data…</DropdownMenuItem>}
+        {live?.state === 'ok' && caps.addRows && <DropdownMenuItem onSelect={onAddRows}><Plus />Add rows for shared records</DropdownMenuItem>}
+        {(live?.can_history || (!live && col.shared_live)) && <DropdownMenuItem onSelect={onHistory}><History />Live Data edit history…</DropdownMenuItem>}
+        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShare}><Share2 />Share Data (copy)…</DropdownMenuItem>}
+        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShareLive}><Link2 />Share Live Data…</DropdownMenuItem>}
         {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />Restrict access…</DropdownMenuItem>}
         {caps.deleteColumns && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />Delete column…</DropdownMenuItem></>}
       </DropdownMenuContent>
@@ -1140,6 +1162,8 @@ type Editors = {
 
 function CellDisplay({ row, col, value, nameOf }: { row: Row; col: Row; value: unknown; nameOf: (id: string) => string }) {
   if (emptyValue(value)) return <span className="cell-empty"><span className="sr-only">empty</span></span>;
+  // A Live Data cell that can't show a value: #N/A (no access), #DUP! (several matches), #REF! (source removed).
+  if (col.linked && value && typeof value === 'object' && !Array.isArray(value)) { const code = String((value as Row).error || ''); return <span className="cell-error" title={LIVE_ERRORS[code]}><CircleAlert aria-hidden="true" />{code}<span className="sr-only">: {LIVE_ERRORS[code]}</span></span>; }
   switch (col.type) {
     case 'FORMULA': {
       if (value && typeof value === 'object') { const code = (value as Row).error; return <span className="cell-error" title={FORMULA_ERRORS[code as keyof typeof FORMULA_ERRORS]}><CircleAlert aria-hidden="true" />{code}<span className="sr-only">: {FORMULA_ERRORS[code as keyof typeof FORMULA_ERRORS]}</span></span>; }
@@ -1162,7 +1186,7 @@ function GridCell(props: Editors & { row: Row; col: Row; onExpand: () => void; l
   return <EditableCell {...props} />;
 }
 function EditableCell({ row, col, active, setActive, cells, saveCell, discard, groupId, w, nameOf, caps, advance, lastRowId, enterTo, seed, onExpand, lifted, replaceRow }: Editors & { row: Row; col: Row; onExpand: () => void; lifted?: boolean }) {
-  const key = cellKey(row.id, col.id), st = cells[key], editable = caps.editRows && col.type !== 'FORMULA';
+  const key = cellKey(row.id, col.id), st = cells[key], editable = caps.editRows && col.type !== 'FORMULA' && !col.linked?.readOnly;
   const isActive = active?.row === row.id && active?.col === col.id;
   const value = col.type === 'FORMULA' ? row.computed?.[col.id] : row.values?.[col.id];
   // While a value is being saved the cell already shows it; a value that couldn't be saved stays shown with its message.
@@ -1177,7 +1201,7 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
     if (wasActive.current && !isActive && (!document.activeElement || document.activeElement === document.body)) viewRef.current?.focus({ preventScroll: true });
     wasActive.current = isActive;
   }, [isActive]);
-  const className = `grid-cell type-${col.type.toLowerCase()}${st?.state === 'error' ? ' has-error' : ''}${st?.state === 'saving' ? ' is-saving' : ''}${isActive ? ' is-editing' : ''}${lifted ? ' is-dragging' : ''}`;
+  const className = `grid-cell type-${col.type.toLowerCase()}${col.linked ? ' is-live' : ''}${st?.state === 'error' ? ' has-error' : ''}${st?.state === 'saving' ? ' is-saving' : ''}${isActive ? ' is-editing' : ''}${lifted ? ' is-dragging' : ''}`;
   const status = st?.state === 'saving' ? <Loader2 className="spin cell-status" aria-label="Saving" /> : st?.state === 'saved' ? <Check className="cell-status is-saved" aria-label="Saved" /> : null;
   // “Undo my change” puts the saved value back: the editor closes without saving (pressing the button does not count as
   // leaving the editor, so the rejected value is not sent again).
@@ -1645,7 +1669,7 @@ function SharePicker({ options, value, onChange, disabled }: { options: { id: st
 // ================================================================ columns
 const DECIMAL_OPTIONS: [string, string][] = [['auto', 'As entered (up to 6)'], ...[0, 1, 2, 3, 4, 5, 6].map(n => [String(n), n === 0 ? 'No decimals' : `${n} decimal place${n === 1 ? '' : 's'}`] as [string, string])];
 function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved }: { w: Workspace; group: Row; columns: Row[]; rows: Row[]; column?: Row; after?: string; onClose: () => void; onSaved: (message: string) => void | Promise<void> }) {
-  const isNew = !column;
+  const isNew = !column, live: Row | undefined = column?.linked;
   const [d, setD] = useState<Row>(() => ({
     format: column?.settings?.format || 'GENERAL', prefix: column?.settings?.prefix || '', suffix: column?.settings?.suffix || '', grouping: column?.settings?.grouping !== false,
     name: column?.name || '', type: column?.type || 'TEXT', decimals: column?.settings?.decimals ?? '',
@@ -1667,7 +1691,7 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
       if (d.type === 'NUMBER' || d.type === 'FORMULA') Object.assign(settings, { decimals: d.decimals === '' ? null : Number(d.decimals), format: d.format, prefix: d.prefix, suffix: d.suffix, grouping: d.grouping });
       if (d.type === 'STATUS') settings.labels = d.labels.map((l: Row) => ({ ...(l.id ? { id: l.id } : {}), name: l.name, color: l.color }));
       if (d.type === 'FORMULA') settings.expression = d.expression;
-      const r = await groupCommand('tm.group.column.save', { group_id: group.id, ...(column ? { id: column.id, expected_version: column.version } : after ? { after } : {}), name: d.name, type: d.type, settings, ...extra });
+      const r = await groupCommand('tm.group.column.save', { group_id: group.id, ...(column ? { id: column.id, expected_version: column.version } : after ? { after } : {}), name: d.name, type: live ? 'LINKED' : d.type, settings: live ? {} : settings, ...extra });
       await onSaved(r.message || 'Saved');
     } catch (e) {
       const err = e as GroupError, code = err.details?.code;
@@ -1709,7 +1733,8 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
               <FormSection title="Column">
                 <Field label="Column name" required value={d.name} onChange={v => set('name', v)} error={nameError || undefined} maxLength={GROUP_LIMITS.name} hint="Unique in this group. Formulas refer to it as {Name}." wide />
               </FormSection>
-              <fieldset className="type-cards" aria-describedby={`${typeId}-hint`}>
+              {live && <Alert tone="info" icon={Link2} title={live.state === 'ok' ? `Live Data from ${live.source_group_name}` : 'Live Data'}>{live.state === 'ok' ? `Shows “${live.source_name}”, matched by ${live.source_key_name}. ${live.permission === 'EDIT' ? 'You can edit it (Can edit); changes are saved in the source group.' : 'View only (Viewer).'} Its values are never copied into this group.` : 'The source is not available to you, so its values are not shown.'} Only its name can be changed here.</Alert>}
+              {!live && <fieldset className="type-cards" aria-describedby={`${typeId}-hint`}>
                 <legend className="field-label">Type</legend>
                 {TYPE_ORDER.map(t => { const Icon = TYPE_ICON[t]; return (
                   <label key={t} className={`type-card${d.type === t ? ' is-checked' : ''}`}>
@@ -1718,11 +1743,11 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
                   </label>
                 ); })}
                 <p className="field-hint" id={`${typeId}-hint`}>{typeChanged ? `Changing ${COLUMN_TYPES[column!.type as ColumnType]} to ${COLUMN_TYPES[d.type as ColumnType]}: values that fit are converted; you are asked before any value is cleared.` : 'You can change the type later; values are checked first.'}</p>
-              </fieldset>
+              </fieldset>}
               {typeChanged && dependents.length > 0 && !['NUMBER', 'FORMULA'].includes(d.type) && <Alert tone="warning" title="Used by formulas">{dependents.join(', ')} {dependents.length === 1 ? 'uses' : 'use'} this column. Change {dependents.length === 1 ? 'that formula' : 'those formulas'} before changing its type.</Alert>}
-              {(d.type === 'NUMBER' || d.type === 'FORMULA') && <FormSection columns={2}><Picker label="Decimal places shown" value={d.decimals === '' || d.decimals === null || d.decimals === undefined ? 'auto' : String(d.decimals)} allowNone={false} options={DECIMAL_OPTIONS} onChange={v => set('decimals', v === 'auto' ? '' : v)} hint="Only changes how numbers are shown; stored values keep their full precision." /></FormSection>}
-              {['NUMBER', 'FORMULA'].includes(d.type) && <FormSection columns={2}><Picker label="Display format" value={d.format} allowNone={false} options={[["GENERAL", "General number"], ["USD", "USD ($)"], ["KHR", "Cambodian Riel (៛)"], ["PERCENT", "Percentage (%)"], ["CUSTOM", "Custom prefix / suffix"]]} onChange={v => set('format', v)} /><CheckboxField label="Thousands separators" checked={d.grouping} onChange={v => set('grouping', v)} />{d.format === 'CUSTOM' && <><Field label="Prefix" value={d.prefix} onChange={v => set('prefix', v)} maxLength={12} /><Field label="Suffix" value={d.suffix} onChange={v => set('suffix', v)} maxLength={12} /></>}<p className="field-hint">Example: {formatColumnNumber(d.format === 'PERCENT' ? 25 : 1500, { ...d, decimals: d.decimals === '' ? null : Number(d.decimals) })}. Percentage adds a % symbol; 25 stays 25.</p></FormSection>}
-              {d.type === 'STATUS' && <StatusLabelsEditor labels={d.labels} onChange={v => set('labels', v)} used={column?.type === 'STATUS' ? Object.fromEntries(statusLabels(column).map((l: Row) => [l.id, rows.filter(r => r.values?.[column.id] === l.id).length])) : {}} />}
+              {!live && (d.type === 'NUMBER' || d.type === 'FORMULA') && <FormSection columns={2}><Picker label="Decimal places shown" value={d.decimals === '' || d.decimals === null || d.decimals === undefined ? 'auto' : String(d.decimals)} allowNone={false} options={DECIMAL_OPTIONS} onChange={v => set('decimals', v === 'auto' ? '' : v)} hint="Only changes how numbers are shown; stored values keep their full precision." /></FormSection>}
+              {!live && ['NUMBER', 'FORMULA'].includes(d.type) && <FormSection columns={2}><Picker label="Display format" value={d.format} allowNone={false} options={[["GENERAL", "General number"], ["USD", "USD ($)"], ["KHR", "Cambodian Riel (៛)"], ["PERCENT", "Percentage (%)"], ["CUSTOM", "Custom prefix / suffix"]]} onChange={v => set('format', v)} /><CheckboxField label="Thousands separators" checked={d.grouping} onChange={v => set('grouping', v)} />{d.format === 'CUSTOM' && <><Field label="Prefix" value={d.prefix} onChange={v => set('prefix', v)} maxLength={12} /><Field label="Suffix" value={d.suffix} onChange={v => set('suffix', v)} maxLength={12} /></>}<p className="field-hint">Example: {formatColumnNumber(d.format === 'PERCENT' ? 25 : 1500, { ...d, decimals: d.decimals === '' ? null : Number(d.decimals) })}. Percentage adds a % symbol; 25 stays 25.</p></FormSection>}
+              {!live && d.type === 'STATUS' && <StatusLabelsEditor labels={d.labels} onChange={v => set('labels', v)} used={column?.type === 'STATUS' ? Object.fromEntries(statusLabels(column).map((l: Row) => [l.id, rows.filter(r => r.values?.[column.id] === l.id).length])) : {}} />}
               {d.type === 'FORMULA' && <FormulaEditor columns={columns} selfId={column?.id || null} name={d.name || 'this column'} ownName={d.name || ''} value={d.expression} onChange={v => set('expression', v)} rows={rows} formulaColumns={formulaColumns} />}
             </div>
             <div className="dialog-footer">

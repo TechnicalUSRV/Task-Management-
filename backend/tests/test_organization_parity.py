@@ -185,12 +185,12 @@ def scrub(value):
 
 
 def test_organizational_structure_matches_v577(db):
-    from tests.test_parity import legacy_mini_contract
+    from tests.test_parity import legacy_mini_contract, management_contract
     steps = scenario()
     expected, actual = scrub(node_run({'steps': steps})), scrub(Scenario().play({'steps': steps}))
     assert len(expected['steps']) == len(actual['steps'])
     for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
-        want, got = unvolatile(as_deployed(want)), unvolatile(legacy_mini_contract(steps[i], got))
+        want, got = unvolatile(as_deployed(want)), unvolatile(management_contract(steps[i], legacy_mini_contract(steps[i], got)))
         if want != got:
             if want.get('ok') and got.get('ok') and isinstance(want['result'], dict) and isinstance(got['result'], dict):
                 w, g = want['result'], got['result']
