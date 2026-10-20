@@ -14,7 +14,7 @@ import re
 import pytest
 
 from tests.parity.driver import Scenario
-from tests.test_parity import ADMIN, DARA, KOSAL, NEARY, PNG, SOPHEA, as_deployed, legacy_workspace, node_run, people, pytestmark as needs_node, unvolatile
+from tests.test_parity import ADMIN, DARA, KOSAL, NEARY, PNG, SOPHEA, as_deployed, legacy_workspace, management_contract, node_run, people, pytestmark as needs_node, unvolatile
 
 pytestmark = needs_node
 G = 'Stock count'
@@ -64,7 +64,7 @@ def compare(steps):
     expected, actual = node_run(scenario), Scenario().play(scenario)
     assert len(expected['steps']) == len(actual['steps'])
     for i, (want, got) in enumerate(zip(expected['steps'], actual['steps'])):
-        want, got = unvolatile(as_deployed(_at(want))), unvolatile(_at(got))
+        want, got = unvolatile(as_deployed(_at(want))), unvolatile(management_contract(steps[i], _at(got)))
         if want != got:
             pytest.fail(f'step {i} {json.dumps(steps[i], ensure_ascii=False)[:400]}\n V5.7.7: {json.dumps(want, ensure_ascii=False)[:3000]}\n'
                         f' Django: {json.dumps(got, ensure_ascii=False)[:3000]}')

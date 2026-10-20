@@ -379,6 +379,8 @@ class GroupImport:
                         fail(f"“{col['name']}” is a formula column: the group calculates it, so nothing can be imported into it.", 409)
                     if col['type'] == 'ATTACHMENT':
                         fail(f"“{col['name']}” is an attachment column: upload its files in the table instead.", 409)
+                    if col['type'] == 'LINKED':
+                        fail(f"“{col['name']}” is a Live Data column: it shows another group’s data, so nothing can be imported into it.", 409)
                 if col['id'] in used_target:
                     fail(f"“{sheet['name']}”: two columns go into “{col['name']}”. Choose one.")
                 used_target.add(col['id'])
@@ -580,8 +582,10 @@ class GroupImport:
                     data = js.dumps(values)
                     fits(data)
                     position += 1
-                    insert(BoardRow, {'id': next_id('tm-board-row', 'ROW'), 'board_id': b['id'], 'position': position, 'values_json': data, 'version': 0,
+                    new_id = next_id('tm-board-row', 'ROW')
+                    insert(BoardRow, {'id': new_id, 'board_id': b['id'], 'position': position, 'values_json': data, 'version': 0,
                                       'created_by': actor, 'created_at': at, 'updated_by': actor, 'updated_at': at})
+                    g.live.record_change(b, new_id, s['all'], {}, values, actor, 'IMPORT', 'import')
                     added += 1
                 else:
                     found = BoardRow.objects.filter(id=op['row']['id'], board_id=b['id']).first()
@@ -601,6 +605,7 @@ class GroupImport:
                         continue
                     fits(data, js.length(found.values_json))
                     update(BoardRow, found.id, {'values_json': data, 'version': found.version + 1, 'updated_by': actor, 'updated_at': at})
+                    g.live.record_change(b, found.id, s['all'], current, nxt, actor, 'IMPORT', 'import')
                     updated += 1
             except InputError as e:
                 failed_late.append({'sheet': op['sheet'], 'row': op['line'], 'message': e.message})

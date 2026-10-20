@@ -244,7 +244,7 @@ export const FORMULA_FUNCTIONS={
  ROUND:{min:1,max:2,usage:'ROUND(value, decimals)',about:'Rounds to the given number of decimal places (halves round away from zero).',example:'=ROUND({Subtotal} * 0.10, 2)'},
  IF:{min:2,max:3,usage:'IF(condition, value if true, value if false)',about:'Chooses a value. Only the chosen value is calculated.',example:'=IF({Quantity} > 0, {Subtotal} / {Quantity}, 0)'},
 };
-export const FORMULA_ERRORS={'#DIV/0!':'Division by zero (or AVERAGE of only empty cells).','#NUM!':'The result is too large or not a number.','#VALUE!':'A referenced column can no longer be used in a formula.','#REF!':'A referenced column no longer exists.','#CIRC!':'The formula depends on itself.'};
+export const FORMULA_ERRORS={'#DIV/0!':'Division by zero (or AVERAGE of only empty cells).','#NUM!':'The result is too large or not a number.','#VALUE!':'A referenced column can no longer be used in a formula.','#REF!':'A referenced column no longer exists.','#CIRC!':'The formula depends on itself.','#N/A':'A Live Data value it uses is not available to you (the share was revoked or access ended).','#DUP!':'A Live Data value it uses matches several shared records.'};
 export const FORMULA_RULES=[
  'Formulas work on one row at a time: {Column} is that column’s value in the same row. Other rows, other groups and cell addresses such as A1 are not supported.',
  'Formulas can use Number columns and other Formula columns. Text, Date, Status and people columns can’t be used.',

@@ -105,6 +105,14 @@ class GroupService:
         from .imports import GroupImport
         self.imports = GroupImport(self)
 
+    @property
+    def live(self):
+        """Share Live Data (groups.live), one per service instance, so its per-request memo is shared by every check."""
+        if getattr(self, '_live', None) is None:
+            from .live import LiveData
+            self._live = LiveData(self)
+        return self._live
+
     def remember_lookups(self):
         """For one read-only pass (building the state): someone's permissions, role, workspace memberships and each
         workspace's status are read once instead of once per group. Never used while a command is changing data."""
@@ -152,6 +160,16 @@ class GroupService:
     @staticmethod
     def rows_of(board_id):
         return [{**row(r), 'values': js.loads(r.values_json, {})} for r in BoardRow.objects.filter(board_id=board_id).order_by('position', 'id')]
+
+    def with_links(self, b, s, rows):
+        """Rows as one reader sees them: stored values plus the current Live Data cells (never saved into the row)."""
+        if not any(c['type'] == 'LINKED' for c in s['all']):
+            return rows
+        live = self.live.values(b, s['staff'], s['all'], rows, s['link_access'])
+        return [{**r, 'values': {**r['values'], **live.get(r['id'], {})}} for r in rows]
+
+    def rows_for(self, b, s):
+        return self.with_links(b, s, self.rows_of(b['id']))
 
     def admin_for(self, b, staff):
         context = self.gov.group_context(staff, b)
@@ -205,9 +223,19 @@ class GroupService:
     def sight(self, b, staff, caps, columns=None):
         columns = self.columns_of(b['id']) if columns is None else columns
         rules, see_all, role = self.rules_of(b['id']), bool(caps.get('seeAll')), self.role_of(staff)
-        visible = columns if see_all else dm.visible_columns(columns, lambda c: dm.rule_allows(rules['cols'].get(c['id']), staff, role))
+        # Live Data columns: shown only to readers who may reach their source (the group's managers see the column, with
+        # #N/A instead of values); a formula that uses one is hidden with it, as with a column access rule.
+        linked = [c for c in columns if c['type'] == 'LINKED']
+        link_access = self.live.access_map(staff, linked) if linked else {}
+        if linked:
+            columns = self.live.refresh(staff, columns, link_access)
+
+        def allowed(c):
+            return (c['type'] != 'LINKED' or bool(link_access.get(c['id']))) and dm.rule_allows(rules['cols'].get(c['id']), staff, role)
+        visible = columns if see_all else dm.visible_columns(columns, allowed)
         ids = {c['id'] for c in visible}
-        return {'rules': rules, 'seeAll': see_all, 'role': role, 'columns': visible, 'colIds': ids, 'all': columns,
+        return {'rules': rules, 'seeAll': see_all, 'role': role, 'columns': visible, 'colIds': ids, 'all': columns, 'link_access': link_access,
+                'staff': staff,
                 'rowOk': lambda row_id: see_all or dm.rule_allows(rules['rows'].get(row_id), staff, role),
                 'restricted': bool(rules['rows']) or bool(rules['cols']), 'hiddenColumns': len(columns) - len(visible)}
 
@@ -440,6 +468,16 @@ class GroupService:
         s = d['settings'] if isinstance(d.get('settings'), dict) else {}
         prev = old['settings'] if old else {}
         key, at, settings = old['id'] if old else next_id('tm-board-col', 'COL'), self.now(), {}
+        # Live Data: created from a Live Data share (never converted to or from another type); a column that is shared
+        # live, or that a Live Data column matches records by, keeps its type until that connection changes.
+        if old and (old['type'] == 'LINKED') != (col_type == 'LINKED'):
+            fail('A Live Data column can’t be converted to another type, and other columns can’t become Live Data. Add a new column instead.', 409)
+        if old and old['type'] != col_type:
+            why = self.live.column_in_use(b, old)
+            if why:
+                fail(why, 409)
+        if col_type == 'LINKED':
+            settings = self.live.linked_settings(b, actor, self.sight(b, actor, caps, columns), s, old)
         if col_type in ('NUMBER', 'FORMULA'):
             settings['decimals'] = self.decimals_input(s['decimals'] if 'decimals' in s else prev.get('decimals'))
             from .presentation import number_settings
@@ -568,6 +606,7 @@ class GroupService:
                     else:
                         nxt[key] = replacements[v]
                     update(BoardRow, r['id'], {'values_json': js.dumps(nxt), 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': at})
+                    self.live.record_change(b, r['id'], [{'id': key, 'name': name}], r['values'], nxt, actor)
         self.touch(b)
         if not old:
             what = f"added {name} ({dm.COLUMN_TYPES[col_type]})"
@@ -605,6 +644,9 @@ class GroupService:
         if not col:
             fail('Column not found. Reload the group.', 404)
         self.tasks.check_version(col, d.get('expected_version'))
+        why = self.live.column_in_use(b, col)
+        if why:
+            fail(why, 409)
         deps = dm.formula_dependents(columns, col['id'])
         if deps:
             fail_with(f"“{col['name']}” is used by {', '.join('“' + x['name'] + '”' for x in deps)}. Change or delete {'that formula' if len(deps) == 1 else 'those formulas'} first.",
@@ -718,7 +760,11 @@ class GroupService:
             fail(f"A group can hold up to {js.locale(L['rows'])} rows. Archive old rows into another group first.")
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
-        values = {k: v for k, v in self.clean_values(b, s['columns'], d.get('values')).items() if not dm.empty_value(v)}
+        linked = {c['id'] for c in s['columns'] if c['type'] == 'LINKED'}
+        if isinstance(d.get('values'), dict) and any(k in linked and not dm.empty_value(v) for k, v in d['values'].items()):
+            fail('Add the record first, then change its Live Data cells (they belong to the source group).', 409)
+        values = {k: v for k, v in self.clean_values(b, s['columns'], {k: v for k, v in (d.get('values') or {}).items() if k not in linked}
+                                                    if isinstance(d.get('values'), dict) else d.get('values')).items() if not dm.empty_value(v)}
         after = None
         if d.get('after'):
             found = BoardRow.objects.filter(id=d['after'], board_id=b['id']).first()
@@ -735,8 +781,9 @@ class GroupService:
         # The activity names rows by their ID, never by their values (some people may not see every column).
         self.touch(b)
         self.record(actor, b, 'Row added', key)
-        r = self.fresh_row(key)
-        return {'id': key, 'type': 'tm_group_row', 'message': 'Row added.', 'row': self.row_out({**r, 'values': values}, s, dm.prepare_formulas(all_), {'notes': 0})}
+        self.live.record_change(b, key, s['all'], {}, values, actor, 'ADD_ROW')
+        r = self.with_links(b, s, [{**self.fresh_row(key), 'values': values}])[0]
+        return {'id': key, 'type': 'tm_group_row', 'message': 'Row added.', 'row': self.row_out(r, s, dm.prepare_formulas(s['all']), {'notes': 0})}
 
     def row_update(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
@@ -754,6 +801,27 @@ class GroupService:
         for key in values:
             if key not in s['colIds']:
                 fail_with('A column was deleted or changed. Reload the group.', 409, {'code': 'column_missing', 'column': key})
+        # Live Data cells: the change goes to the source group's row (Can Edit only), checked against the value shown.
+        linked = [c for c in columns if c['type'] == 'LINKED' and c['id'] in values]
+        if linked:
+            expected = d.get('expected') if isinstance(d.get('expected'), dict) else {}
+            wrote = False
+            for col in linked:
+                if col['id'] not in expected:
+                    fail('Send the values you started from, so changes by others are not overwritten.', 400)
+                if s['link_access'].get(col['id']) != 'EDIT':
+                    fail(f"“{col['name']}” is Live Data you can view but not change (Viewer).", 403)
+                _, source_row = self.live.match(col, {**r, 'board_id': b['id']}, actor)
+                wrote = self.live.write(actor, col['settings']['source_group_id'], source_row['id'], col['settings']['source_column_id'],
+                                        values[col['id']], expected[col['id']]) or wrote
+            values = {k: v for k, v in values.items() if k not in {c['id'] for c in linked}}
+            d = {**d, 'values': values, 'expected': {k: v for k, v in expected.items() if k in values}}
+            if not values:
+                self.live._views = {}
+                s = self.sight(b, actor, caps, self.columns_of(b['id']))
+                shown = self.with_links(b, s, [r])[0]
+                return {'id': r['id'], 'type': 'tm_group_row', 'message': 'Saved to the source group.' if wrote else 'No change.', 'unchanged': not wrote,
+                        'row': self.row_out(shown, s, dm.prepare_formulas(s['all']), {'notes': self.note_count(r['id'])})}
         # Conflicts: each changed cell must still hold the value the person saw (or the row its version), so nobody's
         # change is silently overwritten.
         if d.get('expected_version') is not None:
@@ -782,12 +850,13 @@ class GroupService:
         notes = self.note_count(r['id'])
         if js.same(nxt, r['values']):
             return {'id': r['id'], 'type': 'tm_group_row', 'message': 'No change.', 'unchanged': True,
-                    'row': self.row_out(r, s, dm.prepare_formulas(all_), {'notes': notes})}
+                    'row': self.row_out(self.with_links(b, s, [r])[0], s, dm.prepare_formulas(s['all']), {'notes': notes})}
         at, data = self.now(), js.dumps(nxt)
         if js.length(data) > js.length(found.values_json):
             self.size_check(b, data, js.length(found.values_json))
         update(BoardRow, r['id'], {'values_json': data, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': at})
         self.touch(b)
+        self.live.record_change(b, r['id'], s['all'], r['values'], nxt, actor)
         # V5.6.9: files taken out of an Attachment cell are deleted with it.
         for key in changes:
             col = next((x for x in columns if x['id'] == key), None)
@@ -798,9 +867,8 @@ class GroupService:
                 if f.get('id') not in kept:
                     BoardFile.objects.filter(id=f.get('id'), board_id=b['id']).delete()
                     self.record(actor, b, 'File removed', f"{r['id']} · {col['name']} · {f.get('name')}")
-        return {'id': r['id'], 'type': 'tm_group_row', 'message': 'Saved.',
-                'row': self.row_out({**r, 'values': nxt, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': iso(at)}, s,
-                                    dm.prepare_formulas(all_), {'notes': notes})}
+        shown = self.with_links(b, s, [{**r, 'values': nxt, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': iso(at)}])[0]
+        return {'id': r['id'], 'type': 'tm_group_row', 'message': 'Saved.', 'row': self.row_out(shown, s, dm.prepare_formulas(s['all']), {'notes': notes})}
 
     # ------------------------------------------------------------ V5.6.9 files in Attachment columns
     def attachment_cell(self, d, actor):
@@ -824,8 +892,8 @@ class GroupService:
     def saved_row(self, b, s, all_, r, nxt, actor, at):
         update(BoardRow, r['id'], {'values_json': js.dumps(nxt), 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': at})
         self.touch(b)
-        return self.row_out({**r, 'values': nxt, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': iso(at)}, s,
-                            dm.prepare_formulas(all_), {'notes': self.note_count(r['id'])})
+        shown = self.with_links(b, s, [{**r, 'values': nxt, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': iso(at)}])[0]
+        return self.row_out(shown, s, dm.prepare_formulas(s['all']), {'notes': self.note_count(r['id'])})
 
     def file_add(self, d, actor):
         b, s, all_, col, r, files = self.attachment_cell(d, actor)
@@ -960,6 +1028,10 @@ class GroupService:
                 parts.append(f"{n} {'was' if n == 1 else 'were'} changed by someone since you selected {'it' if n == 1 else 'them'}")
             fail_with(f"{', and '.join(parts)}. Nothing was deleted: reload the group, check the selection and try again.", 409,
                       {'code': 'bulk_conflict', 'missing': missing, 'changed': changed})
+        if self.live.shared_columns(b['id']):
+            all_cols = s['all']
+            for r in BoardRow.objects.filter(board_id=b['id'], id__in=found).values('id', 'values_json'):
+                self.live.record_change(b, r['id'], all_cols, js.loads(r['values_json'], {}), {}, actor, 'DELETE_ROW')
         for i in range(0, len(found), 400):
             BoardRow.objects.filter(board_id=b['id'], id__in=found[i:i + 400]).delete()
         self.touch(b)
@@ -1185,6 +1257,12 @@ class GroupService:
         if action == 'tm.group.delivery.create':
             from .delivery import enqueue
             return enqueue(self, d, actor)
+        if action == 'tm.group.live-share.save':
+            return self.live.save(d, actor)
+        if action == 'tm.group.live.update':
+            return self.live.update_cell(d, actor)
+        if action == 'tm.group.live.rows':
+            return self.live.add_rows(d, actor)
         handlers = {
             'tm.group.save': self.save_board, 'tm.group.archive': self.archive_board, 'tm.group.delete': self.delete_board,
             'tm.group.column.save': self.column_save, 'tm.group.column.move': self.column_move, 'tm.group.column.delete': self.column_delete,
@@ -1225,9 +1303,10 @@ class GroupService:
             if key not in names:
                 names[key] = self.name_of(key)
             return names[key]
-        needs_text = bool(q) or any((by_id.get(f['col']) or {}).get('type') == 'TEXT' for f in filters) or bool(sort_col and sort_col['type'] not in ('NUMBER', 'FORMULA', 'STATUS'))
+        needs_text = (bool(q) or any(dm.effective(by_id.get(f['col']) or {}).get('type') == 'TEXT' for f in filters)
+                      or bool(sort_col and dm.effective(sort_col)['type'] not in ('NUMBER', 'FORMULA', 'STATUS')))
         items = []
-        for r in self.rows_of(b['id']):
+        for r in self.rows_for(b, s):
             if not s['rowOk'](r['id']) or r['id'] in hidden_rows:
                 continue
             computed = dm.compute_row(r['values'], s['all'], prepared)
@@ -1265,7 +1344,7 @@ class GroupService:
     def totals_of(items, s):
         out = {}
         for col in s['columns']:
-            if col['type'] not in ('NUMBER', 'FORMULA'):
+            if not dm.numeric(col):
                 continue
             total, errors, count = 0.0, 0, 0
             for x in items:
@@ -1324,8 +1403,14 @@ class GroupService:
             settings = col['settings']
             if col['type'] == 'FORMULA':
                 settings = {**settings, 'display': dm.formula_display(settings.get('expression'), s['all']), 'refs': dm.formula_refs(settings.get('expression'))}
+            if col['type'] == 'LINKED':
+                settings = {}
             out = {'id': col['id'], 'name': col['name'], 'type': col['type'], 'position': col['position'], 'version': col['version'], 'settings': settings,
-                   'used_by': [x['id'] for x in dm.formula_dependents(s['all'], col['id']) if x['id'] in s['colIds']] if col['type'] in ('NUMBER', 'FORMULA') else []}
+                   'used_by': [x['id'] for x in dm.formula_dependents(s['all'], col['id']) if x['id'] in s['colIds']] if dm.numeric(col) else []}
+            if col['type'] == 'LINKED':
+                out['live'] = self.live.meta(staff, col, s['link_access'].get(col['id']))
+            elif caps['share'] and caps['export'] and col['id'] in self.live.shared_columns(b['id']):
+                out['shared_live'] = True   # its managers open the column's Live Data edit history from the column menu
             if s['seeAll']:
                 out['access'] = s['rules']['cols'].get(col['id']) or None
             columns.append(out)
@@ -1382,7 +1467,7 @@ class GroupService:
         sign = '' if order == 'ASC' else '-'
         page = list(notes.annotate(revision_count=Count('revisions')).order_by(sign + 'created_at', sign + 'id')[offset:offset + limit])
         # The row is named by its first visible column (never by a column this person can't see).
-        first = next((x for x in s['columns'] if x['type'] != 'FORMULA'), None)
+        first = next((x for x in s['columns'] if x['type'] not in ('FORMULA', 'LINKED')), None)
         values = js.loads(BoardRow.objects.filter(id=row_id).values_list('values_json', flat=True).first(), {})
         title = dm.cell_text(first, values.get(first['id']), self.name_of)[:120] if first else ''
         out = []
@@ -1450,12 +1535,12 @@ class GroupService:
             if not ids:
                 fail('Select the rows to export.', 400)
             wanted = set(ids)
-            rows = [r for r in self.rows_of(b['id']) if r['id'] in wanted]
+            rows = [r for r in self.rows_for(b, s) if r['id'] in wanted]
             if len(rows) != len(wanted) or any(not s['rowOk'](r['id']) for r in rows):
                 fail('Some selected rows were deleted or are no longer available to you. Reload the group and select them again.', 409)
             items = [{'r': r, 'computed': dm.compute_row(r['values'], s['all'], prepared)} for r in rows]
         else:
-            items = [{'r': r, 'computed': dm.compute_row(r['values'], s['all'], prepared)} for r in self.rows_of(b['id']) if s['rowOk'](r['id'])]
+            items = [{'r': r, 'computed': dm.compute_row(r['values'], s['all'], prepared)} for r in self.rows_for(b, s) if s['rowOk'](r['id'])]
         # Columns in this person's order; with columns=view, without the columns they hid in their own view.
         order = view.get('order') if isinstance(view.get('order'), list) else []
 
@@ -1466,18 +1551,23 @@ class GroupService:
             cols = [c for c in cols if c['id'] not in (view.get('hidden_columns') or [])]
 
         def kind(col):
+            col = dm.effective(col)
             return 'number' if col['type'] in ('NUMBER', 'FORMULA') else 'date' if col['type'] == 'DATE' else 'text'
 
         def value(col, r, computed):
             v = computed.get(col['id']) if col['type'] == 'FORMULA' else r['values'].get(col['id'])
             if dm.empty_value(v):
                 return None
+            if col['type'] == 'LINKED':
+                if isinstance(v, dict):
+                    return {'error': v.get('error')} if kind(col) == 'number' else v.get('error')
+                col = dm.effective(col)
             if col['type'] in ('NUMBER', 'DATE'):
                 return v
             if col['type'] == 'FORMULA':
                 return {'error': v.get('error')} if isinstance(v, dict) else v
             return dm.cell_text(col, v, self.name_of)
-        buf = write_xlsx([{'name': b['name'], 'columns': [{'header': c['name'], 'type': kind(c), 'decimals': (c.get('settings') or {}).get('decimals')} for c in cols],
+        buf = write_xlsx([{'name': b['name'], 'columns': [{'header': c['name'], 'type': kind(c), 'decimals': (dm.effective(c).get('settings') or {}).get('decimals')} for c in cols],
                            'rows': [[value(c, x['r'], x['computed']) for c in cols] for x in items]}])
         n, m = len(items), len(cols)
         self.record(staff, b, 'Exported to Excel', f"{n} {plural(n, 'row')} · {m} {plural(m, 'column')}")

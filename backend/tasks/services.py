@@ -606,13 +606,18 @@ class TaskService:
             if not opts.get('applying') and not approver:
                 if not any(changed(k) for k in values) and same_value(supporters, previous_active):
                     return {'id': key, 'type': 'tm_task', 'unchanged': True, 'message': 'Nothing was changed.'}
-                # A personal task still needs a second responsible party for a detail modification.
-                for who in (old['reviewer_id'], old['created_by'], values['reviewer_id'], values['pic_id']):
+                # A one-sided task still asks another responsible party (its reviewer, creator, or the new reviewer or
+                # person in charge) to approve a detail change. Approval is about distinct people, not roles: when the
+                # person editing holds every one of those roles, nobody else has to agree, so the change is saved
+                # directly (after the usual checks below) instead of waiting for a self-approval that can never come.
+                others = [who for who in dict.fromkeys((old['reviewer_id'], old['created_by'], values['reviewer_id'], values['pic_id']))
+                          if who and who != actor]
+                for who in others:
                     account = self.account_of(who) if who else None
-                    if who and who != actor and self.reachable(who) and account and account['active'] and self.can_staff(who, 'tasks.tasks', 'view'):
+                    if self.reachable(who) and account and account['active'] and self.can_staff(who, 'tasks.tasks', 'view'):
                         approver = who
                         break
-                if not approver:
+                if others and not approver:
                     fail('Choose another active reviewer or person in charge to approve this change. The task remains unchanged until approved.', 409)
             if approver:
                 diff, payload = [], {}

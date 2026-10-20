@@ -259,6 +259,11 @@ def filter_state(s, user, gov=None):
         out['tm_events'] = [e for e in T('tm_events') if v(kinds.get(e['entity_type'], '')) and (e['entity_type'] != 'request' or e['entity_id'] in visible_requests)
                             and (e['entity_type'] != 'user' or profiles or e['entity_id'] == user.staff_id)]
     out['workspace_dashboard'] = gov.workspace_dashboard(user.staff_id, out) if v('tasks.workspace') else None
+    # Calendar "Under My Management": the people below this person on any reporting line, with their organizational
+    # titles. Only names and titles; their events are taken from the already-filtered tasks and meetings above.
+    out['management_people'] = gov.management_people(user.staff_id) if task_any and (v('tasks.tasks') or v('tasks.meetings')) else []
+    out['workspace_setup'] = (gov.workspace_setup(user.staff_id) if task_any and v('tasks.workspace') and gov.settings()['enabled']
+                              else {'managers': [], 'primary_manager_id': None, 'subordinates': []})
     if sc is not None:
         out['task_scope']['employee_filters'] = scope.employee_filters(out, user.staff_id)
     out['events'] = [e for e in s['events'] if e['entity_type'] == 'company' and v('settings')]

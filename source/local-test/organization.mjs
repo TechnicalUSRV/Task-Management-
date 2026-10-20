@@ -97,7 +97,8 @@ export function createOrganization(c){
   if(!w||w.deleted_at||!active(staff))return null;
   if(globalWorkspaces(staff))return 'organization';
   if(w.owner_id===staff)return 'owner';
-  if(isPersonalWorkspace(w))return null;
+  // A Personal workspace is shared only by explicit membership; supervising its owner never opens it.
+  if(isPersonalWorkspace(w))return member(w.id,staff)?'membership':null;
   if(member(w.id,staff))return 'membership';
   if(descendants(staff).has(w.owner_id))return 'team';
   if(governs(staff,w))return 'governance';
@@ -141,7 +142,7 @@ export function createOrganization(c){
   if(involved)return 'involved';
   if(globalWorkspaces(staff))return 'organization';
   if(w.owner_id===staff)return 'owner';
-  if(isPersonalWorkspace(w))return null;
+  if(isPersonalWorkspace(w))return member(w.id,staff)?'membership':null;
   const reason=workspaceReason(staff,w);if(reason)return reason;
   if(t.pic_id&&descendants(staff).has(t.pic_id))return 'team';
   return w.kind==='LEGACY'?undefined:null;
@@ -156,7 +157,7 @@ export function createOrganization(c){
  const personalTaskHidden=(staff,t)=>{const w=t&&wsById(t.workspace_id);return !!w?.deleted_at||isPersonalWorkspace(w)&&!hooks.taskScope?.canSee(staff,t);};
  function groupContext(staff,b){
   const w=wsById(b.workspace_id);if(w?.deleted_at)return {allowed:false,admin:false,viewer:true};
-  if(isPersonalWorkspace(w))return {allowed:canViewWorkspace(staff,w),admin:false,viewer:staff!==w.owner_id};
+  if(isPersonalWorkspace(w))return {allowed:canViewWorkspace(staff,w),admin:false,viewer:staff!==w.owner_id&&memberRole(w.id,staff)!=='MEMBER'};
   if(!governed(w))return null;
   const direct=!!get('SELECT 1 FROM tm_board_access WHERE board_id=? AND staff_id=?',b.id,staff);
   const allowed=b.owner_id===staff||member(w.id,staff)||direct||globalWorkspaces(staff);
@@ -285,7 +286,7 @@ export function createOrganization(c){
   if(w.kind==='PERSONAL'){
    if(w.owner_id!==actor)fail(canViewWorkspace(actor,w)?'Only the personal workspace owner can share it.':'Workspace not found.',canViewWorkspace(actor,w)?403:404);
    const existed=member(w.id,target);activateMember(w.id,target,actor,role,null);if(!existed){audit(actor,'personal.shared',{employee:target,workspace:w.id,after:{member_role:role},reason:requireReason(d)});bump();}
-   return {id:w.id,type:'tm_workspace',message:existed?'This person already has membership.':'Member added. The workspace is now Public and visible to the owner’s reporting managers.'};
+   return {id:w.id,type:'tm_workspace',message:existed?'This person already has membership.':isPersonalWorkspace(w)?'Member added. The workspace stays Personal: only you, its members and authorized Administration can open it.':'Member added.'};
   }
   const direct=canViewWorkspace(actor,w)&&(governs(actor,w)||globalWorkspaces(actor)||isLevel1(actor)&&descendants(actor).has(w.owner_id)||ownerCanAdd(actor,w,target));
   if(!direct){
@@ -436,7 +437,7 @@ export function createOrganization(c){
    // Do not silently revoke legacy memberships on classification; owners can revoke them explicitly afterwards.
    if(previous.some(k=>k!==actor&&!d.shared_member_ids.includes(k)))fail('Preserve existing memberships during migration. Review and revoke specific sharing separately afterwards.',409);
    for(const k of d.shared_member_ids)if(!previous.includes(k))requireActive(k);
-   update('tm_workspaces',old.id,{kind:'PERSONAL',visibility:d.kind==='PUBLIC'||previous.some(k=>k!==actor)||d.shared_member_ids.some(k=>k!==actor)?'PUBLIC':'PERSONAL',governing_manager_id:null,version:old.version+1,updated_at:now()});
+   update('tm_workspaces',old.id,{kind:'PERSONAL',visibility:d.kind==='PUBLIC'?'PUBLIC':'PERSONAL',governing_manager_id:null,version:old.version+1,updated_at:now()});
    for(const k of uniq([actor,...d.shared_member_ids]))if(!previous.includes(k))activateMember(old.id,k,actor,'MEMBER',null);
   }else if(d.kind==='ORGANIZATIONAL'){
    requireAdmin(actor);

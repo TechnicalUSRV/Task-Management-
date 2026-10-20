@@ -377,8 +377,8 @@ def test_additive_migration_preserves_existing_rows_files_and_imports(files):
     before_rows = list(BoardRow.objects.filter(board_id=g).values())
     before_files = [bytes(BoardFile.objects.get(id=i).content) for i in file_ids]
     old = [('groups', '0002_group_permissions')]
-    current = [('groups', '0003_presentation_sharing_delivery')]
     executor = MigrationExecutor(connection)
+    current = [('groups', name) for app, name in executor.loader.graph.leaf_nodes() if app == 'groups']   # back to the latest
     try:
         executor.migrate(old)
         HistoricalImport = executor.loader.project_state(old).apps.get_model('groups', 'BoardImport')
@@ -469,3 +469,35 @@ def test_merge_accepts_any_pdf_the_upload_check_accepts(files):
     assert process_next(lambda *args: sent.append(args[3]) or {'message_id': 1})
     assert BoardDelivery.objects.get(id=job['id']).status == 'SENT'
     assert [float(p.mediabox.width) for p in PdfReader(BytesIO(sent[0]['content'])).pages] == [100, 110, 140]
+
+
+def test_a_combined_pdf_can_be_named_and_separate_sending_is_unchanged(files):
+    """Mini App requirement 5: the person names the new combined PDF; the name is checked on the server."""
+    _, _, c, g, _, _, ids = files
+    a = c['dara']
+    sent = []
+
+    def send(method, chat, field, document, extra):
+        sent.append(document)
+        return {'message_id': len(sent)}
+    job = ok(delivery(a, g, ids, 'MERGED_PDF', file_name='  October invoices  '))['result']['delivery']
+    assert job['file_name'] == 'October invoices.pdf'
+    assert process_next(send) and sent[-1]['name'] == 'October invoices.pdf' and sent[-1]['mime'] == 'application/pdf'
+    # An extension typed by the person is not doubled; unsafe characters and paths are removed.
+    assert ok(delivery(a, g, ids, 'MERGED_PDF', file_name='../Q4: report?.PDF'))['result']['delivery']['file_name'] == 'Q4- report-.pdf'
+    assert process_next(send) and sent[-1]['name'] == 'Q4- report-.pdf'
+    # Without a name, the standard name; a name with separate sending, or an empty name, is refused.
+    ok(delivery(a, g, ids, 'MERGED_PDF'))
+    assert process_next(send) and sent[-1]['name'] == 'Combined-documents.pdf'
+    assert delivery(a, g, ids, 'SEPARATE', file_name='x').status_code == 400
+    assert delivery(a, g, ids, 'MERGED_PDF', file_name='   ').status_code == 400
+    assert delivery(a, g, ids, 'MERGED_PDF', file_name='.pdf').status_code == 400
+    # The same request ID with another name is a different delivery.
+    key = str(uuid.uuid4())
+    ok(delivery(a, g, ids, 'MERGED_PDF', request_key=key, file_name='One'))
+    assert delivery(a, g, ids, 'MERGED_PDF', request_key=key, file_name='Two').status_code == 409
+    # Separate sending keeps every original name.
+    ok(delivery(a, g, ids))
+    while process_next(send):
+        pass
+    assert [x['name'] for x in sent[-2:]] == ['First.pdf', 'Second.pdf']

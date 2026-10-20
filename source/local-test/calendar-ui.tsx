@@ -2,8 +2,10 @@
 // Agenda), in the signed-in person's time zone. Everything shown comes from the server already limited to what this
 // person may see: meetings they take part in or that are shared with them, tasks within their Task Visibility Scope,
 // and their own notes (nobody else's notes ever reach the browser).
+// Under My Management (organizational title → employee) narrows these same items to one employee's work: it shows only
+// meetings and tasks this person may already see, never anyone's personal notes.
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { BellRing, BriefcaseBusiness, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ClipboardCheck, Lock, MapPin, NotebookPen, Plus, Trash2, Video, X } from 'lucide-react';
+import { BellRing, BriefcaseBusiness, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ClipboardCheck, Lock, MapPin, NotebookPen, Plus, Trash2, Users, Video, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -40,7 +42,9 @@ const dayOf = (iso: string) => zonedInput(iso).slice(0, 10);
 const todayKey = () => dayOf(new Date().toISOString());
 
 // ---------------------------------------------------------------- the items this person may see
-function useItems(w: Workspace, workspace: string, mine: boolean): Item[] {
+/** Under My Management: the people chosen (one employee, everyone with one title, or everyone below me), or null. */
+type Managed = { ids: Set<string> } | null;
+function useItems(w: Workspace, workspace: string, mine: boolean, managed: Managed): Item[] {
   return useMemo(() => {
     const d = w.data, me = w.actor, out: Item[] = [];
     const attendees = new Map<string, string[]>();
@@ -49,21 +53,27 @@ function useItems(w: Workspace, workspace: string, mine: boolean): Item[] {
       if (m.status === 'CANCELLED' || (workspace && m.workspace_id !== workspace)) continue;
       const people = attendees.get(m.id) || [], part = m.organizer_id === me || m.created_by === me || people.includes(me);
       if (mine && !part) continue;
+      if (managed && ![m.organizer_id, m.created_by, ...people].some(x => managed.ids.has(x))) continue;
       out.push({ key: `m:${m.id}`, kind: 'meeting', title: m.title, day: dayOf(m.start_at), endDay: dayOf(m.end_at), allDay: false, start: m.start_at, end: m.end_at, row: m, done: m.status === 'COMPLETED',
         meta: [m.location, `${people.length} ${plural(people.length, 'person', 'people')}`, part ? '' : 'shared with you'].filter(Boolean).join(' · ') });
     }
-    if (w.can('tasks.tasks')) for (const t of enrichedTasks({...d,tm_tasks:d.tm_calendar_tasks || []})) {
+    // An employee's task deadlines: the tasks they are on, among the tasks this person may already see.
+    const onTask = new Map<string, Set<string>>();
+    if (managed) for (const a of d.tm_assignees || []) if (a.status !== 'DECLINED') onTask.set(a.task_id, (onTask.get(a.task_id) || new Set()).add(a.staff_id));
+    const taskRows = managed ? (d.tm_tasks || []).filter((t: Row) => [t.pic_id, t.created_by, t.assigned_by, t.reviewer_id, ...(onTask.get(t.id) || [])].some(x => managed.ids.has(x))) : d.tm_calendar_tasks || [];
+    if (w.can('tasks.tasks')) for (const t of enrichedTasks({...d,tm_tasks:taskRows})) {
       if (t.status === 'CANCELLED' || (workspace && t.workspace_id !== workspace) || (mine && t.access_reason && t.access_reason !== 'involved')) continue;
       out.push({ key: `t:${t.id}`, kind: 'task', title: t.title, day: t.due_date, endDay: t.due_date, allDay: true, row: t, overdue: t.overdue, done: t.status === 'COMPLETED', meta: `Due · ${w.lookup(t.pic_id)} · ${taskStateLabel(t)}` });
     }
-    for (const n of d.tm_calendar_notes || []) out.push({ key: `n:${n.id}`, kind: 'note', title: n.title, day: n.all_day ? n.day : dayOf(n.start_at), endDay: n.all_day ? n.day : dayOf(n.end_at || n.start_at), allDay: !!n.all_day, start: n.start_at || undefined, end: n.end_at || undefined, row: n, done: !!n.done, meta: 'Only you can see this note' });
-    if (w.can('crm.activities')) for (const a of d.activities || []) {
+    // Personal notes and CRM activities are always the signed-in person's own: they are not part of someone else's calendar.
+    if (!managed) for (const n of d.tm_calendar_notes || []) out.push({ key: `n:${n.id}`, kind: 'note', title: n.title, day: n.all_day ? n.day : dayOf(n.start_at), endDay: n.all_day ? n.day : dayOf(n.end_at || n.start_at), allDay: !!n.all_day, start: n.start_at || undefined, end: n.end_at || undefined, row: n, done: !!n.done, meta: 'Only you can see this note' });
+    if (!managed && w.can('crm.activities')) for (const a of d.activities || []) {
       if (a.assigned_to !== me || a.status !== 'OPEN' || !a.start_at || workspace) continue;
       out.push({ key: `a:${a.id}`, kind: 'activity', title: a.subject, day: dayOf(a.start_at), endDay: dayOf(a.end_at || a.start_at), allDay: false, start: a.start_at, end: a.end_at || undefined, row: a, meta: `${String(a.channel || '').toLowerCase()} · ${a.id}` });
     }
     // All-day items first (deadlines, then notes), then by time.
     return out.sort((x, y) => x.day.localeCompare(y.day) || Number(y.allDay) - Number(x.allDay) || (x.start || '').localeCompare(y.start || '') || x.title.localeCompare(y.title));
-  }, [w.data, workspace, mine]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [w.data, workspace, mine, managed]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 const itemsOn = (items: Item[], day: string) => items.filter(i => i.day <= day && i.endDay >= day);
 const timeText = (i: Item, day?: string) => i.allDay ? (i.kind === 'task' ? 'Due' : 'All day') : i.day !== i.endDay && day && day !== i.day ? (day === i.endDay ? `until ${formatTime(i.end)}` : 'All day') : `${formatTime(i.start)}${i.end && i.kind !== 'activity' ? `–${formatTime(i.end)}` : ''}`;
@@ -72,20 +82,25 @@ export type CalendarActions = { openTask: (id: string) => void; openMeeting: (m:
 
 export function CalendarView({ w, workspace, setWorkspace, actions }: { w: Workspace; workspace: string; setWorkspace: (v: string) => void; actions: CalendarActions }) {
   const narrow = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)').matches;
-  const [v, setV] = useViewState('tasks:calendar', { view: '', anchor: '', kinds: ['meeting', 'task', 'note', 'activity'] as string[], mine: false });
+  const [v, setV] = useViewState('tasks:calendar', { view: '', anchor: '', kinds: ['meeting', 'task', 'note', 'activity'] as string[], mine: false, managed: false, title: '', person: '' });
   const view = (v.view || (narrow ? 'agenda' : 'month')) as 'month' | 'week' | 'day' | 'agenda';
   const today = todayKey(), anchor = v.anchor || today;
   const [note, setNote] = useState<Row | null>(null), [panelDay, setPanelDay] = useState<string | null>(null);
   useEffect(() => setPanelDay(null), [view, anchor, workspace, v.mine, v.kinds]);
   const selectDay = (day: string, open: boolean) => setPanelDay(current => open ? day : current === day ? null : current);
   const set = (patch: Partial<typeof v>) => setV(s => ({ ...s, ...patch }));
-  const all = useItems(w, workspace, v.mine), items = all.filter(i => v.kinds.includes(i.kind));
+  // Under My Management: titles come from Organizational Structure (not "Level 1/2/3"); only people below me are listed.
+  const team: Row[] = w.data.management_people || [];
+  const titles = [...new Map(team.map(p => [String(p.org_level ?? ''), p.title as string])).entries()].sort((a, b) => (Number(a[0]) || 1001) - (Number(b[0]) || 1001));
+  const inTitle = team.filter(p => !v.title || String(p.org_level ?? '') === v.title);
+  const managedIds = useMemo<Managed>(() => !v.managed || !team.length ? null : { ids: new Set(v.person ? [v.person] : inTitle.map(p => p.staff_id)) }, [v.managed, v.person, v.title, team]); // eslint-disable-line react-hooks/exhaustive-deps
+  const all = useItems(w, workspace, v.mine && !managedIds, managedIds), items = all.filter(i => v.kinds.includes(i.kind));
   const step = (n: number) => set({ anchor: view === 'month' ? addMonths(anchor, n) : view === 'week' ? addDays(anchor, 7 * n) : view === 'day' ? addDays(anchor, n) : addDays(anchor, 30 * n) });
   const open = (i: Item) => i.kind === 'task' ? actions.openTask(i.row.id) : i.kind === 'meeting' ? actions.openMeeting(i.row) : i.kind === 'note' ? setNote({ ...i.row }) : w.show('activity', i.row.id);
   const newNote = (day: string) => setNote({ day, all_day: 1, title: '', body: '', reminder_offsets: '[]' });
   const title = view === 'month' ? `${MONTHS[Number(anchor.slice(5, 7)) - 1]} ${anchor.slice(0, 4)}` : view === 'week' ? `${formatDate(weekStart(anchor))} – ${formatDate(addDays(weekStart(anchor), 6))}` : view === 'day' ? dayLong(anchor) : `${formatDate(anchor)} – ${formatDate(addDays(anchor, 29))}`;
   const kindToggle = (k: Kind) => { const has = v.kinds.includes(k); set({ kinds: has ? v.kinds.filter(x => x !== k) : [...v.kinds, k] }); };
-  const kinds = (Object.keys(KINDS) as Kind[]).filter(k => (k !== 'task' || w.can('tasks.tasks')) && (k !== 'activity' || w.can('crm.activities')));
+  const kinds = (Object.keys(KINDS) as Kind[]).filter(k => (k !== 'task' || w.can('tasks.tasks')) && (k !== 'activity' || w.can('crm.activities')) && (!managedIds || (k !== 'note' && k !== 'activity')));
   return (
     <div className="calendar">
       <div className="cal-toolbar">
@@ -107,8 +122,14 @@ export function CalendarView({ w, workspace, setWorkspace, actions }: { w: Works
         {kinds.map(k => { const K = KINDS[k]; return <button key={k} type="button" className={`cal-kind kind-${k}`} aria-pressed={v.kinds.includes(k)} onClick={() => kindToggle(k)}><K.icon aria-hidden="true" />{K.label}</button>; })}
         <span className="cal-filter-sep" aria-hidden="true" />
         <FilterSelect label="Workspace" value={workspace} onChange={setWorkspace} options={w.data.tm_workspaces.map((r: Row) => [r.id, r.name])} />
-        <ToggleFilter label="Only mine" pressed={!!v.mine} onChange={x => set({ mine: x })} />
+        <ToggleFilter label="Only mine" pressed={!!v.mine && !v.managed} onChange={x => set({ mine: x, ...(x ? { managed: false, title: '', person: '' } : {}) })} />
+        {team.length > 0 && <ToggleFilter label="Under My Management" pressed={!!v.managed} onChange={x => set({ managed: x, title: '', person: '', ...(x ? { mine: false } : {}) })} />}
+        {v.managed && team.length > 0 && <>
+          <FilterSelect label="Title" allLabel="All titles" value={v.title} onChange={x => set({ title: x, person: '' })} options={titles} />
+          <FilterSelect label="Employee" allLabel={v.title ? 'Everyone with this title' : 'Everyone I manage'} value={v.person} onChange={x => set({ person: x })} options={inTitle.map(p => [p.staff_id, p.name] as [string, string])} people />
+        </>}
       </div>
+      {v.managed && team.length > 0 && <p className="cal-scope-note muted small" role="status"><Users aria-hidden="true" className="inline-icon" />{v.person ? `${w.lookup(v.person)}’s` : v.title ? `${titles.find(([k]) => k === v.title)?.[1] || 'Selected title'} team’s` : 'Your team’s'} meetings and task deadlines that you are allowed to see. Personal notes stay private.</p>}
       {view === 'month' ? <MonthGrid anchor={anchor} today={today} items={items} open={open} panelDay={panelDay} onDay={selectDay} onNote={newNote} />
         : view === 'week' ? <WeekColumns anchor={anchor} today={today} items={items} open={open} panelDay={panelDay} onDay={selectDay} onNote={newNote} />
           : view === 'day' ? <DayList day={anchor} today={today} items={items} open={open} onNote={newNote} />

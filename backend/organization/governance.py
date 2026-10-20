@@ -23,7 +23,10 @@ from core.validation import integer, iso, text
 from notifications.models import Notification
 from workspaces.models import COLORS, Workspace, WorkspaceMember
 
-from .models import CAPABILITIES, OrgAudit, OrgGrant, OrgLevel, OrgRequest, OrgSettings, OrgTemplate, Profile
+from .models import CAPABILITIES, OrgAudit, OrgGrant, OrgLevel, OrgRequest, OrgSettings, OrgTemplate, Profile, ReportingLine
+
+MAX_ADDITIONAL_MANAGERS = 10
+MAX_RESPONSIBLE_MANAGERS = 10
 
 
 # ---------------------------------------------------------------- small helpers (organization.mjs top)
@@ -206,6 +209,145 @@ class Governance:
     def in_branch(self, root, staff):
         return root == staff or staff in self.descendants(root)
 
+    # ------------------------------------------------------------ additional reporting lines (several managers)
+    # The primary line (tm_profiles.manager_id) keeps every V5.7.7 rule above: levels, the Level 2 governor, structural
+    # approvals and the default workspace visibility. Additional lines are used for the responsible-manager choices of a
+    # workspace, for "Under My Management" and for the directory; they never widen visibility on their own.
+    def extra_lines(self):
+        def load():
+            out = {}
+            for s, m in ReportingLine.objects.order_by('id').values_list('staff_id', 'manager_id'):
+                out.setdefault(s, []).append(m)
+            return out
+        return self._cached('lines', '', load)
+
+    def additional_managers(self, staff):
+        return list(self.extra_lines().get(staff, []))
+
+    def managers_of(self, staff):
+        """An employee's managers: the primary manager first, then active additional managers."""
+        primary = self.tree()['parents'].get(staff)
+        return uniq([primary, *(m for m in self.additional_managers(staff) if self.active(m))])
+
+    def upline(self, staff):
+        """Everyone above an employee on any reporting line, nearest first (a dict keeps the order)."""
+        def walk():
+            out, queue = {}, list(self.managers_of(staff))
+            while queue:
+                m = queue.pop(0)
+                if not m or m == staff or m in out:
+                    continue
+                out[m] = True
+                queue.extend(self.managers_of(m))
+            return out
+        return self._cached('upline', staff, walk)
+
+    def primary_upline(self, staff):
+        parents, out = self.tree()['parents'], {}
+        at = parents.get(staff)
+        while at and at not in out and at != staff:
+            out[at] = True
+            at = parents.get(at)
+        return out
+
+    def all_reports(self, staff):
+        """Everyone below a manager on any reporting line (primary or additional)."""
+        def walk():
+            below = {}
+            for s, m in self.tree()['parents'].items():
+                if m:
+                    below.setdefault(m, []).append(s)
+            for s, managers in self.extra_lines().items():
+                for m in managers:
+                    if self.active(m):
+                        below.setdefault(m, []).append(s)
+            out, queue = {}, list(below.get(staff, []))
+            while queue:
+                s = queue.pop(0)
+                if s == staff or s in out:
+                    continue
+                out[s] = True
+                queue.extend(below.get(s, []))
+            return out
+        return self._cached('all-reports', staff, walk)
+
+    # ------------------------------------------------------------ responsible managers (a workspace's management scope)
+    def scope_rows(self):
+        from workspaces.models import WorkspaceManager
+
+        def load():
+            out = {}
+            for w, m in WorkspaceManager.objects.order_by('id').values_list('workspace_id', 'manager_id'):
+                out.setdefault(w, []).append(m)
+            return out
+        return self._cached('scopes', '', load)
+
+    def stored_scope(self, w):
+        return list(self.scope_rows().get(w['id'], [])) if w else []
+
+    def effective_scope(self, w):
+        """The selected managers who are still active and still above the owner on a reporting line."""
+        up = self.upline(w['owner_id'])
+        return [m for m in self.stored_scope(w) if m in up and self.active(m)]
+
+    def scope_viewers(self, w):
+        """Who sees a workspace through management: None means no explicit scope (the original primary-line rule).
+
+        With selected managers S: each selected manager, the people above them on their primary line, and the managers
+        between the owner and a selected manager. A manager of the owner on another line who is not selected (and not
+        below a selected manager) gets nothing from the shared subordinate.
+
+        Once an owner has chosen managers, the choice stands even if every chosen manager later leaves or stops being
+        above the owner: nobody then sees the workspace through management (owner, members, governance and authorized
+        Administration still do) until the owner chooses again. It never falls back to the primary line, which could open
+        the workspace to a manager the owner deliberately left out."""
+        def build():
+            if not self.stored_scope(w):
+                return None
+            scope = self.effective_scope(w)
+            if not scope:
+                return set()
+            up = self.upline(w['owner_id'])
+            out = set()
+            for s in scope:
+                out.add(s)
+                out.update(self.primary_upline(s))
+                out.update(m for m in up if s in self.upline(m))
+            return out
+        return self._cached('scope-viewers', w['id'], build)
+
+    def manages_workspace(self, staff, w):
+        viewers = self.scope_viewers(w)
+        if viewers is None:
+            return w['owner_id'] in self.descendants(staff)
+        return staff in viewers
+
+    def responsible_options(self, owner):
+        """Managers an owner may choose as responsible for a workspace: everyone above them on any line, with a login."""
+        return [m for m in self.upline(owner) if self.active(m)]
+
+    def set_scope(self, w, managers, actor, reason='', approval=None):
+        from workspaces.models import WorkspaceManager
+        before = self.stored_scope(w)
+        if before == managers:
+            return False
+        WorkspaceManager.objects.filter(workspace_id=w['id']).delete()
+        at = now()
+        WorkspaceManager.objects.bulk_create(WorkspaceManager(workspace_id=w['id'], manager_id=m, created_by_id=actor, created_at=at) for m in managers)
+        self.invalidate()
+        self.audit(actor, 'workspace.management_scope', workspace=w['id'], before={'managers': before}, after={'managers': managers},
+                   reason=reason or 'Responsible managers changed', approval=approval)
+        return True
+
+    def scope_input(self, value, owner):
+        if not isinstance(value, list) or len(value) > MAX_RESPONSIBLE_MANAGERS or any(not isinstance(x, str) for x in value):
+            fail(f'Choose up to {MAX_RESPONSIBLE_MANAGERS} responsible managers.', 422)
+        chosen = uniq(value)
+        allowed = set(self.responsible_options(owner))
+        if any(m not in allowed for m in chosen):
+            fail('Choose responsible managers from the owner’s own reporting lines.', 422)
+        return chosen
+
     def governor(self, staff):
         def find():
             parents, seen, at = self.tree()['parents'], set(), staff
@@ -278,10 +420,11 @@ class Governance:
         if w['owner_id'] == staff:
             return 'owner'
         if is_personal_workspace(w):
-            return None
+            # A Personal workspace is shared only by explicit membership; supervising its owner never opens it.
+            return 'membership' if self.member(w['id'], staff) else None
         if self.member(w['id'], staff):
             return 'membership'
-        if w['owner_id'] in self.descendants(staff):
+        if self.manages_workspace(staff, w):
             return 'team'
         if self.governs(staff, w):
             return 'governance'
@@ -337,7 +480,9 @@ class Governance:
         if w and w['deleted_at']:
             return {'allowed': False, 'admin': False, 'viewer': True}
         if is_personal_workspace(w):
-            return {'allowed': self.can_view_workspace(staff, w), 'admin': False, 'viewer': staff != w['owner_id']}
+            # Members of a shared Personal workspace use its groups as their membership role allows (Viewer: view only).
+            return {'allowed': self.can_view_workspace(staff, w), 'admin': False,
+                    'viewer': staff != w['owner_id'] and self.member_role(w['id'], staff) != 'MEMBER'}
         if not self.governed(w):
             return None
         direct = BoardAccess.objects.filter(board_id=b['id'], staff_id=staff).exists()
@@ -376,11 +521,14 @@ class Governance:
         if w['owner_id'] == staff:
             return 'owner'
         if is_personal_workspace(w):
-            return None
+            return 'membership' if self.member(w['id'], staff) else None
         reason = self.workspace_reason(staff, w)
         if reason:
             return reason
-        if t.get('pic_id') and t['pic_id'] in self.descendants(staff):
+        # A manager sees the tasks of the people below them on their primary line, except a task the workspace owner is
+        # in charge of in a workspace whose owner chose other responsible managers: that work falls under their scope.
+        if (t.get('pic_id') and t['pic_id'] in self.descendants(staff)
+                and not (t['pic_id'] == w['owner_id'] and self.scope_viewers(w) is not None)):
             return 'team'
         return NOTSET if w['kind'] == 'LEGACY' else None
 
@@ -565,9 +713,57 @@ class Governance:
             fail('Supply 1–500 reporting changes.', 422)
         if len({str(x.get('staff_id')) for x in value}) != len(value):
             fail('Include each employee only once in a structural change.', 422)
-        return [{'staff_id': self.require_active(x.get('staff_id')),
-                 'level': None if x.get('level') is None else integer(x.get('level'), 1, 1000, 'level'),
-                 'manager_id': self.require_active(x['manager_id']) if x.get('manager_id') else None} for x in value]
+        out = []
+        for x in value:
+            change = {'staff_id': self.require_active(x.get('staff_id')),
+                      'level': None if x.get('level') is None else integer(x.get('level'), 1, 1000, 'level'),
+                      'manager_id': self.require_active(x['manager_id']) if x.get('manager_id') else None}
+            # Additional reporting managers: optional; when the key is left out, the existing additional lines stay.
+            if x.get('additional_manager_ids') is not None:
+                extra = x['additional_manager_ids']
+                if (not isinstance(extra, list) or len(extra) > MAX_ADDITIONAL_MANAGERS
+                        or any(not isinstance(m, str) or not m for m in extra)):
+                    fail(f'Choose up to {MAX_ADDITIONAL_MANAGERS} additional reporting managers.', 422)
+                change['additional_manager_ids'] = [self.require_active(m) for m in uniq(extra) if m != change['manager_id']]
+                if change['staff_id'] in change['additional_manager_ids']:
+                    fail('An employee cannot report to themselves.', 422)
+            out.append(change)
+        return out
+
+    def set_lines(self, staff, managers, actor, reason, approval=None):
+        before = self.additional_managers(staff)
+        if before == managers:
+            return
+        ReportingLine.objects.filter(staff_id=staff).delete()
+        at = now()
+        ReportingLine.objects.bulk_create(ReportingLine(staff_id=staff, manager_id=m, created_by_id=actor, created_at=at) for m in managers)
+        self.invalidate()
+        self.audit(actor, 'employee.reporting_lines', employee=staff, before={'additional_manager_ids': before},
+                   after={'additional_manager_ids': managers}, reason=reason, approval=approval)
+
+    def validate_lines(self):
+        """Additional managers follow the same level rules as the primary manager, and no line may form a cycle."""
+        for staff, managers in self.extra_lines().items():
+            mine = self.level(staff)
+            for m in managers:
+                if not self.active(m):
+                    continue   # a line to a deactivated manager is ignored everywhere until it is removed
+                theirs = self.level(m)
+                if (not mine or not theirs or theirs >= mine or (mine == 2 and theirs != 1) or (mine >= 3 and theirs < 2)
+                        or m == self.tree()['parents'].get(staff)):
+                    fail('Each additional reporting manager must be active at an earlier valid level (Level 2 reports to Level 1; '
+                         'Level 3+ reports through Level 2) and differ from the primary manager.', 422)
+        # Any cycle in the combined graph passes through someone with an additional line (the primary tree has none).
+        for staff in self.extra_lines():
+            seen, queue = set(), list(self.managers_of(staff))
+            while queue:
+                m = queue.pop()
+                if m == staff:
+                    fail('Reporting cycles are not allowed.', 422)
+                if not m or m in seen:
+                    continue
+                seen.add(m)
+                queue.extend(self.managers_of(m))
 
     def can_change_structure(self, actor, changes):
         if self.is_level1(actor):
@@ -575,6 +771,7 @@ class Governance:
         return self.governor(actor) == actor and all(
             x['staff_id'] != actor and (self.level(x['staff_id']) or 0) >= 3 and (x['level'] or 0) >= 3
             and self.governor(x['staff_id']) == actor and self.governor(x['manager_id']) == actor
+            and all(self.governor(m) == actor for m in x.get('additional_manager_ids') or [])
             and x['manager_id'] != x['staff_id'] for x in changes)
 
     def save_structure(self, d, actor, approval=None):
@@ -589,7 +786,14 @@ class Governance:
         before = [self.person(x['staff_id']) for x in changes]
         for x in changes:
             self.assign_person(x['staff_id'], x['level'], x['manager_id'])
+        for x in changes:
+            if 'additional_manager_ids' in x:
+                self.set_lines(x['staff_id'], x['additional_manager_ids'], actor, reason, approval)
+            elif x['manager_id'] in self.additional_managers(x['staff_id']):
+                # The new primary manager no longer needs an additional line as well.
+                self.set_lines(x['staff_id'], [m for m in self.additional_managers(x['staff_id']) if m != x['manager_id']], actor, reason, approval)
         self.validate_tree()
+        self.validate_lines()
         self.replacement_workspaces(d, actor, approval, impact)
         self.reconcile(actor, reason)
         for i, x in enumerate(changes):
@@ -617,7 +821,8 @@ class Governance:
         if kind == 'DELEGATION':
             return self.governor(p.get('beneficiary_id'))
         changes = self.structure_changes(p)
-        governors = uniq([g for x in changes for g in (self.governor(x['staff_id']), self.governor(x['manager_id']))])
+        governors = uniq([g for x in changes for g in (self.governor(x['staff_id']), self.governor(x['manager_id']),
+                                                       *(self.governor(m) for m in x.get('additional_manager_ids') or []))])
         if (all((x['level'] or 0) >= 3 and (self.level(x['staff_id']) or 0) >= 3 for x in changes)
                 and len(governors) == 1 and governors[0] != requester):
             return governors[0]
@@ -733,8 +938,9 @@ class Governance:
             if not existed:
                 self.audit(actor, 'personal.shared', employee=target, workspace=w['id'], after={'member_role': role}, reason=reason)
                 self.bump()
-            return {'id': w['id'], 'type': 'tm_workspace', 'message': 'This person already has membership.' if existed else
-                    'Member added. The workspace is now Public and visible to the owner’s reporting managers.'}
+            stays = ('Member added. The workspace stays Personal: only you, its members and authorized Administration can open it.'
+                     if is_personal_workspace(w) else 'Member added.')
+            return {'id': w['id'], 'type': 'tm_workspace', 'message': 'This person already has membership.' if existed else stays}
         direct = self.can_view_workspace(actor, w) and (
             self.governs(actor, w) or self.global_workspaces(actor)
             or (self.is_level1(actor) and w['owner_id'] in self.descendants(actor)) or self.owner_can_add(actor, w, target))
@@ -882,6 +1088,14 @@ class Governance:
                 fail('You cannot manage this workspace.', 403)
             if d.get('kind') and d['kind'] != old['kind'] and not (d['kind'] == 'PUBLIC' and old['kind'] == 'PERSONAL' and old['visibility'] == 'PUBLIC'):
                 fail('Workspace privacy classification cannot be changed through an ordinary edit.', 403)
+            # The only visibility change: the owner explicitly makes a Personal workspace Public (never the reverse here).
+            wanted = d.get('visibility')
+            if wanted not in (None, old['visibility']):
+                if not (wanted == 'PUBLIC' and old['kind'] == 'PERSONAL' and old['owner_id'] == actor):
+                    fail('Only the owner can make a Personal workspace Public. Public workspaces cannot be made Personal here.', 403)
+                if d.get('acknowledged') is not True:
+                    fail('Confirm that the workspace’s responsible managers will be able to see it before making it Public.', 422)
+                visibility = 'PUBLIC'
         owner = (d.get('owner_id') or old['owner_id']) if old else (actor if kind == 'PERSONAL' else d.get('owner_id') or actor)
         if kind == 'PERSONAL' and owner != actor:
             fail('Only the owner can manage a personal workspace.', 403)
@@ -940,8 +1154,25 @@ class Governance:
             after = sorted(uniq([*d['member_ids'], owner]))
             if before != after:
                 fail('Use membership requests or the explicit member-removal action; a workspace edit cannot bypass approval.', 403)
-        elif not old and any(x != owner for x in (d.get('member_ids') or [])):
-            fail('Create the workspace first, then add or request members through approval.', 403)
+        initial = []
+        if not old and d.get('member_ids') is not None:
+            # Members chosen while creating a workspace go through the normal membership path right after it exists
+            # (direct for the owner's own approved branch, an approval request otherwise), so nothing bypasses approval.
+            if (not isinstance(d['member_ids'], list) or len(d['member_ids']) > 100
+                    or any(not isinstance(x, str) for x in d['member_ids'])):
+                fail('Choose up to 100 members.', 422)
+            initial = [x for x in uniq(d['member_ids']) if x != owner]
+            if initial and owner != actor:
+                fail('Create the workspace first, then add or request members through approval.', 403)
+        # Responsible managers (management scope): who supervises this workspace's work. Only for workspaces managers
+        # can see (Public or Organizational); chosen from the owner's own reporting lines.
+        scope = None
+        if 'manager_ids' in d and d['manager_ids'] is not None:
+            if visibility != 'PUBLIC':
+                fail('Responsible managers apply to Public and Organizational workspaces. A Personal workspace stays private.', 422)
+            if old and not self.can_manage_workspace(actor, old):
+                fail('You cannot manage this workspace.', 403)
+            scope = self.scope_input(d['manager_ids'], owner)
         if any(n.lower() == values['name'].lower() for n in Workspace.objects.exclude(id=(old or {}).get('id', '')).values_list('name', flat=True)):
             fail('A workspace with this name already exists.', 409)
         key = old['id'] if old else next_id('tm-workspace', 'WS')
@@ -957,10 +1188,19 @@ class Governance:
         self.activate_member(key, owner, actor, 'MEMBER', None)
         self.audit(actor, 'workspace.updated' if old else 'workspace.created', workspace=key, before=old, after=values,
                    reason=d.get('reason') or 'Explicit workspace setup')
+        if scope is not None:
+            self.set_scope({'id': key}, scope, actor, d.get('reason') or 'Responsible managers chosen')
         self.reconcile(actor, 'Workspace governance changed')
+        pending = 0
+        for staff in initial:
+            r = self.membership_request({'workspace_id': key, 'beneficiary_id': staff, 'member_role': 'MEMBER',
+                                         'reason': d.get('reason') or 'Selected when the workspace was created'}, actor)
+            pending += 1 if r.get('type') == 'org_request' and r.get('status') in ('PENDING', 'REVIEW') else 0
         self.bump()
-        return {'id': key, 'type': 'tm_workspace',
-                'message': f"{'Personal' if visibility == 'PERSONAL' else 'Public'} workspace saved. Membership and contents remain separate."}
+        message = f"{'Personal' if visibility == 'PERSONAL' else 'Public'} workspace saved. Membership and contents remain separate."
+        if pending:
+            message += f" {pending} {'membership needs' if pending == 1 else 'memberships need'} the responsible manager’s approval."
+        return {'id': key, 'type': 'tm_workspace', 'message': message}
 
     def remove_workspace(self, d, actor, restore=False):
         w = self.ws(d.get('id'))
@@ -1070,7 +1310,8 @@ class Governance:
             for k in shared:
                 if k not in previous:
                     self.require_active(k)
-            public = d['kind'] == 'PUBLIC' or any(k != actor for k in previous) or any(k != actor for k in shared)
+            # Retained or explicitly shared members no longer force Public: the owner's choice decides.
+            public = d['kind'] == 'PUBLIC'
             Workspace.objects.filter(id=old['id']).update(kind='PERSONAL', visibility='PUBLIC' if public else 'PERSONAL',
                                                           governing_manager_id=None, version=old['version'] + 1, updated_at=at)
             self.invalidate()
@@ -1182,13 +1423,19 @@ class Governance:
                 'member_candidates': candidates, 'can_archive': self.can_archive_workspace(staff, w),
                 'can_delete': self.can_delete_workspace(staff, w), 'can_restore': self.can_restore_workspace(staff, w),
                 'can_request_membership': not w['deleted_at'] and w['kind'] == 'ORGANIZATIONAL' and self.has_capability(staff, 'membership_request', w),
-                'personal': is_personal_workspace(w)}
+                'personal': is_personal_workspace(w),
+                # Responsible managers: shown to the people who can open the workspace; changed by its managers.
+                'manager_ids': self.stored_scope(w),
+                'can_set_managers': not w['deleted_at'] and not is_personal_workspace(w) and self.can_manage_workspace(staff, w),
+                'can_make_public': not w['deleted_at'] and is_personal_workspace(w) and w['kind'] == 'PERSONAL' and w['owner_id'] == staff,
+                'manager_options': ([{'id': m, 'name': (self.person(m) or {}).get('name') or m} for m in self.responsible_options(w['owner_id'])]
+                                    if not w['deleted_at'] and (self.can_manage_workspace(staff, w)) else [])}
 
     def workspace_dashboard(self, actor, state):
         if not self.active(actor):
             return {'has_management': False, 'people': [], 'my': [], 'managed': [], 'shared': []}
         managed_people = [p for p in self.tree()['rows'] if p['staff_id'] != actor and p['org_level'] and self.active(p['staff_id'])
-                          and (self.global_workspaces(actor) or p['staff_id'] in self.descendants(actor))]
+                          and (self.global_workspaces(actor) or p['staff_id'] in self.descendants(actor) or p['staff_id'] in self.all_reports(actor))]
         scope = {actor, *(p['staff_id'] for p in managed_people)}
         full = {w['id'] for w in state.get('tm_workspaces', [])}
         people = []
@@ -1200,7 +1447,8 @@ class Governance:
         members = list(WorkspaceMember.objects.values_list('workspace_id', 'staff_id'))
         for w in sorted(rows(Workspace.objects.all()), key=lambda x: x['name'].lower()):
             mine = w['created_by'] == actor or w['owner_id'] == actor
-            management = not w['deleted_at'] and not is_personal_workspace(w) and w['owner_id'] in scope and w['owner_id'] != actor
+            management = (not w['deleted_at'] and not is_personal_workspace(w) and w['owner_id'] != actor
+                          and (w['owner_id'] in scope or self.workspace_reason(actor, w) == 'team'))
             if (not self.can_restore_workspace(actor, w)) if w['deleted_at'] else (w['id'] not in full):
                 continue
             authorized = w['id'] in full
@@ -1217,7 +1465,47 @@ class Governance:
         return {'has_management': bool(managed_people), 'people': people, 'my': my, 'managed': managed, 'shared': shared}
 
     def visible_employee(self, actor, target):
-        return self.global_workspaces(actor) or actor == target or self.in_branch(actor, target) or self.in_branch(target, actor)
+        return (self.global_workspaces(actor) or actor == target or self.in_branch(actor, target) or self.in_branch(target, actor)
+                or target in self.all_reports(actor) or actor in self.all_reports(target))
+
+    def management_people(self, actor):
+        """Under My Management: the active employees below this person on any reporting line (everyone for authorized
+        Administration), with their configured organizational title. Listing someone grants nothing: each screen still
+        shows only the records this person may already see."""
+        if not self.active(actor):
+            return []
+        self.preload_people()
+        levels = dict(OrgLevel.objects.values_list('id', 'name'))
+        below = set(self.all_reports(actor)) | set(self.descendants(actor))
+        if self.global_workspaces(actor):
+            below = {s for s in self.tree()['parents']} - {actor}
+        out = []
+        for s in below:
+            p = self.person(s)
+            if not p or not self.active(s):
+                continue
+            out.append({'staff_id': s, 'name': p['name'], 'org_level': p['org_level'],
+                        'title': levels.get(p['org_level']) or 'Not mapped in Organizational Structure',
+                        'direct': s in self.tree()['children'].get(actor, []) or actor in self.additional_managers(s)})
+        return sorted(out, key=lambda x: (x['org_level'] or 1001, x['name'].lower()))
+
+    def workspace_setup(self, actor):
+        """What the workspace form offers this person: their responsible-manager choices and, for an Organizational
+        workspace they own, the employees of their approved branch they may add directly."""
+        if not self.active(actor):
+            return {'managers': [], 'primary_manager_id': None, 'subordinates': []}
+        levels = dict(OrgLevel.objects.values_list('id', 'name'))
+        managers = [{'id': m, 'name': (self.person(m) or {}).get('name') or m, 'title': levels.get(self.level(m)) or '',
+                     'direct': m in self.managers_of(actor)} for m in self.responsible_options(actor)]
+        g = self.governor(actor)
+        caps = any({'membership_request', 'workspace_manage', 'workspace_create'} <= set(parse(x['capabilities_json'], []))
+                   for x in self.grants(actor))
+        subordinates = []
+        if g and (self.governor(actor) == actor or self.is_level1(actor) or caps):
+            for s in self.descendants(actor):
+                if self.active(s) and self.level(s) and self.governor(s) == g:
+                    subordinates.append({'id': s, 'name': (self.person(s) or {}).get('name') or s})
+        return {'managers': managers, 'primary_manager_id': self.tree()['parents'].get(actor), 'subordinates': subordinates}
 
     def _direct_reports(self, actor, target):
         return [self.person(s) for s in Profile.objects.filter(manager_id=target).values_list('staff_id', flat=True)
@@ -1229,9 +1517,10 @@ class Governance:
         p = self.person(target)
         if not p:
             fail('Employee not found.', 404)
+        lines = [m for m in self.additional_managers(target) if self.visible_employee(actor, m)]
         if not self.can_manage_structure(actor):
             return {**p, 'active': 1 if self.active(target) else 0, 'actions': {}, 'direct_reports': self._direct_reports(actor, target),
-                    'memberships': [], 'owned': [], 'grants': []}
+                    'additional_manager_ids': lines, 'memberships': [], 'owned': [], 'grants': []}
         memberships = []
         for m in WorkspaceMember.objects.filter(staff_id=target).select_related('workspace'):
             w = row(m.workspace)
@@ -1252,7 +1541,8 @@ class Governance:
                   for g in rows(OrgGrant.objects.filter(beneficiary_id=target).order_by('-created_at'))
                   if not g['workspace_id'] or self.can_view_workspace(actor, self.ws(g['workspace_id']))]
         return {**p, 'active': 1 if self.active(target) else 0, 'actions': actions, 'governing_manager_id': self.governor(target),
-                'direct_reports': self._direct_reports(actor, target), 'memberships': memberships, 'owned': owned, 'grants': grants}
+                'additional_manager_ids': lines, 'direct_reports': self._direct_reports(actor, target), 'memberships': memberships,
+                'owned': owned, 'grants': grants}
 
     def directory(self, actor, manage):
         self.preload_people()
@@ -1361,6 +1651,7 @@ class Governance:
         owned = [w for w in rows(Workspace.objects.all()) if self.can_view_workspace(actor, w)]
         titles = [g for g in rows(OrgGrant.objects.filter(status='ACTIVE')) if self.valid_grant(g)]
         result['rows'] = [{**r, 'children': counts.get(r['staff_id'], 0), 'governing_manager_id': self.governor(r['staff_id']),
+                           'additional_manager_ids': [m for m in self.additional_managers(r['staff_id']) if m in permitted],
                            'titles': uniq([g['title'] for g in titles if g['beneficiary_id'] == r['staff_id']]),
                            'workspaces': [{'id': w['id'], 'name': w['name']} for w in owned if w['owner_id'] == r['staff_id']]}
                           for r in result['rows']]

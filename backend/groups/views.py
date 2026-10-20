@@ -9,6 +9,10 @@ GET  /api/tasks/group/import         one uploaded Excel workbook
 GET  /api/tasks/group/file           a file in an Attachment cell (inline=1 for images and PDFs)
 GET  /api/tasks/group/file/preview   what the in-app preview shows for that file
 GET  /api/tasks/group.xlsx           the group as an Excel workbook (Export permission)
+GET  /api/tasks/group/live-shares    Share Live Data: who sees which columns live, for the people who manage the group
+GET  /api/tasks/group/live-sources   Live Data shared with me, for adding a Live Data column to a group I manage
+GET  /api/tasks/group/live           one Live Data share's columns and records as they are now (the recipient)
+GET  /api/tasks/group/live-history   the edit history of live-shared columns (managers; Can Edit recipients for their columns)
 POST /api/tasks/group/import/preview what an Excel import would do, without saving anything
 POST /api/google                     the Google Sheets panel of a group's settings (not part of this deployment)
 
@@ -46,6 +50,15 @@ class GroupReadView(APIView):
             from .sharing import DataSharing
             sharing = DataSharing(groups)
             return Response(sharing.describe(key, staff) if self.kind == 'shares' else sharing.sources(key, staff) if self.kind == 'import-sources' else sharing.browse(key, p.get('source'), staff))
+        if self.kind in ('live-shares', 'live-sources', 'live', 'live-history'):
+            live = groups.live
+            if self.kind == 'live-shares':
+                return Response(live.describe(key, staff))
+            if self.kind == 'live-sources':
+                return Response(live.sources(key, staff))
+            if self.kind == 'live':
+                return Response(live.browse(p.get('share'), staff, p))
+            return Response(live.history_read(key, staff, p))
         if self.kind == 'delivery':
             from .delivery import status
             return Response(status(groups, key, staff, p.get('delivery')))

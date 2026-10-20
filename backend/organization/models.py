@@ -56,6 +56,26 @@ class Profile(models.Model):
         ]
 
 
+class ReportingLine(models.Model):
+    """An additional reporting manager (`org_reporting_lines`). The primary line stays tm_profiles.manager_id and keeps
+    driving levels, Level 2 governance and approvals; an additional line lets an employee report to several managers.
+
+    An additional line never widens workspace or task visibility by itself: a manager on an additional line sees an
+    employee's workspace only when that workspace's owner selects them as a responsible manager (WorkspaceManager)."""
+    staff = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='additional_lines')
+    manager = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='additional_reports')
+    created_by = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+', db_column='created_by')
+    created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'org_reporting_lines'
+        constraints = [
+            models.UniqueConstraint(fields=['staff', 'manager'], name='org_reporting_line_unique'),
+            models.CheckConstraint(condition=~models.Q(manager=models.F('staff')), name='org_reporting_line_not_self'),
+        ]
+        indexes = [models.Index(fields=['manager'], name='org_reporting_line_manager')]
+
+
 CAPABILITIES = {
     'workspace_create': 'Create delegated workspaces',
     'workspace_manage': 'Manage owned workspaces',

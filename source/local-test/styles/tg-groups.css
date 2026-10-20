@@ -72,3 +72,58 @@
   font: inherit; font-weight: 500; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .mg-filename:active { background: color-mix(in srgb, var(--link, #1f73b7) 10%, transparent); }
 .mg-files .icon-btn { flex-shrink: 0; }
+
+/* Live Data columns: a small link mark in the header (the values belong to another group). */
+.mg-table thead th.mg-live::after { content: ' ↗'; color: var(--link-text, #1f73b7); font-weight: 600; }
+
+/* Attachment cell: Send to Telegram above the files; each file shows its type and size. */
+.mg-send-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 4px; }
+.mg-send-open { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; }
+.mg-send-open svg { width: 18px; height: 18px; }
+.mg-attachments .mg-files { margin-top: 6px; }
+.mg-filename { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.mg-file-name { overflow-wrap: anywhere; }
+.mg-file-meta { color: var(--hint); font-size: 12px; font-weight: 400; }
+
+/* The selection sheet: full screen, large touch rows, a fixed footer with the action. */
+.gd-sheet { z-index: 34; }
+.gd-sheet-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 12px 12px 16px; -webkit-overflow-scrolling: touch; }
+.gd-sheet-files, .gd-methods { border: 0; padding: 0; margin: 0; min-width: 0; }
+.gd-sheet-legend { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; margin: 10px 0 8px; font-weight: 650; }
+.gd-sheet-legend > span:first-child { flex: 1; }
+.gd-sheet-count { color: var(--hint); font-size: 13px; font-weight: 500; }
+.gd-sheet-list { list-style: none; margin: 0; padding: 0; background: var(--section); border-radius: var(--radius, 12px); }
+.gd-sheet-list li + li { border-top: 1px solid var(--line); }
+.gd-sheet-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.gd-sheet-row[aria-pressed="true"] { background: color-mix(in srgb, var(--link, #1f73b7) 9%, transparent); }
+.gd-box { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border: 2px solid var(--hint); border-radius: 7px; font-size: 13px; font-weight: 700; }
+.gd-box.is-on { border-color: var(--link, #1f73b7); background: var(--link, #1f73b7); color: #fff; }
+.gd-box svg { width: 16px; height: 16px; }
+.gd-kind { display: grid; place-items: center; flex: 0 0 36px; height: 36px; border-radius: 9px; background: var(--bg); color: var(--hint); }
+.gd-kind svg { width: 20px; height: 20px; }
+.gd-sheet-row .row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gd-sheet-row .row-title { overflow-wrap: anywhere; font-weight: 550; }
+.gd-sheet-row .row-meta { color: var(--hint); font-size: 12px; }
+.gd-sheet-section { margin-top: 16px; }
+.gd-sheet-section h3, .gd-methods legend { font-size: 14px; font-weight: 650; margin: 0 0 8px; padding: 0; }
+.gd-sheet-order { list-style: none; margin: 0; padding: 0; background: var(--section); border-radius: var(--radius, 12px); }
+.gd-sheet-order li { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 4px 6px 4px 12px; }
+.gd-sheet-order li + li { border-top: 1px solid var(--line); }
+.gd-sheet-order .num { flex: 0 0 22px; color: var(--hint); font-weight: 700; }
+.gd-order-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gd-sheet-order .icon-btn { width: 44px; height: 44px; }
+.gd-method { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: var(--radius, 12px); background: var(--section); cursor: pointer; }
+.gd-method.is-on { border-color: var(--link, #1f73b7); box-shadow: inset 0 0 0 1px var(--link, #1f73b7); }
+.gd-method.is-off { opacity: .65; cursor: not-allowed; }
+.gd-method input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--link, #1f73b7); }
+.gd-method .row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gd-method .row-title { font-weight: 600; }
+.gd-method .row-meta { color: var(--hint); font-size: 12px; overflow-wrap: anywhere; }
+.gd-sheet-name { display: grid; gap: 6px; margin: 4px 0 0; }
+.gd-name { display: flex; align-items: center; gap: 6px; }
+.gd-name input { flex: 1; min-width: 0; min-height: 44px; font-size: 16px; }
+.gd-name > span { color: var(--hint); font-weight: 600; }
+.gd-sheet-foot { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 10px 12px calc(10px + var(--safe-bottom, 0px)); background: var(--section); border-top: 1px solid var(--line); }
+.gd-sheet-foot .btn { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.gd-sheet-foot .btn svg { width: 18px; height: 18px; }
+.gd-status.is-sent { color: #037749; }

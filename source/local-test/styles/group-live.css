@@ -1,0 +1,22 @@
+/* Share Live Data: connected columns, their permission, and the edit history. Uses the app's existing tokens. */
+.live-columns { border: 0; padding: 0; margin: 0; min-width: 0; }
+.live-column-list { display: grid; gap: 4px; max-height: min(44vh, 380px); overflow: auto; overscroll-behavior: contain; padding: 2px; }
+.live-column-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 190px); gap: 12px; align-items: center;
+  padding: 6px 10px; border: 1px solid var(--c-border); border-radius: 8px; }
+.live-column-row .field { margin: 0; }
+.live-share-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.live-share-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid var(--c-border); border-radius: 8px; }
+.live-share-list .cell-stack { min-width: 0; }
+.live-preview { border: 1px solid var(--c-border); border-radius: 8px; padding: 8px 10px; overflow-x: auto; }
+.live-preview .data-table { width: 100%; }
+.live-history-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 10px; align-items: end; }
+.live-history-filters .field { margin: 0; }
+.live-history td { vertical-align: top; overflow-wrap: anywhere; }
+.live-history .live-before { color: var(--c-text-3); text-decoration: line-through; text-decoration-color: color-mix(in srgb, currentColor 45%, transparent); }
+/* A Live Data column in the table: a link mark on its header and a faint tint, so it reads as someone else's data. */
+.grid-head-button.is-live .grid-type-icon { color: var(--c-accent); }
+.grid-cell.is-live { background-image: linear-gradient(color-mix(in srgb, var(--c-accent) 4%, transparent), color-mix(in srgb, var(--c-accent) 4%, transparent)); }
+@media (max-width: 720px) {
+  .live-history-filters { grid-template-columns: 1fr 1fr; }
+  .live-column-row { grid-template-columns: 1fr; gap: 4px; }
+}
