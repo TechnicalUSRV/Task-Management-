@@ -261,7 +261,11 @@ class BoardDataShare(models.Model):
 class BoardDelivery(models.Model):
     """Durable self-delivery jobs; originals stay in BoardFile, merged bytes are never stored."""
     id = models.CharField(max_length=60, primary_key=True)
-    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='deliveries')
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='deliveries', null=True, blank=True)
+    task = models.ForeignKey('tasks.Task', on_delete=models.PROTECT, related_name='deliveries', null=True, blank=True)
+    preview = models.BooleanField(default=False, db_default=False)
+    plan_json = models.TextField(default='[]', db_default='[]')
+    worker_token = models.CharField(max_length=40, default='', db_default='')
     staff = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
     request_key = models.CharField(max_length=64)
     row_id_snapshot = models.CharField(max_length=60)
@@ -282,7 +286,7 @@ class BoardDelivery(models.Model):
         db_table = 'tm_board_deliveries'
         constraints = [models.UniqueConstraint(fields=['staff', 'request_key'], name='tm_delivery_request'),
                        models.CheckConstraint(condition=Q(mode__in=['SEPARATE', 'MERGED_PDF']), name='tm_delivery_mode'),
-                       models.CheckConstraint(condition=Q(status__in=['QUEUED', 'SENDING', 'SENT', 'PARTIAL', 'FAILED', 'UNKNOWN']), name='tm_delivery_status')]
+                       models.CheckConstraint(condition=Q(status__in=['QUEUED', 'PREPARING', 'READY', 'APPROVED', 'SENDING', 'SENT', 'PARTIAL', 'FAILED', 'UNKNOWN', 'CANCELLED']), name='tm_delivery_status')]
         indexes = [models.Index(fields=['status', 'created_at'], name='tm_delivery_queue')]
 
 
@@ -344,3 +348,15 @@ class BoardLiveEdit(models.Model):
                        models.CheckConstraint(condition=Q(via__in=['group', 'live', 'import']), name='tm_live_history_via')]
         indexes = [models.Index(fields=['board', 'created_at'], name='tm_live_history_board'),
                    models.Index(fields=['board', 'column_ref', 'created_at'], name='tm_live_history_column')]
+
+
+class DeliveryPart(models.Model):
+    """Short-lived prepared PDF bytes in the existing business database; purged after delivery/expiry."""
+    job = models.ForeignKey(BoardDelivery, on_delete=models.CASCADE, related_name='parts')
+    position = models.PositiveIntegerField()
+    name = models.CharField(max_length=180)
+    content = models.BinaryField()
+
+    class Meta:
+        db_table = 'tm_delivery_parts'
+        constraints = [models.UniqueConstraint(fields=['job', 'position'], name='tm_delivery_part_position')]

@@ -4,18 +4,18 @@ import type { Row } from './components';
 import { uuid } from './api-client';
 import './styles/group-enhancements.css';
 
-type Props = { groupId: string; files: Row[]; command: (action: string, data: Row) => Promise<Row>; read: (id: string) => Promise<Row> };
+type Props = { groupId?: string; taskId?: string; files: Row[]; command: (action: string, data: Row) => Promise<Row>; read: (id: string) => Promise<Row> };
 export const MERGED_DEFAULT = 'Combined-documents';
 const isPdf = (f?: Row) => f?.mime === 'application/pdf';
 export const fileKind = (f: Row) => isPdf(f) ? 'PDF' : String(f.mime || '').startsWith('image/') ? 'Image' : (String(f.name || '').split('.').pop() || 'File').toUpperCase();
 export const fileSize = (n: unknown) => { const b = Number(n) || 0; return b >= 1048576 ? `${(b / 1048576).toFixed(b >= 10485760 ? 0 : 1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`; };
 
 /** The same ordered selection, sending method, merged file name and delivery status for the web app and the Mini App. */
-export function useDelivery({ groupId, files, command, read }: Props) {
+export function useDelivery({ groupId, taskId, files, command, read }: Props) {
   const [selected, setSelected] = useState<string[]>([]), [mode, setMode] = useState('SEPARATE'), [name, setName] = useState(MERGED_DEFAULT);
   const [job, setJob] = useState<Row | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const request = useRef<{ signature: string; key: string } | null>(null);
-  const pending = !!job && ['QUEUED', 'SENDING'].includes(job.status);
+  const pending = !!job && ['QUEUED', 'PREPARING', 'APPROVED', 'SENDING'].includes(job.status);
   useEffect(() => {
     if (!pending) return;
     let live = true, timer: ReturnType<typeof setTimeout>;
@@ -37,29 +37,31 @@ export function useDelivery({ groupId, files, command, read }: Props) {
   const toggle = (id: string, on: boolean) => setSelected(s => on ? (s.includes(id) ? s : [...s, id]) : s.filter(x => x !== id));
   const move = (id: string, by: number) => setSelected(s => { const out = [...s], i = out.indexOf(id), j = i + by; if (i >= 0 && j >= 0 && j < out.length) [out[i], out[j]] = [out[j], out[i]]; return out; });
   const fileName = merging ? `${name.trim().replace(/\.pdf$/i, '')}.pdf` : '';
-  const ready = chosen.length > 0 && (!merging || (pdfs && !nameError)) && !busy && !pending;
+  const ready = chosen.length > 0 && (!merging || (pdfs && !nameError)) && !busy && !pending && job?.status !== 'READY';
   const send = async () => {
     if (!ready) return;
     setBusy(true); setError('');
-    const signature = JSON.stringify([groupId, chosen, mode, fileName]);
+    const signature = JSON.stringify([groupId, taskId, chosen, mode, fileName]);
     if (!request.current || request.current.signature !== signature || job && !pending) request.current = { signature, key: uuid() };
-    try { const result = await command('tm.group.delivery.create', { group_id: groupId, file_ids: chosen, mode, request_key: request.current.key, ...(merging ? { file_name: fileName } : {}) }); setJob(result.delivery); }
+    try { const result = await command(taskId ? 'tm.task.delivery.create' : 'tm.group.delivery.create', { ...(taskId ? { task_id: taskId } : { group_id: groupId }), preview: true, file_ids: chosen, mode, request_key: request.current.key, ...(merging ? { file_name: fileName } : {}) }); setJob(result.delivery); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
   useEffect(() => { if (merging && !pdfs && chosen.length) setMode('SEPARATE'); }, [merging, pdfs, chosen.length]);
+  const confirmDelivery = async (cancel=false) => { if (!job) return; setBusy(true); setError(''); try { const r = await command(`tm.${taskId ? 'task' : 'group'}.delivery.${cancel ? 'cancel' : 'confirm'}`, { delivery_id: job.id }); setJob(r.delivery); } catch(e) { setError((e as Error).message); } finally { setBusy(false); } };
   const reset = () => { setJob(null); setError(''); setSelected([]); request.current = null; };
-  return { selected: chosen, setSelected, toggle, move, mode, setMode, name, setName, nameError, fileName, job, error, busy, pending, pdfs, mergeBlock, merging, ready, send, reset };
+  return { selected: chosen, setSelected, toggle, move, mode, setMode, name, setName, nameError, fileName, job, error, busy, pending, pdfs, mergeBlock, merging, ready, send, reset, confirmDelivery };
 }
 
 function statusText(job: Row) {
-  return job.status === 'QUEUED' ? 'Queued. Waiting for the delivery worker.' : job.status === 'SENDING' ? 'Sending…' : job.status === 'SENT' ? 'Sent to your Telegram.'
+  return job.status === 'READY' ? 'Prepared. Review the sizes and confirm delivery.' : job.status === 'PREPARING' ? 'Preparing documents…' : job.status === 'APPROVED' ? 'Confirmed. Waiting to send.' : job.status === 'CANCELLED' ? 'Cancelled.' : job.status === 'QUEUED' ? 'Queued. Waiting for the delivery worker.' : job.status === 'SENDING' ? 'Sending…' : job.status === 'SENT' ? 'Sent to your Telegram.'
     : job.status === 'PARTIAL' ? 'Some files were sent.' : job.status === 'UNKNOWN' ? 'Delivery not confirmed.' : 'Delivery failed.';
 }
 
 function DeliveryStatus({ job }: { job: Row }) {
-  const pending = ['QUEUED', 'SENDING'].includes(job.status);
+  const pending = ['QUEUED', 'PREPARING', 'APPROVED', 'SENDING'].includes(job.status);
   return <>
     <p role="status" className={`gd-hint gd-status is-${String(job.status).toLowerCase()}`}>{pending ? <Loader2 size={14} className="spin" /> : job.status === 'SENT' ? <CheckCircle2 size={16} /> : null} {statusText(job)} {job.results.length} / {job.total} sent. {job.error}</p>
+    {job.plan?.length > 0 && <ol className="gd-hint">{job.plan.map((p: Row, i: number) => <li key={i}>{p.name} · {fileSize(p.size)}{p.pages ? ` · pages ${p.pages[0]}–${p.pages[1]}` : ''}</li>)}</ol>}
     {job.results?.length > 0 && <ul className="gd-hint">{job.results.map((r: Row, i: number) => <li key={i}>Sent: {r.name}</li>)}</ul>}
     {['PARTIAL', 'UNKNOWN'].includes(job.status) && <p className="gd-hint">Check your chat and select only files you still need before sending again.</p>}
   </>;
@@ -77,9 +79,9 @@ export function GroupDelivery(props: Props) {
       {d.merging && <><label className="gd-mode" htmlFor={nameId}>Name of the combined PDF<span className="gd-name"><input id={nameId} value={d.name} maxLength={116} onChange={e => d.setName(e.target.value)} aria-invalid={!!d.nameError || undefined} /><span aria-hidden="true">.pdf</span></span></label>
         {d.nameError && <p className="field-error">{d.nameError}</p>}
         <p className="gd-hint">Combine PDF pages in this order. Interactive actions are removed; originals stay unchanged.</p></>}
-      <button type="button" className="gd-send" disabled={!d.ready} onClick={() => void d.send()}>{d.busy ? <Loader2 size={16} className="spin" /> : <Send size={16} />}Send selected files</button>
+      <button type="button" className="gd-send" disabled={!d.ready} onClick={() => void d.send()}>{d.busy ? <Loader2 size={16} className="spin" /> : <Send size={16} />}Prepare selected files</button>
     </fieldset>
-    {d.job && <DeliveryStatus job={d.job} />}
+    {d.job && <DeliveryStatus job={d.job} />}{d.job?.status === 'READY' && <div><button type="button" disabled={d.busy} onClick={()=>void d.confirmDelivery()}>Confirm and send</button><button type="button" disabled={d.busy} onClick={()=>void d.confirmDelivery(true)}>Cancel delivery</button></div>}
     {d.error && <p role="alert" className="field-error">{d.error}</p>}
   </details>;
 }
@@ -92,7 +94,7 @@ export function MiniDeliverySheet({ layer, onClose, ...props }: Props & { onClos
   const close = () => { if (!d.busy) onClose(); };
   layer(close);
   const all = d.selected.length === files.length;
-  const done = !!d.job && !d.pending;
+  const done = !!d.job && !d.pending && d.job.status !== 'READY';
   return (
     <div className="picker gd-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <div className="picker-head">
@@ -125,7 +127,7 @@ export function MiniDeliverySheet({ layer, onClose, ...props }: Props & { onClos
           <label className={`gd-method${d.mode === 'SEPARATE' ? ' is-on' : ''}`}><input type="radio" name={`${titleId}-mode`} checked={d.mode === 'SEPARATE'} onChange={() => d.setMode('SEPARATE')} />
             <span className="row-main"><span className="row-title">Send files separately</span><span className="row-meta">{d.selected.length > 1 ? `${d.selected.length} documents, one after another` : 'Each file as its own document'}</span></span></label>
           <label className={`gd-method${d.merging ? ' is-on' : ''}${d.pdfs ? '' : ' is-off'}`}><input type="radio" name={`${titleId}-mode`} checked={d.merging} disabled={!d.pdfs} onChange={() => d.setMode('MERGED_PDF')} />
-            <span className="row-main"><span className="row-title">Combine PDFs and send</span><span className="row-meta">{d.pdfs ? 'One PDF, pages in the order above' : d.mergeBlock}</span></span></label>
+            <span className="row-main"><span className="row-title">Combine PDFs and send</span><span className="row-meta">{d.pdfs ? 'PDF pages in this order; oversized output is split into numbered parts' : d.mergeBlock}</span></span></label>
           {d.merging && <div className="gd-sheet-name">
             <label htmlFor={nameId} className="field-label">Name of the combined PDF</label>
             <span className="gd-name"><input id={nameId} className="input" value={d.name} maxLength={116} onChange={e => d.setName(e.target.value)} aria-invalid={!!d.nameError || undefined} aria-describedby={`${nameId}-hint`} /><span aria-hidden="true">.pdf</span></span>
@@ -136,9 +138,9 @@ export function MiniDeliverySheet({ layer, onClose, ...props }: Props & { onClos
         {d.error && <p role="alert" className="error">{d.error}</p>}
       </div>
       <div className="gd-sheet-foot">
-        {done ? <><button type="button" className="btn" onClick={d.reset}>Send more</button><button type="button" className="btn primary" onClick={onClose}>Done</button></>
+        {d.job?.status === 'READY' ? <><button type="button" className="btn" disabled={d.busy} onClick={()=>void d.confirmDelivery(true)}>Cancel delivery</button><button type="button" className="btn primary" disabled={d.busy} onClick={()=>void d.confirmDelivery()}>Confirm and send</button></> : done ? <><button type="button" className="btn" onClick={d.reset}>Send more</button><button type="button" className="btn primary" onClick={onClose}>Done</button></>
           : <><button type="button" className="btn" onClick={close} disabled={d.busy}>Cancel</button>
-            <button type="button" className="btn primary gd-sheet-send" disabled={!d.ready} onClick={() => void d.send()}>{d.busy || d.pending ? <Loader2 className="spin" aria-hidden="true" /> : <Send aria-hidden="true" />}{d.pending ? 'Sending…' : d.selected.length ? `Send ${d.merging ? 'combined PDF' : `${d.selected.length} ${d.selected.length === 1 ? 'file' : 'files'}`}` : 'Select files'}</button></>}
+            <button type="button" className="btn primary gd-sheet-send" disabled={!d.ready} onClick={() => void d.send()}>{d.busy || d.pending ? <Loader2 className="spin" aria-hidden="true" /> : <Send aria-hidden="true" />}{d.pending ? 'Sending…' : d.selected.length ? `Prepare ${d.merging ? 'combined PDF' : `${d.selected.length} ${d.selected.length === 1 ? 'file' : 'files'}`}` : 'Select files'}</button></>}
       </div>
     </div>
   );

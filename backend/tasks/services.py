@@ -171,6 +171,7 @@ class TaskService:
 
     def assignable(self, value):
         key = self.lookup(value)
+        self.gov.require_operational(key)
         self.profile(key)
         a = self.account_of(key)
         if a and not a['active']:
@@ -270,6 +271,10 @@ class TaskService:
         return out
 
     def guard(self, verb, t, roles, opts=None):
+        from .models import TaskMember
+        if verb in ('note', 'file') and t['status'] != 'CANCELLED' and t.get('visibility') != 'PERSONAL' and TaskMember.objects.filter(
+                task_id=t['id'], staff_id=roles['staff'], permission='CONTRIBUTOR').exists():
+            return
         block = dm.task_block(verb, {**t, 'due_request': self.pending_due(t['id']), 'waiting': self.waiting_on(t),
                                      'change_request': self.pending_change(t['id'])}, roles, opts)
         if block:
@@ -435,7 +440,7 @@ class TaskService:
 
     def task_input(self, t):
         """A task as the edit form sends it, so an approved change can be applied on top of the task as it is now."""
-        return {'workspace_id': t['workspace_id'], 'title': t['title'], 'description': t['description'], 'start_date': t['start_date'],
+        return {'visibility': t.get('visibility', 'PUBLIC'), 'workspace_id': t['workspace_id'], 'title': t['title'], 'description': t['description'], 'start_date': t['start_date'],
                 'due_date': t['due_date'], 'priority': t['priority'], 'estimate': dm.format_minutes(t['estimate_minutes']),
                 'pic_id': t['pic_id'], 'supporter_ids': self.supporters_of(t), 'reviewer_id': t['reviewer_id'], 'department': t['department'],
                 'department_note': t['department_note'], 'recurrence': t.get('recurrence') or '', 'recurrence_rule': t.get('recurrence_rule') or '{}',
@@ -496,6 +501,8 @@ class TaskService:
                     fail('Creation key already belongs to another workspace.')
                 return {'id': duplicate['id'], 'type': 'tm_task', 'message': 'Task already created.'}
         w = self.active_workspace(old['workspace_id'] if old else d.get('workspace_id'))
+        from .policy import validate_visibility
+        visibility = validate_visibility(self.gov, actor, d, old, w)
         key = old['id'] if old else next_id('tm-task', 'TASK')
         if not old and not self.gov.can_create_resource(actor, w) and not (
                 opts.get('requestId') and self.gov.can_create_resource(opts.get('memberAuthority'), w)):
@@ -563,6 +570,9 @@ class TaskService:
                   'department': (old['department'] if old else (w['department'] or '')) if d.get('department') is None else text(d['department'], 'Department', 150),
                   'department_note': text(nn(d.get('department_note'), (old or {}).get('department_note') or ''), 'Department note', 2000),
                   'recurrence': recurrence, 'recurrence_rule': recurrence_rule, 'recurrence_until': until}
+        values['visibility'] = visibility
+        if visibility == 'PERSONAL' and ({pic, reviewer, *supporters} - {actor if not old else old['created_by']}):
+            fail('Personal tasks are owner only. Choose Public or Organizational before adding participants.', 422)
         reviewer_changed = not old or reviewer != old['reviewer_id']
         reviewer_self = reviewer == actor or opts.get('reviewerAccepted') == reviewer
         reviewer_values = ({'reviewer_status': 'ACCEPTED' if reviewer_self else 'PENDING', 'reviewer_responded_at': now() if reviewer_self else None,
@@ -625,7 +635,7 @@ class TaskService:
                 def put(field, before, after, keys):
                     diff.append(self.change(field, before, after))
                     payload.update(keys)
-                for field in ('title', 'description', 'start_date', 'due_date', 'priority', 'pic_id', 'reviewer_id', 'department',
+                for field in ('visibility', 'title', 'description', 'start_date', 'due_date', 'priority', 'pic_id', 'reviewer_id', 'department',
                               'department_note', 'recurrence', 'recurrence_rule', 'recurrence_until'):
                     if changed(field):
                         put(field, old.get(field), values.get(field), {field: nn(values.get(field), '' if field == 'recurrence' else None)})
@@ -666,7 +676,7 @@ class TaskService:
             t = {**old, **values, **extra, 'version': old['version'] + 1, 'updated_at': now()}
             update(Task, key, {k: v for k, v in t.items() if k != 'id'})
             diff = []
-            for field in ('title', 'description', 'start_date', 'due_date', 'priority', 'pic_id', 'reviewer_id', 'department', 'department_note',
+            for field in ('visibility', 'title', 'description', 'start_date', 'due_date', 'priority', 'pic_id', 'reviewer_id', 'department', 'department_note',
                           'recurrence', 'recurrence_rule', 'recurrence_until'):
                 if changed(field):
                     diff.append(self.change(field, old.get(field), values.get(field)))
@@ -1047,7 +1057,7 @@ class TaskService:
         pic = t['pic_id'] if pic_kept else reviewer
         previous = self._assignee_dicts(t['id'])
         key, stamp = next_id('tm-task', 'TASK'), now()
-        n = {'id': key, 'workspace_id': t['workspace_id'], 'activity_id': None, 'contact_id': t.get('contact_id'), 'related_type': t.get('related_type') or '',
+        n = {'id': key, 'visibility': t.get('visibility', 'PUBLIC'), 'workspace_id': t['workspace_id'], 'activity_id': None, 'contact_id': t.get('contact_id'), 'related_type': t.get('related_type') or '',
              'related_id': t.get('related_id'), 'title': t['title'], 'description': t['description'], 'start_date': start, 'due_date': due,
              'status': 'NOT_STARTED', 'priority': t['priority'], 'progress': 0, 'estimate_minutes': t['estimate_minutes'], 'reason': '',
              'created_by': t['created_by'], 'completed_at': None, 'version': 0, 'creation_key': f"series:{t.get('series_id') or t['id']}:{due}",
@@ -1528,7 +1538,12 @@ class TaskService:
                 fail('Choose a “needed by” date from today on.')
             doer = ((old or {}).get('doer') or 'REQUESTER') if d.get('doer') in (None, '') else choice(d['doer'], ['RECEIVER', 'REQUESTER', 'DECIDE'], 'option for who does the work')
             key = old['id'] if old else next_id('tm-request', 'REQ')
-            values = {'workspace_id': wid, 'title': text(d.get('title'), 'Request title', 300, True),
+            visibility = d.get('visibility', (old or {}).get('visibility', 'PUBLIC'))
+            if visibility not in ('PUBLIC', 'ORGANIZATIONAL'):
+                fail('Requests involve another person. Choose Public or Organizational.', 422)
+            if visibility == 'ORGANIZATIONAL' and (not wid or self.workspace(wid)['kind'] != 'ORGANIZATIONAL'):
+                fail('Choose an Organizational Workspace for this request.', 422)
+            values = {'visibility': visibility, 'workspace_id': wid, 'title': text(d.get('title'), 'Request title', 300, True),
                       'description': text(d.get('description'), 'Expectation', 8000, not old),
                       'department': text(nn(d.get('department'), ''), 'Department', 150),
                       'department_note': text(nn(d.get('department_note'), ''), 'Department note', 2000),
@@ -1621,7 +1636,7 @@ class TaskService:
             start = d.get('start_date') or (dm.task_today() if dm.task_today() <= due_day else due_day)
             requester_does = pic == q['requested_by'] and doer == 'REQUESTER'
             created = self.save_task(
-                {'workspace_id': wid, 'title': d.get('title') or q['title'], 'description': nn(d.get('description'), q['description']),
+                {'visibility': d.get('visibility', q.get('visibility', 'PUBLIC')), 'workspace_id': wid, 'title': d.get('title') or q['title'], 'description': nn(d.get('description'), q['description']),
                  'start_date': start, 'due_date': due_day, 'priority': d.get('priority') or q['priority'], 'estimate': d.get('estimate') or '0:00',
                  'pic_id': pic, 'supporter_ids': d.get('supporter_ids') or [], 'reviewer_id': reviewer,
                  'department': nn(d.get('department'), q['department'] or None), 'department_note': nn(d.get('department_note'), q['department_note']),
@@ -1984,6 +1999,12 @@ class TaskService:
         if action.startswith('tm.workspace.'):
             from workspaces import services as workspaces
             return workspaces.handle(self.gov, action, d, actor)
+        if action == 'tm.task.members.save':
+            from .policy import save_members
+            return save_members(self, d, actor, source)
+        if action == 'tm.task.delivery.create':
+            from groups.delivery import enqueue_task
+            return enqueue_task(self, d, actor)
         if action == 'tm.task.save':
             return self.save_task(d, actor, source)
         if action == 'tm.task.handover':

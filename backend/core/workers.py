@@ -8,6 +8,7 @@ Each reminder pass runs in one transaction (V5.7.7 BEGIN IMMEDIATE … COMMIT) a
 that runs twice — two workers, or a restart — never notifies anyone twice.
 """
 import logging
+import os
 import threading
 
 from django.db import close_old_connections, transaction
@@ -65,7 +66,14 @@ class Workers:
                    self._loop('calendar-reminders', event_reminders, self.event_every, self.event_every)]
         if self.telegram:
             from groups.delivery import process_next
-            threads.append(self._loop('group-delivery', process_next, 2, 2))
+            try:
+                delivery_workers = int(os.environ.get('DOCUMENT_WORKERS', '1'))
+            except ValueError:
+                delivery_workers = 1
+            # Multiple workers let different chats progress concurrently.  The
+            # delivery claim still serializes jobs for the same chat.
+            for index in range(max(1, min(delivery_workers, 4))):
+                threads.append(self._loop(f'document-delivery-{index + 1}', process_next, 2 + index * .25, 2))
             from telegram import services as tg
             from telegram.bot import Runtime
             self.runtime = Runtime(app_url=lambda: tg.app_url())

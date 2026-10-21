@@ -1,3 +1,6 @@
+import { CameraAttachment } from './camera-attachment';
+import { TaskCategories, TaskVisibility, TaskSharing } from './task-access-ui';
+import { MiniDeliverySheet } from './group-delivery-ui';
 import { MiniGroups, MiniGroupAttachments } from './tg-groups';
 import { statusLabels } from './group-domain.mjs';
 import { Table2 } from 'lucide-react';
@@ -149,7 +152,7 @@ function linkedView(q: URLSearchParams, start: string): View | null {
 }
 const reminderStart = (days: unknown): Row => { const l = reminderDays(days as string); return { d1: l.includes(1), d2: l.includes(2), d3: l.includes(3), other: l.filter((n: number) => !REMINDER_PRESETS.includes(n)).join(', ') }; };
 
-type View = { kind: 'group-files'; groupId: string; files: Row[]; title: string } | {kind:'timesheets'} | { kind: 'organization'; id?: string } | { kind: 'task'; id: string } | { kind: 'task-form'; id?: string } | { kind: 'request'; id: string } | { kind: 'request-form'; id?: string } | { kind: 'settings' }
+type View = { kind: 'group-files'; groupId: string; files: Row[]; title: string; cell: Row } | {kind:'timesheets'} | { kind: 'organization'; id?: string } | { kind: 'task'; id: string } | { kind: 'task-form'; id?: string } | { kind: 'request'; id: string } | { kind: 'request-form'; id?: string } | { kind: 'settings' }
   | { kind: 'meeting'; id: string } | { kind: 'meeting-form'; id?: string; day?: string } | { kind: 'note-form'; id?: string; day?: string };
 type Tab = 'groups' | 'home' | 'tasks' | 'calendar' | 'requests' | 'reports' | 'alerts';
 type Person = { id: string; name: string; detail?: string; note?: string; you?: boolean };
@@ -330,7 +333,7 @@ export function MiniApp() {
     <div className={`app${view ? ' has-stack' : ''}`}>
       {orgView && <main className="screen" hidden={view !== orgView} key={`org:${orgAt}:${orgView.id ?? '-'}`}><OrganizationView c={c} requestId={orgView.id} /></main>}
       {view !== orgView && <main className="screen" key={view ? `${view.kind}:${'id' in view ? view.id : ''}:${stack.length}` : tab}>
-        {view?.kind === 'group-files' ? <MiniGroupAttachments groupId={view.groupId} files={view.files} title={view.title} read={call} command={perform} viewFile={c.viewFile} download={c.download} onClose={c.back} layer={useLayer} /> : view?.kind === 'task' ? <TaskView c={c} id={view.id} />
+        {view?.kind === 'group-files' ? <MiniGroupAttachments groupId={view.groupId} cell={view.cell} files={view.files} title={view.title} read={call} command={perform} viewFile={c.viewFile} download={c.download} onClose={c.back} layer={useLayer} /> : view?.kind === 'task' ? <TaskView c={c} id={view.id} />
           : view?.kind === 'task-form' ? <TaskForm c={c} id={view.id} />
             : view?.kind === 'request' ? <RequestView c={c} id={view.id} />
               : view?.kind === 'request-form' ? <RequestForm c={c} id={view.id} />
@@ -340,7 +343,7 @@ export function MiniApp() {
                   : view?.kind === 'note-form' ? <NoteForm c={c} id={view.id} day={view.day} />
                   : tab === 'home' ? <HomeView c={c} />
                     : tab === 'tasks' ? (area === 'company' ? <CompanyTasks c={c} area={area} setArea={setArea} /> : <TaskList c={c} scope={scope} setScope={setScope} area={area} setArea={setArea} />)
-                      : tab === 'groups' ? <MiniGroups data={data} me={me} can={can} name={name} read={call} command={perform} edit={(gid, row, col, saved) => editGroupCell(c, gid, row, col, saved)} attachments={(groupId, files, title) => c.open({ kind: 'group-files', groupId, files, title })} />
+                      : tab === 'groups' ? <MiniGroups data={data} me={me} can={can} name={name} read={call} command={perform} edit={(gid, row, col, saved) => editGroupCell(c, gid, row, col, saved)} attachments={(groupId, files, title, cell) => c.open({ kind: 'group-files', groupId, files, title, cell })} />
                       : tab === 'calendar' ? <CalendarView c={c} />
                       : tab === 'requests' ? <RequestList c={c} />
                         : tab === 'reports' ? <ReportView c={c} />
@@ -792,8 +795,9 @@ function HomeView({ c }: { c: Ctx }) {
 }
 
 // ------------------------------------------------------------------ task list
-const SCOPES: [string, string][] = [['mine', 'In my charge'], ['assigned', 'Assigned by me'], ['review', 'To review or approve'], ['answer', 'To accept or reject'], ['supporting', 'Supporting'], ['open', 'All open'], ['stuck', 'Stuck'], ['overdue', 'Overdue'], ['done', 'Completed']];
+const SCOPES: [string, string][] = [['all','All in category'],['mine', 'In my charge'], ['assigned', 'Assigned by me'], ['review', 'To review or approve'], ['answer', 'To accept or reject'], ['supporting', 'Supporting'], ['open', 'All open'], ['stuck', 'Stuck'], ['overdue', 'Overdue'], ['done', 'Completed']];
 function inScope(scope: string, t: Row, me: string) {
+  if(scope==='all') return true;
   const open = OPEN_TASK_STATUSES.includes(t.status);
   return scope === 'mine' ? open && t.pic_id === me : scope === 'answer' ? (t.waiting as Row[]).some(x => x.staff_id === me) : scope === 'supporting' ? open && t.supporters.includes(me)
     : scope === 'assigned' ? assignedByMe(t, me)
@@ -807,14 +811,16 @@ const involved = (t: Row) => !t.access_reason || t.access_reason === 'involved';
 function TaskList({ c, scope, setScope, area, setArea }: { c: Ctx; scope: string; setScope: (s: string) => void; area: 'mine' | 'company'; setArea: (a: 'mine' | 'company') => void }) {
   // V5.6.8: the search is kept while the app is open, so it is still there after going back from a task.
   const [q, setQState] = useState(listMemory.q), setQ = (v: string) => { listMemory.q = v; setQState(v); };
-  const mineOnly = c.tasks.filter(involved);
+  const [category,setCategory]=useState('mine');
+  const mineOnly = c.tasks.filter(t=>t.task_categories?.includes(category));
   const counts = Object.fromEntries(SCOPES.map(([id]) => [id, mineOnly.filter(t => inScope(id, t, c.me)).length]));
   const rows = mineOnly.filter(t => inScope(scope, t, c.me) && `${t.title} ${t.id} ${t.workspace} ${t.department} ${c.name(t.pic_id)}`.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => (scope === 'done' ? String(b.completed_at).localeCompare(String(a.completed_at)) : a.due_date.localeCompare(b.due_date)));
   return (
     <>
-      <Header title="Tasks" /><TaskActions c={c} />
+      <Header title="Tasks" />{c.data.operational_access===false?<p role="status" className="callout">Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.</p>:<TaskActions c={c} />}
       <AreaSwitch area={area} setArea={setArea} />
+      <TaskCategories value={category} onChange={v=>{setCategory(v);setScope('all');}} tasks={c.tasks} />
       <Chips label="Show" value={scope} onChange={setScope} options={SCOPES.map(([id, l]) => [id, l, counts[id]])} />
       <label className="search"><span className="sr-only">Search tasks</span><input className="input" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search tasks…" /></label>
       {rows.length ? <div className="list">{rows.slice(0, 200).map(t => <TaskRow key={t.id} c={c} t={t} note={scope === 'answer' ? (t.waiting as Row[]).filter(x => x.staff_id === c.me).map(x => ASK_NOTE[x.role]?.(c, t)).join(' · ') : undefined} />)}</div>
@@ -876,6 +882,7 @@ const HISTORY: Record<string, string> = {
 };
 const ASKED: Record<string, string> = { pic: 'to take charge of this task', supporter: 'to support this task', reviewer: 'to review this task' };
 function TaskView({ c, id }: { c: Ctx; id: string }) {
+  const [deliveryOpen,setDeliveryOpen] = useState(false);
   const t = c.tasks.find(x => x.id === id);
   const [comment, setComment] = useState(''), [busy, setBusy] = useState(false), [step, setStep] = useState(''), [uploading, setUploading] = useState(false);
   const [ticking, setTicking] = useState<Record<string, boolean>>({});
@@ -883,6 +890,7 @@ function TaskView({ c, id }: { c: Ctx; id: string }) {
   useDirty([comment, step]);
   if (!t) return <><BackBar c={c} title="Task" /><Empty icon={CircleSlash} title="Task not found" text="It may have been removed, or your role no longer includes it." /></>;
   const { roles, allowed } = taskActions(t, c.me, { canApprove: c.approver && involved(t) });
+  if(t.visibility!=='PERSONAL'&&t.status!=='CANCELLED'&&(c.data.tm_task_members||[]).some((m:Row)=>m.task_id===t.id&&m.staff_id===c.me&&m.permission==='CONTRIBUTOR')){if(!allowed.includes('note'))allowed.push('note');if(!allowed.includes('file'))allowed.push('file');}
   // V5.6.8: every task action names the version on screen; a change made meanwhile is reported (409) and the task reloads.
   const act = (verb: string, extra: Row = {}) => c.perform(`tm.task.${verb}`, { id: t.id, expected_version: t.version, ...extra });
   // V5.5: a new progress figure on a task someone else assigned waits for the assigner's side to approve it.
@@ -1004,6 +1012,7 @@ function TaskView({ c, id }: { c: Ctx; id: string }) {
           <div className="action-list">{buttons.slice(3).map(actionButton)}</div>
         </details>}
       </div>}
+      <TaskSharing task={t} data={c.data} command={c.perform} name={c.name} />
       <Section title="People">
         <ul className="people">
           {person(t.pic_id, 'In charge', t.pic_state)}
@@ -1041,6 +1050,9 @@ function TaskView({ c, id }: { c: Ctx; id: string }) {
         </form>}
       </Section>}
       {(files.length > 0 || canFile) && <Section title="Files" count={files.length || undefined} action={canFile ? <label className={`btn small file-btn${uploading ? ' is-busy' : ''}`}><Paperclip aria-hidden="true" />{uploading ? 'Uploading…' : 'Attach'}<input type="file" accept={TASK_FILE_ACCEPT} disabled={uploading} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} /></label> : undefined}>
+        {canFile&&<CameraAttachment disabled={uploading} upload={async file=>{await c.perform('tm.file.add',{task_id:t.id,name:file.name,base64:await fileToBase64(file)});}} />}
+        {!!files.length&&<button type="button" className="btn primary" onClick={()=>setDeliveryOpen(true)}>Send to Telegram</button>}
+        {deliveryOpen&&<MiniDeliverySheet taskId={t.id} files={files} command={c.perform} read={delivery=>call('/task-delivery?'+new URLSearchParams({id:t.id,delivery}))} layer={useLayer} onClose={()=>setDeliveryOpen(false)}/>}
         {files.length ? <ul className="files">
           {files.map(f => (
             <li key={f.id}>
@@ -1121,6 +1133,7 @@ function TaskForm({ c, id }: { c: Ctx; id?: string }) {
     <>
       <BackBar c={c} title={t ? 'Edit task' : 'New task'} />
       <form className="form" onSubmit={submit} noValidate ref={formRef}>
+        <TaskVisibility value={d.visibility} onChange={v=>set('visibility',v)} organizational={ws?.kind==='ORGANIZATIONAL'} disabled={!!t&&!t.can_manage_members} />
         {t && !target && <p className="hint small">Choose a different reviewer for a detail change to a task you manage alone. The change takes effect after approval.</p>}{target && <div className="callout tone-info"><strong><Scale aria-hidden="true" className="inline-icon" />Changes need {first(c.name(target))}’s approval.</strong> When you save, your changes are sent to {first(c.name(target))}; the task stays as it is until they approve.</div>}
         {locked && <div className="callout tone-neutral">You are the person in charge: you can change the expectation, supporting people and department note. Ask {first(c.name(t?.reviewer_id))} to change the rest, or use “Hand over” in the task.</div>}
         <LField label="Title" required><input className="input" value={d.title} maxLength={300} disabled={locked} onChange={e => set('title', e.target.value)} aria-required="true" aria-invalid={bad('title')} data-field="title" /></LField>
@@ -1259,6 +1272,7 @@ function RequestForm({ c, id }: { c: Ctx; id?: string }) {
     <>
       <BackBar c={c} title={old ? 'Edit request' : 'Request a task'} />
       <form className="form" onSubmit={submit} noValidate ref={formRef}>
+        <TaskVisibility request value={d.visibility} onChange={v=>set('visibility',v)} organizational={c.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
         {!people.length && <div className="callout tone-warning">Nobody else uses Task Management yet. Ask an administrator to create logins for your colleagues.</div>}
         <LField label="What do you need?" required><input className="input" value={d.title} maxLength={300} onChange={e => set('title', e.target.value)} aria-required="true" aria-invalid={invalid.includes('title') || undefined} data-field="title" placeholder="Short title" /></LField>
         <PersonSelect c={c} label="Ask" required value={d.manager_id} people={people} onChange={v => set('manager_id', v)} invalid={invalid.includes('manager_id')} field="manager_id" placeholder="Choose who you are asking" hint="Anyone who uses Task Management, whatever their role." />

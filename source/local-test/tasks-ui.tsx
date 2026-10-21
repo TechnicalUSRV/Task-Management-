@@ -18,6 +18,7 @@ import type { Row } from './components';
 import type { PersonOption } from './ui-kit';
 import type { Workspace } from './ui';
 import { TASK_SECTIONS, TASK_STATUS, TASK_COLORS, TASK_REPORTS, MONTHLY_REPORTS, OPEN_TASK_STATUSES, RECURRENCE, RECURRENCE_SHORT, enrichedTasks, workspaceStats, formatMinutes, taskToday, weekStart, addDays, taskActions, editApprovalTarget, reminderDays, REMINDER_PRESETS, assignedByMe, toReviewOrApprove, canManageMeeting } from './task-domain.mjs';
+import { TaskCategories, TaskVisibility } from './task-access-ui';
 import { TaskDetail, TaskStateBadge, RequestsView, RequestDialog, RequestEditor, MonthlyTaskReport, requestDraft, useTasks, peopleOptions, profileOptions, SupportNote, firstName, canApproveOn, mayDecideDue, SCOPE_NOTE, SCOPE_CHIP } from './task-workflow-ui';
 import { CalendarView, FollowMeeting, OffsetChooser, parseOffsets } from './calendar-ui';
 import { GroupsView } from './groups-ui';
@@ -137,6 +138,7 @@ export function TaskManagement(w: Workspace & { section: string; onSection: (s: 
     {requestForm && <RequestEditor w={w} draft={requestForm} onClose={() => setRequestForm(null)} />}
     {modal && <TaskEditor key={`${modal.kind}:${modal.data.id || modal.data.staff_id || 'new'}`} w={w} model={modal} onClose={() => setModal(null)} onCreated={id => { if (modal.kind === 'task') openTask(id); }} />}
   </>;
+  if (d.operational_access === false) return <><PageHeader title="Task Management" /><p role="status">Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level to access business records.</p></>;
   if (section === 'organization') return <><OrganizationPage onOpenTask={openTask} data={d} actor={w.actor} read={organizationRead} perform={w.perform} requestId={query.get('org_request') || undefined} />{dialogs}</>;
   if (!section) return <><PageHeader title="Task Management" /><NoAccess /></>;
   // V5.6.8: adding team members is for managers and administrators (the server checks the same).
@@ -418,12 +420,14 @@ const narrowScreen = () => typeof window !== 'undefined' && !!window.matchMedia?
 function TaskViews({ w, workspace, setWorkspace, open, legacy, actions, crmActions }: { w: Workspace; workspace: string; setWorkspace: (v: string) => void; open: (r: Row) => void; legacy: ReactNode; actions: ReactNode; crmActions: ReactNode }) {
   const [f, setF] = useViewState('tasks:filters', { view: narrowScreen() ? 'cards' : 'list', scope: 'all', query: '', status: '', owner: '', priority: '', department: '', openOnly: false });
   const set = (patch: Partial<typeof f>) => setF(v => ({ ...v, ...patch }));
-  const all = useTasks(w), me = w.actor, team = new Set<string>(w.data.task_scope?.team || []), scope = f.scope === 'team' && !team.size ? 'all' : f.scope || 'all';
+  const [category,setCategory] = useState('mine');
+  const [fromDate,setFromDate] = useState(''), [toDate,setToDate] = useState('');
+  const authorized = useTasks(w), all = authorized.filter((t:Row)=>t.task_categories?.includes(category)), me = w.actor, team = new Set<string>(w.data.task_scope?.team || []), scope = f.scope === 'team' && !team.size ? 'all' : f.scope || 'all';
   const ctx: ViewContext = { me, team, decidesDue: t => mayDecideDue(w, t) };
   const departments = [...new Set(all.map((t: Row) => t.department).filter(Boolean))].sort() as string[];
   // V5.5: the person filter lists only people on the tasks this person can see.
   const people: [string, string][] = [...new Set<string>(all.flatMap((t: Row) => [...t.assignees, t.reviewer_id, t.assigned_by]).filter(Boolean))].map(id => [id, w.lookup(id)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
-  const rows = all.filter((t: Row) => inView(scope, t, ctx) && (!workspace || t.workspace_id === workspace) && (!f.status || t.status === f.status) && (!f.owner || t.assignees.includes(f.owner)) && (!f.priority || t.priority === f.priority) && (!f.department || t.department === f.department)
+  const rows = all.filter((t: Row) => (!fromDate||t.due_date>=fromDate)&&(!toDate||t.due_date<=toDate)&&inView(scope, t, ctx) && (!workspace || t.workspace_id === workspace) && (!f.status || t.status === f.status) && (!f.owner || t.assignees.includes(f.owner)) && (!f.priority || t.priority === f.priority) && (!f.department || t.department === f.department)
     && (!f.openOnly || OPEN_TASK_STATUSES.includes(t.status))
     && `${t.title} ${t.description} ${t.id} ${t.department} ${t.department_note || ''} ${t.assignees.map(w.lookup).join(' ')}`.toLowerCase().includes((f.query || '').toLowerCase()));
   const counts = Object.fromEntries(QUICK_VIEWS.map(([id]) => [id, all.filter((t: Row) => inView(id, t, ctx)).length]));
@@ -480,6 +484,7 @@ function TaskViews({ w, workspace, setWorkspace, open, legacy, actions, crmActio
       </div>
       {needsMe > 0 && f.view !== 'crm' && <Alert tone="info" className="needs-me" title={`${needsMe} ${plural(needsMe, 'task needs', 'tasks need')} your decision`} action={<Button size="xs" variant="outline" onClick={() => set({ scope: counts.answer ? 'answer' : 'review' })}>Show them</Button>}>Accept or reject, review, approve a change or decide a due date.</Alert>}
       {f.view === 'crm' ? legacy : <>
+        <TaskCategories value={category} onChange={v=>{setCategory(v);set({scope:'all'});}} tasks={authorized} />
         <div className="quick-views" role="group" aria-label="Show tasks">
           {quickViews.map(([id, text]) => <button key={id} type="button" className="quick-view" aria-pressed={scope === id} onClick={() => set({ scope: id })}><span>{text}</span><span className="quick-view-count">{counts[id]}</span></button>)}
         </div>
@@ -489,6 +494,7 @@ function TaskViews({ w, workspace, setWorkspace, open, legacy, actions, crmActio
             {f.view !== 'board' && <FilterSelect label="Status" value={f.status} onChange={v => set({ status: v })} options={entries(TASK_STATUS)} />}
             <FilterSelect label="Person" value={f.owner} onChange={v => set({ owner: v })} options={people} allLabel="Anyone" people />
             <FilterSelect label="Department" value={f.department} onChange={v => set({ department: v })} options={departments.map(x => [x, x])} />
+            <label>Due from<input type="date" value={fromDate} onChange={e=>setFromDate(e.target.value)} /></label><label>Due to<input type="date" value={toDate} onChange={e=>setToDate(e.target.value)} /></label>
             <FilterSelect label="Priority" value={f.priority} onChange={v => set({ priority: v })} options={[['HIGH', 'High'], ['MEDIUM', 'Medium'], ['LOW', 'Low']]} />
             <ToggleFilter label="Open only" pressed={!!f.openOnly} onChange={v => set({ openOnly: v })} />
           </>}
@@ -776,6 +782,7 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
     const declined: Row[] = (current?.declined_supporters || []).filter((x: Row) => !(d.supporter_ids || []).includes(x.staff_id) && x.staff_id !== d.pic_id);
     body = <>
       {!isTask && d.id && <Alert tone="info">Changes are sent to another participant for approval before they apply.</Alert>}
+      {isTask && <TaskVisibility value={d.visibility} onChange={v=>set('visibility',v)} organizational={chosenWorkspace?.kind==='ORGANIZATIONAL'} disabled={!!d.id && !current?.can_manage_members} />}
       <FormSection title={isTask ? 'Task' : 'Meeting'}>
         {pick('workspace_id', 'Workspace', [...w.data.tm_workspaces,...(w.data.tm_workspace_refs||[])].filter((r: Row) => r.status === 'ACTIVE' && r.org_access?.can_create !== false || r.id === d.workspace_id).map((r: Row) => [r.id, r.name]), { required: true, disabled: !!d.id, onChange: changeWorkspace })}
         <span />

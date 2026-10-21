@@ -405,6 +405,16 @@ class Governance:
                 return True
         return False
 
+    def operational_access(self, staff):
+        """Unmapped accounts keep sign-in/navigation, but no business records. Administration can onboard."""
+        # Existing installations do not require Organizational Structure.  Only
+        # enforce the mapping gate after an administrator enables it.
+        return self.active(staff) and (not self.settings()['enabled'] or bool(self.level(staff)) or self.legacy_admin(staff))
+
+    def require_operational(self, staff):
+        if not self.operational_access(staff):
+            fail('Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.', 403)
+
     def global_workspaces(self, staff):
         return self.legacy_admin(staff) and self.can_staff(staff, 'admin.workspaces', 'view')
 
@@ -413,7 +423,7 @@ class Governance:
 
     # ------------------------------------------------------------ workspace authority
     def workspace_reason(self, staff, w):
-        if not w or w['deleted_at'] or not self.active(staff):
+        if not w or w['deleted_at'] or not self.operational_access(staff):
             return None
         if self.global_workspaces(staff):
             return 'organization'
@@ -476,6 +486,8 @@ class Governance:
         authorized Administration manage Team groups of organizational workspaces; `viewer` limits inherited workspace
         rights to viewing (direct grants and ownership stay independent)."""
         from groups.models import BoardAccess
+        if not self.operational_access(staff):
+            return {'allowed': False, 'admin': False, 'viewer': True}
         w = self.ws_by_id(b['workspace_id'])
         if w and w['deleted_at']:
             return {'allowed': False, 'admin': False, 'viewer': True}
@@ -508,31 +520,12 @@ class Governance:
 
     # Task and meeting authority paths (task-specific actions stay in the tasks app).
     def task_reason(self, staff, t, involved):
-        """'involved' | 'organization' | 'owner' | workspace reason | 'team' | None; NOTSET means: use the legacy rule."""
-        w = self.ws_by_id(t['workspace_id'])
-        if not w or w['deleted_at']:
-            return None
-        if not self.active(staff):
-            return NOTSET if not self.governed(w) and not User.objects.exists() else None
-        if involved:
-            return 'involved'
-        if self.global_workspaces(staff):
-            return 'organization'
-        if w['owner_id'] == staff:
-            return 'owner'
-        if is_personal_workspace(w):
-            return 'membership' if self.member(w['id'], staff) else None
-        reason = self.workspace_reason(staff, w)
-        if reason:
-            return reason
-        # A manager sees the tasks of the people below them on their primary line, except a task the workspace owner is
-        # in charge of in a workspace whose owner chose other responsible managers: that work falls under their scope.
-        if (t.get('pic_id') and t['pic_id'] in self.descendants(staff)
-                and not (t['pic_id'] == w['owner_id'] and self.scope_viewers(w) is not None)):
-            return 'team'
-        return NOTSET if w['kind'] == 'LEGACY' else None
+        from tasks.policy import visibility_reason
+        return visibility_reason(self, staff, t, involved)
 
     def meeting_reason(self, staff, m, participant, shared):
+        if not self.operational_access(staff):
+            return False
         w = self.ws_by_id(m['workspace_id'])
         if w and w['deleted_at']:
             return False
@@ -1342,6 +1335,8 @@ class Governance:
 
     # ------------------------------------------------------------ command guard (runs before every command)
     def guard(self, action, d, actor):
+        if action.startswith(('tm.', 'org.')):
+            self.require_operational(actor)
         if action not in ('tm.workspace.delete', 'tm.workspace.restore', 'org.workspace.delete', 'org.workspace.restore'):
             wid = d.get('workspace_id') or (d.get('id') if action.startswith(('tm.workspace.', 'org.workspace.')) else None)
             if isinstance(wid, str) and wid and self.workspace_removed(wid):

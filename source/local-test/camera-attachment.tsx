@@ -1,0 +1,99 @@
+import { useEffect, useRef, useState } from 'react';
+import { Camera, X, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { photoPdf } from './camera-pdf.mjs';
+import './styles/camera-attachment.css';
+
+type Photo = { url: string; blob: Blob; width: number; height: number };
+type Props = { upload: (file: File) => Promise<unknown>; maxBytes?: number; disabled?: boolean };
+export function CameraAttachment({ upload, maxBytes = 30*1024*1024, disabled }: Props) {
+  const [open,setOpen] = useState(false);
+  return <><button type="button" className="btn camera-open" disabled={disabled} onClick={()=>setOpen(true)}><Camera size={17}/>Camera</button>
+    {open && <Capture upload={upload} maxBytes={maxBytes} close={()=>setOpen(false)} />}</>;
+}
+function Capture({upload,maxBytes,close}: Props & {maxBytes:number;close:()=>void}) {
+  const [photos,setPhotos] = useState<Photo[]>([]), [multi,setMulti] = useState(false), [error,setError] = useState('');
+  const [busy,setBusy] = useState(false), [live,setLive] = useState(false), [name,setName] = useState('Camera-document');
+  const video = useRef<HTMLVideoElement>(null), input = useRef<HTMLInputElement>(null), panel = useRef<HTMLDivElement>(null);
+  const stream = useRef<MediaStream|null>(null), active = useRef(true), saved = useRef<Photo[]>([]), replacing = useRef<number|null>(null);
+  const stop = () => { stream.current?.getTracks().forEach(t=>t.stop()); stream.current=null; setLive(false); };
+  useEffect(()=>{ saved.current=photos; },[photos]);
+  useEffect(()=>{
+    active.current=true; panel.current?.focus();
+    const hidden=()=>{if(document.hidden) stop();}; document.addEventListener('visibilitychange',hidden);
+    return ()=>{active.current=false;stream.current?.getTracks().forEach(t=>t.stop());saved.current.forEach(p=>URL.revokeObjectURL(p.url));document.removeEventListener('visibilitychange',hidden);};
+  },[]);
+  const start = async () => {
+    setError('');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Use the device camera button below.');
+      stop(); const media=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:2560}},audio:false});
+      if(!active.current){media.getTracks().forEach(t=>t.stop());return;}
+      stream.current=media; if(video.current){video.current.srcObject=media;await video.current.play();}setLive(true);
+    }catch{stop();setError('Live camera is unavailable or permission was declined. You can use the device camera/photo picker below.');}
+  };
+  const canvasPhoto = async (source:CanvasImageSource,width:number,height:number) => {
+    const ratio=Math.min(1,2000/Math.max(width,height)), canvas=document.createElement('canvas');
+    canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Image capture is unavailable.');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0,canvas.width,canvas.height);
+    const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Unable to capture this photo.')),'image/jpeg',0.88));
+    if(!active.current)return;
+    const photo={blob,url:URL.createObjectURL(blob),width:canvas.width,height:canvas.height};
+    setPhotos(old=>{
+      const out=[...old], index=replacing.current;replacing.current=null;
+      if(index!==null && out[index]){URL.revokeObjectURL(out[index].url);out[index]=photo;}
+      else if(!multi){out.forEach(p=>URL.revokeObjectURL(p.url));out.splice(0,out.length,photo);}
+      else if(out.length<20)out.push(photo);else URL.revokeObjectURL(photo.url);
+      saved.current=out;return out;
+    });
+    stop();
+  };
+  const capture = async()=>{
+    if(!video.current?.videoWidth)return;setBusy(true);setError('');
+    try{await canvasPhoto(video.current,video.current.videoWidth,video.current.videoHeight);}catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  };
+  const pick=async(file?:File)=>{
+    if(!file)return;setBusy(true);setError('');
+    try{
+      if(file.size>maxBytes)throw new Error('This photo exceeds the attachment size limit.');
+      const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+      try{await canvasPhoto(bitmap,bitmap.width,bitmap.height);}finally{bitmap.close();}
+    }catch{setError('This image could not be opened. Try taking a JPEG photo with the device camera.');}finally{setBusy(false);}
+  };
+  const remove=(i:number)=>setPhotos(old=>{URL.revokeObjectURL(old[i].url);const out=old.filter((_,j)=>j!==i);saved.current=out;return out;});
+  const move=(i:number,by:number)=>setPhotos(old=>{const out=[...old];[out[i],out[i+by]]=[out[i+by],out[i]];saved.current=out;return out;});
+  const finish=async()=>{
+    setBusy(true);setError('');stop();
+    try{
+      const base=(name.trim()||'Camera-document').replace(/[\\/:*?"<>|]/g,'-').replace(/\.(pdf|jpe?g)$/i,'');
+      const blob=multi?photoPdf(await Promise.all(photos.map(async p=>({width:p.width,height:p.height,bytes:new Uint8Array(await p.blob.arrayBuffer())})))):photos[0].blob;
+      if(blob.size>maxBytes)throw new Error('The combined document exceeds the attachment limit. Remove photos and try again.');
+      await upload(new File([blob],`${base}.${multi?'pdf':'jpg'}`,{type:blob.type}));close();
+    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  };
+  return <div className="capture-overlay" role="dialog" aria-modal="true" aria-label="Camera attachments" ref={panel} tabIndex={-1} onKeyDown={e=>{
+    if(e.key==='Escape'&&!busy){e.stopPropagation();close();}
+    if(e.key==='Tab'){const els=panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled)');if(!els?.length)return;const first=els[0],last=els[els.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}
+  }}>
+    <header><h2>Camera attachments</h2><button type="button" aria-label="Close camera" disabled={busy} onClick={close}><X/></button></header>
+    <div className="capture-body">
+      <label>Capture mode<select value={multi?'multiple':'single'} disabled={busy||photos.length>0} onChange={e=>setMulti(e.target.value==='multiple')}><option value="single">Single photo</option><option value="multiple">Multiple photos → one PDF</option></select></label>
+      <video ref={video} autoPlay muted playsInline className={live?'':'capture-hidden'} />
+      <div className="capture-actions"><button type="button" disabled={busy||photos.length>=20} onClick={()=>void start()}>{photos.length?'Add another photo':'Open camera'}</button>
+        {live&&<button type="button" disabled={busy} onClick={()=>void capture()}>Capture photo</button>}
+        <button type="button" disabled={busy||photos.length>=20} onClick={()=>input.current?.click()}>Device camera / photo picker</button>
+        <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={e=>{void pick(e.target.files?.[0]);e.target.value='';}}/>
+      </div>
+      <p>Review photos before uploading. {multi?'Only the combined PDF is uploaded.':'Confirm the photo or retake it.'} Photos stay on this device until upload.</p>
+      <ol className="capture-photos">{photos.map((p,i)=><li key={p.url}><img src={p.url} alt={`Photo ${i+1}`}/><span>Page {i+1}</span><div>
+        <button type="button" disabled={busy} onClick={()=>{replacing.current=i;void start();}}>Retake</button>
+        <button type="button" disabled={busy} aria-label={`Delete photo ${i+1}`} onClick={()=>remove(i)}><Trash2 size={18}/></button>
+        <button type="button" disabled={busy||i===0} aria-label={`Move photo ${i+1} up`} onClick={()=>move(i,-1)}><ArrowUp size={18}/></button>
+        <button type="button" disabled={busy||i===photos.length-1} aria-label={`Move photo ${i+1} down`} onClick={()=>move(i,1)}><ArrowDown size={18}/></button>
+      </div></li>)}</ol>
+      <label>File name<input value={name} maxLength={100} disabled={busy} onChange={e=>setName(e.target.value)}/></label>
+      {error&&<p role="alert" className="capture-error">{error}</p>}
+    </div>
+    <footer><button type="button" disabled={busy} onClick={close}>Cancel</button><button type="button" disabled={busy||!photos.length} onClick={()=>void finish()}>{busy?'Processing…':multi?'Combine into PDF and upload':'Confirm and upload photo'}</button></footer>
+  </div>;
+}

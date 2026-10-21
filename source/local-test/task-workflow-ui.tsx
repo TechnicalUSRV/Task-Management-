@@ -18,6 +18,10 @@ import {
   TASK_STATUS, REQUEST_STATUS, TASK_SOURCES, MONTHLY_CATEGORIES, RECURRENCE_SHORT, ROLE_LABEL, TASK_FILE_ACCEPT, PREVIEW_TYPES, OPEN_TASK_STATUSES, enrichedTasks, taskActions, waitingFor, taskStateLabel, taskToday, addDays, currentMonth, monthBounds, shiftMonth, formatMinutes,
   CHANGE_KIND, CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, assignerOf, completionApprover, completionPath, reminderDays, reminderText, twoSided, canDecideDue, reopenNeedsApproval,
 } from './task-domain.mjs';
+import { CameraAttachment } from './camera-attachment';
+import { TaskSharing, TaskVisibility } from './task-access-ui';
+import { GroupDelivery } from './group-delivery-ui';
+import { groupRead } from './group-api';
 import { fileToBase64 } from './profile-ui';
 import { useServerReport } from './report-hook';
 import { TaskFilePreview } from './file-preview';
@@ -297,6 +301,8 @@ export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskI
   };
   // Checklist and files
   const items: Row[] = (w.data.tm_checklist || []).filter((c: Row) => c.task_id === t.id).sort((a: Row, b: Row) => a.position - b.position), canCheck = allowed.includes('checklist');
+  const contributor = t.visibility !== 'PERSONAL' && (w.data.tm_task_members || []).some((m: Row)=>m.task_id===t.id&&m.staff_id===me&&m.permission==='CONTRIBUTOR');
+  if(contributor&&t.status!=='CANCELLED'){if(!allowed.includes('note'))allowed.push('note');if(!allowed.includes('file'))allowed.push('file');}
   const files: Row[] = (w.data.tm_files || []).filter((f: Row) => f.task_id === t.id), canFile = allowed.includes('file');
   const addItem = (e: FormEvent) => { e.preventDefault(); const title = newItem.trim(); if (!title) return; void run(async () => { await w.perform('tm.check.add', { task_id: t.id, title }, { quiet: true }); setNewItem(''); }); };
   const removeItem = async (i: Row) => { if (await confirm({ title: `Remove the step “${i.title}”?`, confirmLabel: 'Remove step', tone: 'danger' })) void run(() => w.perform('tm.check.remove', { id: i.id }, { quiet: true })); };
@@ -406,9 +412,12 @@ export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskI
               </form>}
               {items.length > 0 && <p className="muted small">Completing a step tells {firstName(name(assignerOf(t)))}; it never changes the task’s progress or closes it.</p>}
             </section>}
+            <TaskSharing task={t} data={w.data} command={w.perform} name={w.lookup} />
             {(files.length > 0 || canFile) && <section aria-labelledby={`${headingId}-files`} className="task-files-section">
               <div className="row-between"><h3 className="text-section" id={`${headingId}-files`}><Paperclip aria-hidden="true" className="inline-icon" />Files</h3>
                 {canFile && <label className={`btn-upload${uploading ? ' is-busy' : ''}`}><Paperclip aria-hidden="true" />{uploading ? 'Uploading…' : 'Attach a file'}<input type="file" accept={TASK_FILE_ACCEPT} disabled={uploading} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} /></label>}</div>
+              {canFile && <CameraAttachment disabled={uploading} upload={async file=>{await w.perform('tm.file.add',{task_id:t.id,name:file.name,base64:await fileToBase64(file)});}} />}
+              {!!files.length && <GroupDelivery taskId={t.id} files={files} command={w.perform} read={delivery=>groupRead('/api/tasks/delivery',{id:t.id,delivery})} />}
               {files.length ? <ul className="task-files">
                 {files.map(f => <li key={f.id}>
                   {PREVIEW_TYPES.includes(f.mime) ? <button type="button" className="file-thumb" onClick={() => setPreview(f)}><img src={apiPath(`/api/tasks/file?id=${encodeURIComponent(f.id)}&inline=1`)} alt="" loading="lazy" /><span className="sr-only">Preview {f.name}</span></button> : <span className="file-icon" aria-hidden="true"><FileText /></span>}
@@ -663,6 +672,7 @@ export function RequestEditor({ w, draft, onClose }: { w: Workspace; draft: Row;
             <div className="dialog-body">
               {form.formError && <Alert tone="danger" title="This could not be sent" live>{form.formError}</Alert>}
               {!people.length && <Alert tone="warning" title="Nobody else uses Task Management yet">Ask an administrator to create logins for your colleagues.</Alert>}
+              <TaskVisibility request value={d.visibility} onChange={v=>set('visibility',v)} organizational={w.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
               <FormSection title="What do you need?">
                 <Field fieldKey={reg('title', 'Request title', true)} label="Request title" wide required value={d.title} onChange={v => set('title', v)} error={form.errors.title} placeholder="For example: Prepare the customs file for the October shipment" />
                 <PersonPicker fieldKey={reg('manager_id', 'Who you are asking', true, 'select')} label="Ask" required value={d.manager_id} people={people} error={form.errors.manager_id} onChange={v => set('manager_id', v)} placeholder="Choose who you are asking…" hint="Anyone with Task Management, whatever their role." />

@@ -29,6 +29,7 @@ class Task(models.Model):
     contact_id = models.CharField(max_length=60, null=True, blank=True)
     related_type = models.CharField(max_length=20, blank=True, default='')
     related_id = models.CharField(max_length=60, null=True, blank=True)
+    visibility = models.CharField(max_length=16, default='PUBLIC', db_default='PUBLIC')
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
     start_date = models.DateField()
@@ -176,6 +177,7 @@ class TaskRequest(models.Model):
     """A task asked of someone (`tm_requests`)."""
     id = models.CharField(max_length=60, primary_key=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.PROTECT, null=True, blank=True, related_name='task_requests')
+    visibility = models.CharField(max_length=16, default='PUBLIC', db_default='PUBLIC')
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
     department = models.CharField(max_length=150, blank=True, default='')
@@ -279,3 +281,17 @@ class TaskReminderSent(models.Model):
         db_table = 'tm_reminders'
         constraints = [models.UniqueConstraint(fields=['task', 'staff', 'kind', 'due_date'], name='tm_reminder_once')]
 
+
+
+class TaskMember(models.Model):
+    """Explicit sharing; never changes responsible roles or Workspace membership."""
+    task = models.ForeignKey(Task, on_delete=models.PROTECT, related_name='members')
+    staff = person('+', 'staff_id', null=False)
+    permission = models.CharField(max_length=16, default='VIEWER')
+    granted_by = person('+', 'granted_by', null=False)
+    created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'tm_task_members'
+        constraints = [models.UniqueConstraint(fields=['task', 'staff'], name='tm_task_member_unique'),
+                       models.CheckConstraint(condition=Q(permission__in=['VIEWER', 'CONTRIBUTOR']), name='tm_task_member_permission')]

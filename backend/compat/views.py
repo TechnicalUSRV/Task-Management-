@@ -253,3 +253,10 @@ def frontend(request, path=''):
     response = HttpResponse(target.read_bytes(), content_type=STATIC_TYPES.get(target.suffix.lower(), 'application/octet-stream'))
     response['Cache-Control'] = 'public, max-age=31536000, immutable' if hashed else 'no-store'
     return response
+
+
+class TaskDeliveryView(APIView):
+    def get(self, request):
+        access.require_permission(request.user, 'tasks.tasks')
+        from groups.delivery import task_status
+        return Response(task_status(request.user.staff_id, request.query_params.get('id'), request.query_params.get('delivery')))

@@ -58,6 +58,12 @@ def authorize(user, action, d):
         access.require_permission(user, 'tasks.workspace', 'view')
         return
 
+    if action in ('tm.task.members.save', 'tm.task.delivery.create', 'tm.task.delivery.confirm', 'tm.task.delivery.cancel'):
+        access.require_permission(user, 'tasks.tasks', 'view')
+        return
+    if action in ('tm.group.delivery.confirm', 'tm.group.delivery.cancel'):
+        access.require_permission(user, 'tasks.groups', 'view')
+        return
     resource = verb = None
     if action == 'admin.role.save':
         resource, verb = 'admin.roles', 'update' if d.get('id') else 'create'

@@ -1,3 +1,5 @@
+import { CameraAttachment } from './camera-attachment';
+import { fileToBase64 } from './media';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Columns3, Download, FolderOpen, ListFilter, Paperclip, RefreshCw, Send } from 'lucide-react';
 import type { Row } from './components';
@@ -10,7 +12,7 @@ import './styles/tg-groups.css';
 type Common = { read: (path: string) => Promise<Row>; command: (action: string, data: Row) => Promise<Row> };
 type Props = Common & { data: Row; me: string; can: (r: string, a?: string) => boolean; name: (id?: string | null) => string;
   edit: (groupId: string, row: Row, column: Row, saved: () => void) => Promise<void>;
-  attachments: (groupId: string, files: Row[], title: string) => void };
+  attachments: (groupId: string, files: Row[], title: string, cell: Row) => void };
 
 // The Groups tab's screen is rebuilt after a visit to an Attachment cell (or another tab), so the open Group, its search,
 // filter, page and table scroll position are kept here for the session instead of being lost.
@@ -80,19 +82,23 @@ export function MiniGroups({ data, me, can, name, read, command, edit, attachmen
         {filter && <select className="input" aria-label="Status value" value={value} onChange={e => { setValue(e.target.value); setOffset(0); }}><option value="">All statuses</option>{statusLabels(columns.find(c => c.id === filter)).map((l: Row) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>}
         {filtered && <button type="button" className="btn" onClick={() => { setFilter(''); setValue(''); setOffset(0); }}>Clear filter</button>}</div></details>}
     </div>
-      <div ref={wrap} className="mg-table-wrap" onScroll={e => { memory.top = e.currentTarget.scrollTop; memory.left = e.currentTarget.scrollLeft; }} role="region" tabIndex={0} aria-label={`${board.group.name} records`}><table className="mg-table"><thead><tr><th>#</th>{shown.map(c => <th key={c.id} className={c.linked ? 'mg-live' : undefined} title={c.linked ? `Live Data${c.linked.source_group_name ? ` from ${c.linked.source_group_name}` : ''}${c.linked.readOnly ? ' · view only' : ''}` : undefined}>{c.name}{c.linked && <span className="sr-only"> (Live Data{c.linked.readOnly ? ', view only' : ''})</span>}</th>)}</tr></thead><tbody>{(page?.rows || []).map((r: Row, i: number) => <tr key={r.id}><th>{offset + i + 1}</th>{shown.map(c => <td key={c.id} style={cellColors(r, c)}>{c.type === 'ATTACHMENT' ? <button type="button" onClick={() => attachments(id, r.values?.[c.id] || [], c.name)}><Paperclip size={15} />{(r.values?.[c.id] || []).length} files</button> : board.group.caps.editRows && c.type !== 'FORMULA' && !c.linked?.readOnly ? <button type="button" aria-label={`Edit ${c.name}: ${text(c, r) || 'empty'}`} onClick={() => { void edit(id, r, c, () => setRefresh(s => s + 1)).catch(e => setError(e.message)); }}>{text(c, r) || '—'}</button> : <span>{text(c, r) || '—'}</span>}</td>)}</tr>)}</tbody></table>
+      <div ref={wrap} className="mg-table-wrap" onScroll={e => { memory.top = e.currentTarget.scrollTop; memory.left = e.currentTarget.scrollLeft; }} role="region" tabIndex={0} aria-label={`${board.group.name} records`}><table className="mg-table"><thead><tr><th>#</th>{shown.map(c => <th key={c.id} className={c.linked ? 'mg-live' : undefined} title={c.linked ? `Live Data${c.linked.source_group_name ? ` from ${c.linked.source_group_name}` : ''}${c.linked.readOnly ? ' · view only' : ''}` : undefined}>{c.name}{c.linked && <span className="sr-only"> (Live Data{c.linked.readOnly ? ', view only' : ''})</span>}</th>)}</tr></thead><tbody>{(page?.rows || []).map((r: Row, i: number) => <tr key={r.id}><th>{offset + i + 1}</th>{shown.map(c => <td key={c.id} style={cellColors(r, c)}>{c.type === 'ATTACHMENT' ? <button type="button" onClick={() => attachments(id, r.values?.[c.id] || [], c.name, {rowId:r.id,columnId:c.id,editable:!!board.group.caps.editRows&&!c.linked})}><Paperclip size={15} />{(r.values?.[c.id] || []).length} files</button> : board.group.caps.editRows && c.type !== 'FORMULA' && !c.linked?.readOnly ? <button type="button" aria-label={`Edit ${c.name}: ${text(c, r) || 'empty'}`} onClick={() => { void edit(id, r, c, () => setRefresh(s => s + 1)).catch(e => setError(e.message)); }}>{text(c, r) || '—'}</button> : <span>{text(c, r) || '—'}</span>}</td>)}</tr>)}</tbody></table>
         {!shown.length && <p className="hint mg-note">Choose at least one column to display.</p>}{page && !page.rows.length && <p className="hint mg-note">No matching records.</p>}</div>
       {page && <div className="mg-paging"><button type="button" className="btn" disabled={busy || offset === 0} aria-label="Previous records" onClick={() => setOffset(n => Math.max(0, n - 50))}><ChevronLeft /></button><span>{page.total ? offset + 1 : 0}–{offset + page.rows.length} / {page.total}</span><button type="button" className="btn" disabled={busy || offset + page.rows.length >= page.total} aria-label="Next records" onClick={() => setOffset(n => n + 50)}><ChevronRight /></button></div>}
     </>}
   </section>;
 }
 
-export function MiniGroupAttachments({ groupId, files, title, read, command, viewFile, download, onClose, layer }: Common & { groupId: string; files: Row[]; title: string; viewFile: (f: Row) => void; download: (f: Row) => void; onClose: () => void; layer: (close: () => void) => void }) {
+export function MiniGroupAttachments({ groupId, cell, files: initialFiles, title, read, command, viewFile, download, onClose, layer }: Common & { groupId: string; cell: Row; files: Row[]; title: string; viewFile: (f: Row) => void; download: (f: Row) => void; onClose: () => void; layer: (close: () => void) => void }) {
+  const [files,setFiles]=useState<Row[]>(initialFiles),[uploading,setUploading]=useState(false),[error,setError]=useState('');
+  const upload=async(file:File)=>{setUploading(true);setError('');try{const r=await command('tm.group.file.add',{group_id:groupId,row_id:cell.rowId,column_id:cell.columnId,name:file.name,base64:await fileToBase64(file)});if(r.row)setFiles(r.row.values?.[cell.columnId]||[]);}catch(e){setError((e as Error).message);throw e;}finally{setUploading(false);}};
   const delivery = useCallback((key: string) => read('/group-delivery?' + new URLSearchParams({ id: groupId, delivery: key })), [groupId, read]);
   const withCell = (f: Row) => ({ ...f, group_id: groupId, cell_files: files });
   const [sending, setSending] = useState(false);
   // Send to Telegram sits above the files (no scrolling to find it) and opens a full-screen selection sheet.
   return <section className="mini-groups mg-attachments"><header className="page-header"><button type="button" className="icon-btn" onClick={onClose} aria-label="Close attachments"><ChevronLeft /></button><h1>{title}</h1></header>
+    {cell.editable&&<div className="capture-actions"><label className="btn">Upload file<input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip" disabled={uploading} onChange={e=>{const f=e.target.files?.[0];e.target.value='';if(f)void upload(f).catch(()=>{});}}/></label><CameraAttachment disabled={uploading} upload={upload}/></div>}
+    {error&&<p role="alert">{error}</p>}
     {files.length > 0 && <div className="mg-send-bar"><button type="button" className="btn primary mg-send-open" onClick={() => setSending(true)}><Send aria-hidden="true" />Send to Telegram</button>
       <span className="hint small">{files.length} {files.length === 1 ? 'file' : 'files'} · choose which to send</span></div>}
     {files.length ? <ul className="mg-files">{files.map(f => <li key={f.id}><button type="button" className="mg-filename" onClick={() => viewFile(withCell(f))}><span className="mg-file-name">{f.name}</span><span className="mg-file-meta">{fileKind(f)}{f.size ? ` · ${fileSize(f.size)}` : ''}</span></button><button type="button" className="icon-btn" aria-label={`Download ${f.name}`} onClick={() => download(withCell(f))}><Download /></button></li>)}</ul>

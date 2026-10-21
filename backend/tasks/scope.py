@@ -22,7 +22,8 @@ from .models import DueDateRequest, Task, TaskAssignee, TaskChangeRequest
 
 SCOPE_REASONS = {'involved': 'You are on this task', 'team': 'Someone in your reporting line is in charge',
                  'company': 'Company-wide task access', 'organization': 'Organization administrator',
-                 'membership': 'Workspace member', 'owner': 'Workspace owner', 'governance': 'Workspace governance'}
+                 'membership': 'Workspace member', 'owner': 'Workspace owner', 'governance': 'Workspace governance',
+                 'shared': 'Explicitly shared with you'}
 
 
 def reports_under(staff, links):
@@ -111,7 +112,7 @@ class TaskScope:
         return bool(self.reason(staff, t))
 
     def can_see_request(self, staff, q):
-        if not staff or not q or self.gov.workspace_removed(q.get('workspace_id')):
+        if not self.gov.operational_access(staff) or not q or self.gov.workspace_removed(q.get('workspace_id')):
             return False
         if q['requested_by'] == staff or q['manager_id'] == staff:
             return True
@@ -139,7 +140,7 @@ class TaskScope:
 
     def personal_task_hidden(self, staff, t):
         w = self.gov.ws_by_id(t['workspace_id']) if t else None
-        return bool((w or {}).get('deleted_at')) or (is_personal_workspace(w) and not self.can_see(staff, t))
+        return bool(t) and not self.can_see(staff, t)
 
     # ------------------------------------------------------------ one person's view of the whole state
     def employee_filters(self, s, staff):
@@ -157,6 +158,9 @@ class TaskScope:
         return {'tasks': tasks, 'time': time, 'meetings': meetings, 'workload': workload, 'workspace': ordered(tasks + time)}
 
     def filter_state(self, s, staff, meetings=True, permissions=None):
+        if not self.gov.operational_access(staff):
+            return {**{k: [] for k in s if k.startswith('tm_')}, 'tm_workspace_refs': [], 'tm_task_refs': [],
+                    'tm_calendar_tasks': [], 'task_scope': {'company': False, 'team': [], 'involved': 0, 'revision': 'unmapped'}}
         permissions = permissions or {}
         gov, ctx, out = self.gov, self.context(staff), {}
         visible = {}
@@ -169,8 +173,18 @@ class TaskScope:
         out['tm_tasks'] = [{**t, 'access_reason': visible[t['id']],
                             'calendar_visible': staff in (t.get('pic_id'), t.get('created_by'), t.get('assigned_by'), t.get('reviewer_id')) or t['id'] in mine_on}
                            for t in s.get('tm_tasks', []) if t['id'] in visible]
+        from tasks.policy import can_manage_members
+        for task in out['tm_tasks']:
+            task['can_manage_members'] = can_manage_members(gov, staff, task)
+            task['task_categories'] = (["mine"] if task['id'] in ctx['involved'] and task.get('visibility') != 'PERSONAL' else
+                                       ["mine"] if task['created_by'] == staff else [])
+            if task['access_reason'] in ('team', 'governance', 'organization') and task.get('visibility') != 'PERSONAL':
+                task['task_categories'].append('management')
+            from .models import TaskMember
+            if TaskMember.objects.filter(task_id=task['id'], staff_id=staff).exists() and task.get('visibility') != 'PERSONAL':
+                task['task_categories'].append('shared')
         out['tm_calendar_tasks'] = [t for t in out['tm_tasks'] if t['calendar_visible']]
-        for table in ('tm_assignees', 'tm_task_history', 'tm_checklist', 'tm_files', 'tm_change_requests', 'tm_due_requests'):
+        for table in ('tm_assignees', 'tm_task_history', 'tm_checklist', 'tm_files', 'tm_change_requests', 'tm_due_requests', 'tm_task_members'):
             if table in s:
                 out[table] = [r for r in s[table] if r['task_id'] in visible]
         if 'tm_timesheets' in s:

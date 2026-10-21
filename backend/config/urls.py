@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/organization', compat.OrganizationView.as_view()),
     path('api/state', compat.StateView.as_view()),
     path('api/photo', compat.PhotoView.as_view()),
+    path('api/tasks/delivery', compat.TaskDeliveryView.as_view()),
     path('api/tasks/file', compat.TaskFileView.as_view()),
     path('api/tasks/file/preview', compat.TaskFilePreviewView.as_view()),
     # Groups (V5.4–V5.6.9): reads; every change goes through /api/command.

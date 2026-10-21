@@ -31,6 +31,7 @@ import {
 import { groupCommand, groupRead, type GroupError } from './group-api';
 import { GroupFilePreview } from './file-preview';
 import { TASK_FILE_TYPES, TASK_FILE_ACCEPT } from './task-domain.mjs';
+import { CameraAttachment } from './camera-attachment';
 import { fileToBase64 } from './media';
 import { NotesDrawer, AccessRuleDialog, ExportDialog, type RuleTarget } from './group-tools-ui';
 import { ImportWizard } from './group-import-ui';
@@ -1305,6 +1306,7 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
         </ul> : <p className="muted small attach-empty">No files in this cell yet.</p>}
         {!!files.length && <GroupDelivery groupId={groupId} files={files} command={groupCommand} read={delivery => groupRead('/api/tasks/group/delivery', { id: groupId, delivery })} />}
         {editable && <div className="attach-foot">
+          <CameraAttachment maxBytes={GROUP_LIMITS.fileBytes} disabled={!!busy||files.length>=GROUP_LIMITS.files} upload={async file=>{const r=await groupCommand('tm.group.file.add',{group_id:groupId,row_id:row.id,column_id:col.id,name:file.name,base64:await fileToBase64(file)});if(r.row)replaceRow(r.row);}} />
           <input ref={input} type="file" multiple accept={TASK_FILE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => void upload(e.target.files)} />
           <Button type="button" size="sm" loading={!!busy} disabled={!!busy || files.length >= GROUP_LIMITS.files} onClick={() => input.current?.click()}><Upload />{busy ? `Uploading ${busy}…` : 'Upload files'}</Button>
           <p className="field-hint">Images, PDF, Word, Excel, PowerPoint, CSV, TXT or ZIP · up to {limitMb} MB each · {GROUP_LIMITS.files} files per cell</p>
