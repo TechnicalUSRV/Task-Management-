@@ -672,7 +672,7 @@ export function RequestEditor({ w, draft, onClose }: { w: Workspace; draft: Row;
             <div className="dialog-body">
               {form.formError && <Alert tone="danger" title="This could not be sent" live>{form.formError}</Alert>}
               {!people.length && <Alert tone="warning" title="Nobody else uses Task Management yet">Ask an administrator to create logins for your colleagues.</Alert>}
-              <TaskVisibility request value={d.visibility} onChange={v=>set('visibility',v)} organizational={w.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
+              <TaskVisibility request manager={d.governing_manager_id} onManager={v=>set('governing_manager_id',v)} managers={w.data.tm_workspaces.find((ws:Row)=>ws.id===d.workspace_id)?.task_manager_options||[]} value={d.visibility} onChange={v=>set('visibility',v)} organizational={w.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
               <FormSection title="What do you need?">
                 <Field fieldKey={reg('title', 'Request title', true)} label="Request title" wide required value={d.title} onChange={v => set('title', v)} error={form.errors.title} placeholder="For example: Prepare the customs file for the October shipment" />
                 <PersonPicker fieldKey={reg('manager_id', 'Who you are asking', true, 'select')} label="Ask" required value={d.manager_id} people={people} error={form.errors.manager_id} onChange={v => set('manager_id', v)} placeholder="Choose who you are asking…" hint="Anyone with Task Management, whatever their role." />

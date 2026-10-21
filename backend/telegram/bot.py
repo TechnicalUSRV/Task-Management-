@@ -59,9 +59,8 @@ PRIVATE_COMMANDS = [('menu', 'Main menu'), ('answer', 'Tasks waiting for your an
                     ('supporting', 'Tasks you support'), ('review', 'Work waiting for your decision'), ('requests', 'Your task requests'),
                     ('newtask', 'Create a task'), ('request', 'Ask someone for a task'), ('report', 'Monthly task report'), ('task', 'Open a task by its ID'),
                     ('help', 'How to use this bot'), ('unlink', 'Disconnect this Telegram account')]
-GROUP_COMMANDS = [('tasks', 'Open tasks in this workspace'), ('mytasks', 'Your tasks in this workspace'), ('newtask', 'Create a task here'),
-                  ('request', 'Ask someone for a task'), ('report', 'Monthly report for this workspace'),
-                  ('connect', 'Link this group to a workspace (administrators and workspace owners)'), ('help', 'How to use the bot here')]
+GROUP_COMMANDS = [('connect', 'Link this group to a workspace (administrators and workspace owners)'),
+                  ('disconnect', 'Disconnect this group'), ('help', 'How to use the bot here')]
 LIST_TITLES = {'my': ('📋', 'Tasks you are in charge of', 'You have no open tasks in charge.'),
                'sup': ('🤝', 'Tasks you are supporting', 'You are not supporting any open tasks.'),
                'rev': ('🔎', 'Submitted to you for review', 'Nothing is waiting for your review.'),
@@ -261,9 +260,13 @@ def http_transport(api_base, token):
             with urllib.request.urlopen(req, timeout=60) as res:
                 answer = json.loads(res.read())
         except urllib.error.HTTPError as e:
-            raise TelegramError(f'Telegram answered with HTTP {e.code}.', e.code)
+            try:
+                payload = json.loads(e.read(65536))
+            except (ValueError, OSError):
+                payload = {}
+            raise TelegramError(f'Telegram answered with HTTP {e.code}.', e.code, (payload.get('parameters') or {}).get('retry_after'))
         if not answer.get('ok'):
-            raise TelegramError(answer.get('description') or 'Telegram error', answer.get('error_code'))
+            raise TelegramError(answer.get('description') or 'Telegram error', answer.get('error_code'), (answer.get('parameters') or {}).get('retry_after'))
         return answer.get('result')
     return {'call': call, 'download': download, 'upload': upload}
 
@@ -370,6 +373,9 @@ class Bot:
             self.say(ctx, 'Personal workspace records are available only in your private bot chat or Mini App.')
             return False
         if ctx.get('user') and not ctx.get('problem'):
+            if not Governance().operational_access(ctx['staff']):
+                self.say(ctx, 'Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.')
+                return False
             return True
         message = ((link_help(self.app_url()) if ctx['isPrivate'] else 'Connect your Telegram account to the Task Controlling Management first: open a private chat '
                     'with me and send /start.') if not ctx.get('link') else 'Your Task Controlling Management account is disabled. Ask an administrator for help.'
@@ -627,16 +633,21 @@ class Bot:
         return {'text': f"{head} ({len(found)})\n\n" + '\n'.join(lines), 'keyboard': k}
 
     def counts(self, staff):
+        scope = self.scope()
+        if not scope.gov.operational_access(staff):
+            return dict.fromkeys(('my', 'overdue', 'sup', 'rev', 'answer'), 0)
+        visible = [t['id'] for t in rows(Task.objects.filter(id__in=scope.involved_ids(staff))) if scope.can_see(staff, t)]
+        tasks = Task.objects.filter(id__in=visible)
         today = dm.task_today()
         mine = TaskAssignee.objects.filter(staff_id=staff).exclude(status='DECLINED').values('task_id')
-        return {'my': live(Task.objects.filter(pic_id=staff, status__in=OPEN)).count(),
-                'overdue': live(Task.objects.filter(pic_id=staff, status__in=OPEN, due_date__lt=today)).count(),
-                'sup': live(Task.objects.filter(id__in=mine, status__in=OPEN).exclude(pic_id=staff)).count(),
-                'rev': live(Task.objects.filter(status='IN_REVIEW', submitted_to_id=staff)).count()
+        return {'my': live(tasks.filter(pic_id=staff, status__in=OPEN)).count(),
+                'overdue': live(tasks.filter(pic_id=staff, status__in=OPEN, due_date__lt=today)).count(),
+                'sup': live(tasks.filter(id__in=mine, status__in=OPEN).exclude(pic_id=staff)).count(),
+                'rev': live(tasks.filter(status='IN_REVIEW', submitted_to_id=staff)).count()
                 + TaskRequest.objects.filter(status='PENDING', manager_id=staff).filter(Q(workspace__isnull=True) | Q(workspace__deleted_at__isnull=True)).count()
-                + live(DueDateRequest.objects.filter(status='PENDING', decide_by_id=staff, task__status__in=OPEN), 'task__workspace').count()
-                + live(TaskChangeRequest.objects.filter(status='PENDING', approver_id=staff).exclude(kind='COMPLETE', requester_side='PIC'), 'task__workspace').count(),
-                'answer': live(Task.objects.filter(self.answer_q(staff))).count()}
+                + live(DueDateRequest.objects.filter(task_id__in=visible, status='PENDING', decide_by_id=staff, task__status__in=OPEN), 'task__workspace').count()
+                + live(TaskChangeRequest.objects.filter(task_id__in=visible, status='PENDING', approver_id=staff).exclude(kind='COMPLETE', requester_side='PIC'), 'task__workspace').count(),
+                'answer': live(tasks.filter(self.answer_q(staff))).count()}
 
     def menu_view(self, ctx, intro=''):
         c = self.counts(ctx['staff'])
@@ -1587,10 +1598,10 @@ class Bot:
 
     def help_text(self, ctx):
         if ctx['isGroup']:
-            ws = Workspace.objects.filter(id=ctx['workspace']).values_list('name', flat=True).first() if ctx['workspace'] else ''
-            return ('<b>Task Management in this group</b>' + (f'\nLinked workspace: <b>{esc(ws)}</b>' if ws else '\nThis group is not linked to a workspace yet.')
-                    + '\n\n' + '\n'.join(f'/{c} – {d}' for c, d in GROUP_COMMANDS) + '\n\nOnly people who connected their Telegram to the Task Controlling Management '
-                    'can use the buttons, and each action follows their part in the task. To attach a photo or document to a task, reply to the task’s message with it.')
+            return ('<b>Task Management in this group</b>\n\n'
+                    + '\n'.join(f'/{c} – {d}' for c, d in GROUP_COMMANDS)
+                    + '\n\nOpen the bot in a private chat or use the Mini App to view and update Tasks, reports and attachments. '
+                    'Task information follows each employee’s permissions.')
         return ('<b>What I can do</b>\n\n' + '\n'.join(f'/{c} – {d}' for c, d in PRIVATE_COMMANDS) + '\n\nTap the buttons under a task to accept or reject it, update '
                 'progress, tick its checklist, mark it stuck, submit it for review, close or cancel it, or hand it over. To attach a photo or document, reply to a '
                 'task’s message with it. Everything you do here is saved in the Task Controlling Management straight away.')
@@ -1711,6 +1722,8 @@ class Bot:
             ctx = self.context(msg['chat'], q['from'], callbackId=q['id'], messageId=msg['message_id'], callbackMessage=msg,
                                threadId=msg.get('message_thread_id') if msg.get('is_topic_message') else None)
             kind, *parts = str(q.get('data') or '').split(':')
+            if ctx['isGroup'] and kind not in ('g', 'u', 'x'):
+                return self.answer(ctx, 'For Task privacy, open a private chat with me or use the Mini App.', True)
             try:
                 handlers = {'t': self.on_task_button, 'k': self.on_check_button, 'a': self.on_file_button, 'r': self.on_request_button, 'd': self.on_due_button,
                             'c': self.on_change_button, 'm': self.on_menu_button, 'f': self.on_flow_button, 'rep': self.on_report_button, 'g': self.on_group_button}
@@ -1738,6 +1751,13 @@ class Bot:
             tg.migrate_group(m['chat']['id'], m['migrate_to_chat_id'])
             return
         ctx = self.context(m['chat'], m['from'], messageId=m.get('message_id'), threadId=m.get('message_thread_id') if m.get('is_topic_message') else None)
+        if ctx['isGroup']:
+            text_value = m.get('text') or ''
+            group_command = parse_command(text_value, (self.me or {}).get('username')) if text_value.startswith('/') else None
+            if not group_command or group_command.get('cmd') not in ('connect', 'disconnect', 'help', 'start') or (group_command.get('args') or '').startswith('task_'):
+                if group_command and not group_command.get('other'):
+                    return self.say(ctx, 'For Task privacy, open a private chat with me or use the Mini App.')
+                return
         if m.get('document') or (isinstance(m.get('photo'), list) and m['photo']):
             return self.on_media(ctx, m)
         text = m['text'] if isinstance(m.get('text'), str) else ''
@@ -1792,6 +1812,8 @@ class Bot:
         if not access.can(user, 'tasks.tasks') and not access.can(user, 'tasks.meetings'):
             return 'The role no longer includes Task Management'
         gov = Governance()
+        if not gov.operational_access(n['staff_id']):
+            return 'Account is not mapped to the Organizational Structure'
         if n.get('org_request_id') and (not access.can(user, 'tasks.organization') or not gov.notification_visible(n['staff_id'], n['org_request_id'])):
             return 'Organization request no longer requires or permits this recipient'
         sc = TaskScope(gov)
@@ -1931,10 +1953,12 @@ class Bot:
             if self.stopped.is_set():
                 return
             user = access.account_for(link['staff_id'])
-            if not user or not access.can(user, 'tasks.tasks'):
+            scope = TaskScope(Governance())
+            if not user or not access.can(user, 'tasks.tasks') or not scope.gov.operational_access(link['staff_id']):
                 continue
             mine_ids = TaskAssignee.objects.filter(staff_id=link['staff_id']).exclude(status='DECLINED').values('task_id')
-            mine = self.enrich(rows(live(Task.objects.filter(id__in=mine_ids, status__in=OPEN, due_date__lte=today)).order_by('due_date', 'id')))
+            mine = self.enrich([t for t in rows(live(Task.objects.filter(id__in=mine_ids, status__in=OPEN, due_date__lte=today)).order_by('due_date', 'id'))
+                                if scope.can_see(link['staff_id'], t)])
             c = self.counts(link['staff_id'])
             due_today, late = [t for t in mine if t['due_date'] == today], [t for t in mine if t['due_date'] < today]
             if not mine and not c['rev'] and not c['answer']:

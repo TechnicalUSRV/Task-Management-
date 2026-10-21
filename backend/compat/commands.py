@@ -42,9 +42,9 @@ def apply(gov, action, d, actor, user, meta):
             fail('Sign in to continue.', 401)
         count = access.sign_out_everywhere(user, telegram=d.get('telegram') is True)
         return {'message': f"Signed out of {count} session{'' if count == 1 else 's'}{' and Telegram' if d.get('telegram') is True else ''}. Sign in again to continue."}
-    if action in ('tm.task.delivery.confirm', 'tm.group.delivery.confirm', 'tm.task.delivery.cancel', 'tm.group.delivery.cancel'):
+    if action in ('tm.task.delivery.confirm', 'tm.group.delivery.confirm', 'tm.task.delivery.cancel', 'tm.group.delivery.cancel', 'tm.task.delivery.retry', 'tm.group.delivery.retry'):
         from groups.delivery import confirm
-        return confirm(data=d, actor=actor, cancel=action.endswith('.cancel'), target='task' if action.startswith('tm.task') else 'group')
+        return confirm(data=d, actor=actor, cancel=action.endswith('.cancel'), retry=action.endswith('.retry'), target='task' if action.startswith('tm.task') else 'group')
     if action.startswith('tm.') or action.startswith('me.'):
         return TaskService(gov).handle(action, d, actor, meta)
     if action == 'settings.save':

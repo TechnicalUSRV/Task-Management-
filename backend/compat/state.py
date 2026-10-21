@@ -30,7 +30,7 @@ TABLES = {
                       'origin_workspace_id,owner_grant_id,joinable,created_by,deleted_at,deleted_by,deleted_from_status,visibility', 'id'),
     'tm_members': ('workspace_id,staff_id,approved_by,approval_id,member_role,joined_at', 'id'),
     'tm_task_members': ('task_id,staff_id,permission,granted_by,created_at', 'id'),
-    'tm_tasks': ('visibility,id,workspace_id,activity_id,contact_id,related_type,related_id,title,description,start_date,due_date,status,priority,progress,'
+    'tm_tasks': ('visibility,governing_manager_id,id,workspace_id,activity_id,contact_id,related_type,related_id,title,description,start_date,due_date,status,priority,progress,'
                  'estimate_minutes,reason,created_by,completed_at,version,creation_key,created_at,updated_at,pic_id,reviewer_id,department,'
                  'department_note,accepted_at,declined_at,declined_reason,stuck_at,stuck_by,stuck_reason,submitted_to,submitted_by,submitted_at,'
                  'submit_note,closed_by,request_id,source,reviewer_status,reviewer_responded_at,reviewer_note,recurrence,recurrence_until,series_id,'
@@ -40,7 +40,7 @@ TABLES = {
                     'reason,version,creation_key,created_at,updated_at,share_scope,reminder_offsets,created_by', 'id'),
     'tm_attendees': ('meeting_id,staff_id', 'id'),
     'tm_events': ('id,entity_type,entity_id,workspace_id,action,detail,actor_id,created_at', 'id'),
-    'tm_requests': ('visibility,id,workspace_id,title,description,department,department_note,priority,proposed_due_date,requested_by,manager_id,status,'
+    'tm_requests': ('visibility,governing_manager_id,id,workspace_id,title,description,department,department_note,priority,proposed_due_date,requested_by,manager_id,status,'
                     'decision_note,decided_by,decided_at,task_id,source,version,creation_key,created_at,updated_at,doer', 'id'),
     'tm_due_requests': ('id,task_id,requested_by,decide_by,current_due_date,proposed_due_date,reason,status,decision_note,decided_by,decided_at,'
                         'source,version,created_at,updated_at', 'id'),
@@ -286,7 +286,7 @@ def filter_state(s, user, gov=None):
     out['operational_access'] = gov.operational_access(user.staff_id)
     if not out['operational_access']:
         for key in list(out):
-            if key.startswith('tm_') or key == 'staff_photos':
+            if key.startswith('tm_') or key in CRM_TABLES + OPS_TABLES + ['staff_photos']:
                 out[key] = []
         out['lookups'] = []
         out['management_people'] = []

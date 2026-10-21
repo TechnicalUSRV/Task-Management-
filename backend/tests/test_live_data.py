@@ -21,6 +21,8 @@ def live(team):
     admin, ids, c, ws = team
     r = admin.command('admin.user.save', {'name': 'Chan Member', 'role_id': 'ROLE-MEMBER', 'password': 'Chan-password-2026'})
     ids['chan'] = User.objects.get(id=r.json()['result']['id']).staff_id
+    from organization.models import Profile
+    Profile.objects.filter(staff_id=ids['chan']).update(org_level_id=3)
     c['chan'] = login('Chan Member', 'Chan-password-2026')
     dara, kosal = c['dara'], c['kosal']
     sales, item = board(dara, ws, 'Sales')

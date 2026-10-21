@@ -7,27 +7,72 @@ from .models import Task, TaskAssignee, TaskMember
 VISIBILITIES = ('PERSONAL', 'PUBLIC', 'ORGANIZATIONAL')
 
 
+def member_permissions(gov, staff):
+    return gov._cached('task-members', staff, lambda: dict(TaskMember.objects.filter(staff_id=staff).values_list('task_id', 'permission')))
+
+
+def manager_options(gov, workspace):
+    if not workspace or workspace['kind'] != 'ORGANIZATIONAL':
+        return []
+    viewers = gov.scope_viewers(workspace)
+    candidates = set(gov.responsible_options(workspace['owner_id'])) | {workspace.get('governing_manager_id'), workspace['owner_id']}
+    return [{'id': m, 'name': gov.person(m)['name']} for m in sorted(candidates - {None})
+            if gov.active(m) and gov.level(m) == 2 and (viewers is None or m in viewers)]
+
+
+def management_reason(gov, staff, task, w=None):
+    w = w or gov.ws_by_id(task['workspace_id'])
+    if not w or w.get('deleted_at') or not gov.operational_access(staff) or task.get('visibility') == 'PERSONAL':
+        return None
+    if gov.global_workspaces(staff):
+        return 'organization'
+    if is_personal_workspace(w):
+        return None
+    viewers = gov.scope_viewers(w)
+    if viewers is not None and staff not in viewers:
+        return None  # chosen Workspace scope takes precedence over the old governor/PIC line
+    manager = task.get('governing_manager_id')
+    if task.get('visibility') == 'ORGANIZATIONAL':
+        manager = manager or w.get('governing_manager_id')
+        if not manager or not gov.active(manager) or gov.level(manager) != 2:
+            return None
+        return 'governance' if staff == manager or staff in gov.primary_upline(manager) else None
+    if gov.manages_workspace(staff, w) or gov.governs(staff, w):
+        return 'governance' if gov.governs(staff, w) else 'team'
+    if viewers is None and gov.can_view_workspace(staff, w) and task.get('pic_id') in gov.descendants(staff):
+        return 'team'
+    return None
+
+
 def visibility_reason(gov, staff, task, involved):
     w = gov.ws_by_id(task['workspace_id'])
     if not w or w.get('deleted_at') or not gov.operational_access(staff):
         return None
-    if gov.global_workspaces(staff):
-        return 'organization'
     if task.get('visibility', 'PUBLIC') == 'PERSONAL':
-        return 'involved' if task['created_by'] == staff else None
+        return 'involved' if task['created_by'] == staff else 'organization' if gov.global_workspaces(staff) else None
     if involved:
         return 'involved'
-    if TaskMember.objects.filter(task_id=task['id'], staff_id=staff).exists():
+    if gov.global_workspaces(staff):
+        return 'organization'
+    if task['id'] in member_permissions(gov, staff):
         return 'shared'
-    if is_personal_workspace(w):
+    return management_reason(gov, staff, task, w)
+
+
+def validate_manager(gov, actor, data, old, workspace, visibility):
+    value = data.get('governing_manager_id', (old or {}).get('governing_manager_id')) or None
+    if visibility != 'ORGANIZATIONAL':
         return None
-    # Workspace members/owners are NOT automatically Task participants.
-    if gov.manages_workspace(staff, w) or gov.governs(staff, w):
-        return 'governance' if gov.governs(staff, w) else 'team'
-    # In an unscoped legacy workspace only, retain the actual PIC reporting branch.
-    if gov.scope_viewers(w) is None and gov.can_view_workspace(staff, w) and task.get('pic_id') in gov.descendants(staff):
-        return 'team'
-    return None
+    options = [m['id'] for m in manager_options(gov, workspace)]
+    if not value:
+        value = workspace.get('governing_manager_id') if workspace.get('governing_manager_id') in options else options[0] if len(options) == 1 else None
+    if value not in options:
+        fail('Choose an authorized Level 2 manager for this Task.', 422)
+    if old and value != old.get('governing_manager_id') and not can_manage_members(gov, actor, old):
+        # Existing records without a specific scope retain their Workspace governor.
+        if old.get('governing_manager_id') or value != workspace.get('governing_manager_id'):
+            fail('Only the Task owner or authorized Administration can change its management scope.', 403)
+    return value
 
 
 def can_manage_members(gov, actor, task):
@@ -84,6 +129,7 @@ def save_members(service, data, actor, source):
         TaskMember.objects.update_or_create(task_id=task['id'], staff_id=staff,
             defaults={'permission': permission, 'granted_by_id': actor, 'created_at': timezone.now()})
     Task.objects.filter(id=task['id']).update(version=task['version'] + 1, updated_at=timezone.now())
+    service.gov.invalidate()
     import json
     service.history(task, 'sharing', task, actor, source, json.dumps({'before': before, 'after': entries}))
     service.log(actor, 'task', task['id'], task['workspace_id'], 'Task sharing updated')

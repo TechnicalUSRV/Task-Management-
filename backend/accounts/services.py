@@ -235,9 +235,11 @@ def can_staff(staff_id, resource, action='view'):
 def require_permission(user, resource, action='view'):
     if user is None:
         fail('Sign in to continue.', 401)
-    if resource.startswith('tasks.'):
+    if resource.startswith(('tasks.', 'crm.', 'ops.', 'finance.')):
         from organization.governance import Governance
-        Governance().require_operational(user.staff_id)
+        gov = Governance()
+        if resource != 'tasks.organization' or not gov.can_manage_structure(user.staff_id):
+            gov.require_operational(user.staff_id)
     if not can(user, resource, action):
         fail(f'Your account does not allow {action} for {LABELS.get(resource, resource)}.', 403)
 

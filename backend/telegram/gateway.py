@@ -32,9 +32,9 @@ from . import services as telegram
 MINI_APP_ACTIONS = re.compile(
     r'^(org\.(preview|structure\.(save|request)|workspace\.(save|classify|delete|restore)|membership\.(request|remove)|delegation\.request|'
     r'request\.(decide|cancel))|tm\.(workspace\.(delete|restore|member\.(add|remove))|task\.(save|accept|decline|progress|stuck|resume|submit|pass|'
-    r'return|close|cancel|reopen|note|handover|remind|reminders|members\.save|delivery\.(create|confirm|cancel))|change\.(decide|withdraw)|request\.(save|withdraw|forward|decide)|'
+    r'return|close|cancel|reopen|note|handover|remind|reminders|members\.save|delivery\.(create|confirm|cancel|retry))|change\.(decide|withdraw)|request\.(save|withdraw|forward|decide)|'
     r'due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)|notification\.read|meeting\.(save|follow|decide|withdraw)|'
-    r'time\.(save|delete)|calnote\.(save|delete)|group\.(row\.update|view\.save|file\.(add|remove)|delivery\.(create|confirm|cancel)))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
+    r'time\.(save|delete)|calnote\.(save|delete)|group\.(row\.update|view\.save|file\.(add|remove)|delivery\.(create|confirm|cancel|retry)))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
 CSP = ("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; "
        "connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'")
 MEDIA_HOURS = 12

@@ -182,8 +182,8 @@ def test_personal_workspaces_stay_personal_and_private_to_their_members(org):
     shared = org.task('D', ws, 'Shared private work')
     for who, allowed in (('D', True), ('B', False), ('C', False), ('E', False), ('R', True)):
         assert org.sees(who, ws) is allowed, who
-        assert any(t['id'] == task for t in org.state(who)['tm_tasks']) is allowed, who
-    assert any(t['id'] == shared for t in org.state('A')['tm_tasks'])
+        assert any(t['id'] == task for t in org.state(who)['tm_tasks']) is (who in ('A', 'R')), who  # Task participants/Admin only
+    assert not any(t['id'] == shared for t in org.state('A')['tm_tasks'])  # Workspace ownership is not Task membership.
     # Groups: a member uses the workspace's team groups; A's managers are told they do not exist.
     group = org.ok('A', 'tm.group.save', {'workspace_id': ws, 'name': 'Private plan', 'visibility': 'TEAM', 'audience': 'WORKSPACE', 'workspace_level': 'EDIT'})['id']
     assert org.clients['D'].get(f'/api/tasks/group?id={group}').status_code == 200

@@ -3,6 +3,9 @@ from datetime import timedelta
 from io import BytesIO
 import time
 import uuid
+import threading
+from contextlib import contextmanager
+from django.db import close_old_connections
 
 from django.db import transaction
 from django.db.models import Q
@@ -87,7 +90,8 @@ def merged_name(value, mode):
 def public(job):
     plan = js.loads(job.plan_json, [])
     return {'id': job.id, 'status': job.status, 'mode': job.mode, 'results': js.loads(job.result_json, []),
-            'file_name': job.file_name or '', 'error': job.error, 'plan': plan, 'preview': job.preview,
+            'file_name': job.file_name or '', 'error': job.error, 'plan': plan, 'preview': job.preview, 'retry_at': job.retry_at.isoformat() if job.retry_at else None,
+            'can_retry': job.status in ('FAILED', 'PARTIAL') and bool(plan) and (not job.retry_at or job.retry_at <= timezone.now()) and job.updated_at > timezone.now()-timedelta(hours=24),
             'total': len(plan) or (1 if job.mode == 'MERGED_PDF' else len(js.loads(job.file_ids_json, [])))}
 
 
@@ -165,12 +169,18 @@ def job_files(job, inspect_pdf=False):
     return files_for(g, job.board_id, job.staff_id, ids, job.mode, inspect_pdf)
 
 
-def confirm(data, actor, cancel=False, target='group'):
+def confirm(data, actor, cancel=False, target='group', retry=False):
     job = BoardDelivery.objects.filter(id=data.get('delivery_id'), staff_id=actor).first()
     if not job or (target == 'task') != bool(job.task_id):
         fail('Delivery not found.', 404)
     job_files(job)
-    if cancel:
+    if not cancel and job.updated_at <= timezone.now()-timedelta(hours=24):
+        fail('Prepared documents expired. Prepare a new request.', 409)
+    if retry:
+        if not public(job)['can_retry']:
+            fail('This delivery cannot be retried yet. Check its status and Telegram chat.', 409)
+        job.status, job.error = 'APPROVED', ''
+    elif cancel:
         if job.status not in ('QUEUED', 'READY', 'APPROVED'):
             fail('This delivery is already processing or finished.', 409)
         job.status = 'CANCELLED'
@@ -182,7 +192,7 @@ def confirm(data, actor, cancel=False, target='group'):
             fail('Wait for document preparation to finish before confirming.', 409)
         job.status = 'APPROVED'
     job.updated_at = timezone.now()
-    job.save(update_fields=['status', 'updated_at'])
+    job.save(update_fields=['status', 'error', 'updated_at'])
     return {'delivery': public(job), 'message': 'Delivery cancelled.' if cancel else 'Delivery confirmed.'}
 
 
@@ -238,7 +248,7 @@ def merge_pdfs(files, name=None):
     return parts[0]
 
 
-def claim():
+def claim(rate_limit=True):
     now = timezone.now()
     stale = now - timedelta(minutes=10)
     expired = now - timedelta(hours=24)
@@ -246,21 +256,27 @@ def claim():
     actionable = BoardDelivery.objects.filter(
         Q(status__in=['QUEUED', 'APPROVED'])
         | Q(status__in=['PREPARING', 'SENDING'], updated_at__lt=stale)
-        | Q(status='READY', updated_at__lt=expired)
+        | Q(status__in=['READY', 'FAILED', 'PARTIAL'], updated_at__lt=expired, parts__isnull=False)
     ).exists()
     if not actionable:
         return None
     with transaction.atomic():
         write_lock()
         BoardDelivery.objects.filter(status='SENDING', updated_at__lt=stale).update(
-            status='UNKNOWN', error='Delivery was interrupted. Check Telegram before sending again.', updated_at=timezone.now())
+            status='UNKNOWN', worker_token='', error='Delivery was interrupted. Check Telegram before sending again.', updated_at=timezone.now())
         BoardDelivery.objects.filter(status='PREPARING', updated_at__lt=stale).update(
-            status='FAILED', error='Preparation was interrupted; no files were sent. Prepare a new request.', updated_at=timezone.now())
-        BoardDelivery.objects.filter(status__in=['READY', 'QUEUED', 'APPROVED'], updated_at__lt=timezone.now()-timedelta(hours=24)).update(
+            status='FAILED', worker_token='', error='Preparation was interrupted; no files were sent. Prepare a new request.', updated_at=timezone.now())
+        BoardDelivery.objects.filter(status__in=['READY', 'QUEUED', 'APPROVED', 'FAILED', 'PARTIAL'], updated_at__lt=timezone.now()-timedelta(hours=24)).update(
             status='CANCELLED', error='Preparation expired. Select the files again.', updated_at=timezone.now())
-        DeliveryPart.objects.exclude(job__status__in=ACTIVE).delete()
+        DeliveryPart.objects.exclude(job__status__in=ACTIVE + ['FAILED', 'PARTIAL']).delete()
         busy = list(BoardDelivery.objects.filter(status__in=['PREPARING', 'SENDING']).values_list('telegram_user_id', flat=True))
-        job = BoardDelivery.objects.filter(status__in=['QUEUED', 'APPROVED']).exclude(telegram_user_id__in=busy).order_by('created_at', 'id').first()
+        from core.document_capacity import capacity
+        if len(busy) >= capacity()['workers']:
+            return None
+        blocked = list(BoardDelivery.objects.filter(retry_at__gt=now).values_list('telegram_user_id', flat=True))
+        if rate_limit:
+            blocked += list(BoardDelivery.objects.filter(status__in=['SENT', 'PARTIAL', 'UNKNOWN'], updated_at__gt=now-timedelta(seconds=SEND_INTERVAL)).values_list('telegram_user_id', flat=True))
+        job = BoardDelivery.objects.filter(status__in=['QUEUED', 'APPROVED']).exclude(telegram_user_id__in=busy + blocked).order_by('created_at', 'id').first()
         if not job:
             return None
         job.status = 'PREPARING' if job.status == 'QUEUED' else 'SENDING'
@@ -276,12 +292,38 @@ def heartbeat(job, **updates):
         fail('This worker no longer owns the delivery. Check its status before retrying.', 409)
 
 
+@contextmanager
+def lease(job):
+    stopped = threading.Event()
+    def maintain():
+        while not stopped.wait(20):
+            close_old_connections()
+            try:
+                heartbeat(job)
+            except Exception:
+                break  # ownership is checked again before any outbound document
+            finally:
+                close_old_connections()
+    thread = threading.Thread(target=maintain, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stopped.set()
+        thread.join(timeout=1)
+
+
 def process_next(transport=None):
-    """Claims are serialized, independent jobs run concurrently. Ambiguous sends are never retried automatically."""
-    from telegram.bot import http_transport, TELEGRAM_API, TelegramError
-    job = claim()
+    job = claim(rate_limit=transport is None)
     if not job:
         return False
+    with lease(job):
+        return process_claimed(job, transport)
+
+
+def process_claimed(job, transport=None):
+    """Claims are serialized, independent jobs run concurrently. Ambiguous sends are never retried automatically."""
+    from telegram.bot import http_transport, TELEGRAM_API, TelegramError
     attempted, results = False, js.loads(job.result_json, [])
     try:
         files = job_files(job, inspect_pdf=True)
@@ -291,7 +333,10 @@ def process_next(transport=None):
                 plan = []
                 for i, doc in enumerate(documents):
                     heartbeat(job)
-                    DeliveryPart.objects.create(job=job, position=i, name=doc['name'], content=doc['content'])
+                    with transaction.atomic():
+                        write_lock()
+                        heartbeat(job)
+                        DeliveryPart.objects.create(job=job, position=i, name=doc['name'], content=doc['content'])
                     plan.append({'name': doc['name'], 'size': len(doc['content']), 'pages': doc['pages']})
                 del documents
             else:
@@ -303,8 +348,10 @@ def process_next(transport=None):
             job.status = 'SENDING'
         del files
         plan = js.loads(job.plan_json, [])
-        for i, item in enumerate(plan):
-            if i:
+        first_unsent = len(results)
+        for i in range(first_unsent, len(plan)):
+            item = plan[i]
+            if i > first_unsent:
                 pause(SEND_INTERVAL)
             checked = job_files(job)  # refresh permissions on every outbound part
             link = linked(job.staff_id)
@@ -332,8 +379,10 @@ def process_next(transport=None):
             del checked, document
         job.status, job.error = 'SENT', ''
     except InputError as e:
-        job.status, job.error = ('PARTIAL' if results else 'FAILED'), e.message[:500]
+        job.status, job.error = ('UNKNOWN' if attempted else 'PARTIAL' if results else 'FAILED'), e.message[:500]
     except Exception as e:
+        if isinstance(e, TelegramError) and e.code == 429:
+            job.retry_at = timezone.now() + timedelta(seconds=max(1, int(e.retry_after or 60)))
         definite = isinstance(e, TelegramError) and e.code and 400 <= e.code < 500
         job.status = 'PARTIAL' if definite and results else 'FAILED' if definite or not attempted else 'UNKNOWN'
         job.error = ('Telegram refused the document (possibly busy or blocked). Retry only files not sent.' if definite else
@@ -341,7 +390,8 @@ def process_next(transport=None):
                      'Delivery could not be prepared. Check access and try again.')
     with transaction.atomic():
         write_lock()
-        BoardDelivery.objects.filter(id=job.id, worker_token=job.worker_token).update(
-            status=job.status, error=job.error, result_json=js.dumps(results), updated_at=timezone.now())
-        job.parts.all().delete()
+        saved = BoardDelivery.objects.filter(id=job.id, worker_token=job.worker_token, status__in=['PREPARING', 'SENDING']).update(
+            status=job.status, error=job.error, plan_json=job.plan_json, result_json=js.dumps(results), retry_at=job.retry_at, updated_at=timezone.now())
+        if saved and (job.status in ('SENT', 'UNKNOWN') or not js.loads(job.plan_json, [])):
+            job.parts.all().delete()
     return True

@@ -77,7 +77,10 @@ def attachment_name(name):
 class PhotoView(APIView):
     def get(self, request):
         from organization.models import StaffPhoto
-        photo = StaffPhoto.objects.filter(staff_id=str(request.query_params.get('staff') or '')[:60], size__gt=0).first()
+        staff = str(request.query_params.get('staff') or '')[:60]
+        if staff != request.user.staff_id:
+            Governance().require_operational(request.user.staff_id)
+        photo = StaffPhoto.objects.filter(staff_id=staff, size__gt=0).first()
         if not photo:
             fail('Photo not found.', 404)
         cache = 'private, max-age=31536000, immutable' if request.query_params.get('v') == str(photo.version) else 'no-store'

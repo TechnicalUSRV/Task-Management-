@@ -9,6 +9,8 @@ PASSWORD = 'Member-password-2026'
 def member(admin_api, name, role='ROLE-MEMBER'):
     r = admin_api.command('admin.user.save', {'username': name, 'password': PASSWORD, 'role_id': role, 'active': 1}).json()['result']
     staff = User.objects.get(id=r['id']).staff_id
+    from organization.models import Profile
+    Profile.objects.filter(staff_id=staff).update(org_level_id=3)
     client = Api()
     assert client.post('/api/auth/login', {'username': name, 'password': PASSWORD}).status_code == 200
     return staff, client

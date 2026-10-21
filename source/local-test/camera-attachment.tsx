@@ -23,13 +23,13 @@ function Capture({upload,maxBytes,close}: Props & {maxBytes:number;close:()=>voi
     return ()=>{active.current=false;stream.current?.getTracks().forEach(t=>t.stop());saved.current.forEach(p=>URL.revokeObjectURL(p.url));document.removeEventListener('visibilitychange',hidden);};
   },[]);
   const start = async () => {
-    setError('');
+    if(busy)return;setBusy(true);setError('');
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Use the device camera button below.');
       stop(); const media=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:2560}},audio:false});
       if(!active.current){media.getTracks().forEach(t=>t.stop());return;}
       stream.current=media; if(video.current){video.current.srcObject=media;await video.current.play();}setLive(true);
-    }catch{stop();setError('Live camera is unavailable or permission was declined. You can use the device camera/photo picker below.');}
+    }catch{stop();setError('Live camera is unavailable or permission was declined. You can use the device camera/photo picker below.');}finally{if(active.current)setBusy(false);}
   };
   const canvasPhoto = async (source:CanvasImageSource,width:number,height:number) => {
     const ratio=Math.min(1,2000/Math.max(width,height)), canvas=document.createElement('canvas');
@@ -39,13 +39,13 @@ function Capture({upload,maxBytes,close}: Props & {maxBytes:number;close:()=>voi
     const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Unable to capture this photo.')),'image/jpeg',0.88));
     if(!active.current)return;
     const photo={blob,url:URL.createObjectURL(blob),width:canvas.width,height:canvas.height};
-    setPhotos(old=>{
-      const out=[...old], index=replacing.current;replacing.current=null;
+    {
+      const out=[...saved.current], index=replacing.current;replacing.current=null;
       if(index!==null && out[index]){URL.revokeObjectURL(out[index].url);out[index]=photo;}
       else if(!multi){out.forEach(p=>URL.revokeObjectURL(p.url));out.splice(0,out.length,photo);}
       else if(out.length<20)out.push(photo);else URL.revokeObjectURL(photo.url);
-      saved.current=out;return out;
-    });
+      saved.current=out;setPhotos(out);
+    }
     stop();
   };
   const capture = async()=>{
@@ -56,12 +56,17 @@ function Capture({upload,maxBytes,close}: Props & {maxBytes:number;close:()=>voi
     if(!file)return;setBusy(true);setError('');
     try{
       if(file.size>maxBytes)throw new Error('This photo exceeds the attachment size limit.');
-      const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
-      try{await canvasPhoto(bitmap,bitmap.width,bitmap.height);}finally{bitmap.close();}
+      if(typeof createImageBitmap==='function'){
+        const bitmap=await createImageBitmap(file,{imageOrientation:'from-image'});
+        try{await canvasPhoto(bitmap,bitmap.width,bitmap.height);}finally{bitmap.close();}
+      }else{
+        const url=URL.createObjectURL(file), img=new Image();
+        try{await new Promise<void>((resolve,reject)=>{img.onload=()=>resolve();img.onerror=()=>reject(new Error('Image could not be decoded.'));img.src=url;});await canvasPhoto(img,img.naturalWidth,img.naturalHeight);}finally{URL.revokeObjectURL(url);}
+      }
     }catch{setError('This image could not be opened. Try taking a JPEG photo with the device camera.');}finally{setBusy(false);}
   };
-  const remove=(i:number)=>setPhotos(old=>{URL.revokeObjectURL(old[i].url);const out=old.filter((_,j)=>j!==i);saved.current=out;return out;});
-  const move=(i:number,by:number)=>setPhotos(old=>{const out=[...old];[out[i],out[i+by]]=[out[i+by],out[i]];saved.current=out;return out;});
+  const remove=(i:number)=>{const old=saved.current;URL.revokeObjectURL(old[i].url);const out=old.filter((_,j)=>j!==i);replacing.current=null;saved.current=out;setPhotos(out);};
+  const move=(i:number,by:number)=>{const out=[...saved.current];[out[i],out[i+by]]=[out[i+by],out[i]];replacing.current=null;saved.current=out;setPhotos(out);};
   const finish=async()=>{
     setBusy(true);setError('');stop();
     try{
@@ -79,9 +84,9 @@ function Capture({upload,maxBytes,close}: Props & {maxBytes:number;close:()=>voi
     <div className="capture-body">
       <label>Capture mode<select value={multi?'multiple':'single'} disabled={busy||photos.length>0} onChange={e=>setMulti(e.target.value==='multiple')}><option value="single">Single photo</option><option value="multiple">Multiple photos → one PDF</option></select></label>
       <video ref={video} autoPlay muted playsInline className={live?'':'capture-hidden'} />
-      <div className="capture-actions"><button type="button" disabled={busy||photos.length>=20} onClick={()=>void start()}>{photos.length?'Add another photo':'Open camera'}</button>
+      <div className="capture-actions"><button type="button" disabled={busy||photos.length>=20} onClick={()=>{replacing.current=null;void start();}}>{photos.length?'Add another photo':'Open camera'}</button>
         {live&&<button type="button" disabled={busy} onClick={()=>void capture()}>Capture photo</button>}
-        <button type="button" disabled={busy||photos.length>=20} onClick={()=>input.current?.click()}>Device camera / photo picker</button>
+        <button type="button" disabled={busy||(photos.length>=20&&replacing.current===null)} onClick={()=>{stop();input.current?.click();}}>Device camera / photo picker</button>
         <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={e=>{void pick(e.target.files?.[0]);e.target.value='';}}/>
       </div>
       <p>Review photos before uploading. {multi?'Only the combined PDF is uploaded.':'Confirm the photo or retake it.'} Photos stay on this device until upload.</p>

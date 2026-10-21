@@ -782,7 +782,7 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
     const declined: Row[] = (current?.declined_supporters || []).filter((x: Row) => !(d.supporter_ids || []).includes(x.staff_id) && x.staff_id !== d.pic_id);
     body = <>
       {!isTask && d.id && <Alert tone="info">Changes are sent to another participant for approval before they apply.</Alert>}
-      {isTask && <TaskVisibility value={d.visibility} onChange={v=>set('visibility',v)} organizational={chosenWorkspace?.kind==='ORGANIZATIONAL'} disabled={!!d.id && !current?.can_manage_members} />}
+      {isTask && <TaskVisibility manager={d.governing_manager_id} onManager={v=>set('governing_manager_id',v)} managers={chosenWorkspace?.task_manager_options||[]} value={d.visibility} onChange={v=>set('visibility',v)} organizational={chosenWorkspace?.kind==='ORGANIZATIONAL'} disabled={!!d.id && !current?.can_manage_members} />}
       <FormSection title={isTask ? 'Task' : 'Meeting'}>
         {pick('workspace_id', 'Workspace', [...w.data.tm_workspaces,...(w.data.tm_workspace_refs||[])].filter((r: Row) => r.status === 'ACTIVE' && r.org_access?.can_create !== false || r.id === d.workspace_id).map((r: Row) => [r.id, r.name]), { required: true, disabled: !!d.id, onChange: changeWorkspace })}
         <span />

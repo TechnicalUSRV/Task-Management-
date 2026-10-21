@@ -1,12 +1,10 @@
 """Task Visibility Scope — port of task-scope.mjs (V5.5–V5.7.7). One rule for who may see which task and meeting,
 used by the web app, the Telegram bot, the Mini App, reports, the calendar, exports and every task command.
 
- - Everyone sees the tasks they are directly involved in (person in charge, supporting person, reviewer, assigner,
-   creator, or the person a decision is currently waiting for).
- - A manager also sees the tasks whose person in charge reports to them, directly or indirectly. Supporting someone,
-   or having looked at a task, never widens this.
- - "Task Management · All company tasks" (tasks.company, View) sees every task of the company.
- - Organizational Structure governance (workspace privacy, membership, Level 1) overrides the authority path.
+ - tasks.policy enforces owner-only Personal Tasks, explicit Task roles/shares, authorized Administration and selected
+   Workspace/Task management scope. Workspace membership or ownership alone never grants Task access.
+ - Organizational Tasks can select one authorized Level 2 manager; unrelated reporting managers remain excluded.
+ - Unmapped non-Administration accounts receive no operational data, including before structure initialization.
  - Seeing a task never subscribes anyone to its notifications and never grants editing, approval or closing.
 """
 import hashlib
@@ -173,15 +171,14 @@ class TaskScope:
         out['tm_tasks'] = [{**t, 'access_reason': visible[t['id']],
                             'calendar_visible': staff in (t.get('pic_id'), t.get('created_by'), t.get('assigned_by'), t.get('reviewer_id')) or t['id'] in mine_on}
                            for t in s.get('tm_tasks', []) if t['id'] in visible]
-        from tasks.policy import can_manage_members
+        from tasks.policy import can_manage_members, management_reason, member_permissions, manager_options
         for task in out['tm_tasks']:
             task['can_manage_members'] = can_manage_members(gov, staff, task)
             task['task_categories'] = (["mine"] if task['id'] in ctx['involved'] and task.get('visibility') != 'PERSONAL' else
                                        ["mine"] if task['created_by'] == staff else [])
-            if task['access_reason'] in ('team', 'governance', 'organization') and task.get('visibility') != 'PERSONAL':
+            if management_reason(gov, staff, task):
                 task['task_categories'].append('management')
-            from .models import TaskMember
-            if TaskMember.objects.filter(task_id=task['id'], staff_id=staff).exists() and task.get('visibility') != 'PERSONAL':
+            if task['id'] in member_permissions(gov, staff) and task.get('visibility') != 'PERSONAL':
                 task['task_categories'].append('shared')
         out['tm_calendar_tasks'] = [t for t in out['tm_tasks'] if t['calendar_visible']]
         for table in ('tm_assignees', 'tm_task_history', 'tm_checklist', 'tm_files', 'tm_change_requests', 'tm_due_requests', 'tm_task_members'):
@@ -222,12 +219,12 @@ class TaskScope:
         if 'tm_requests' in s:
             out['tm_requests'] = [q for q in s['tm_requests'] if not gov.workspace_removed(q.get('workspace_id')) and
                                   (q['requested_by'] == staff or q['manager_id'] == staff or (q.get('task_id') and q['task_id'] in visible))]
-        out['tm_workspaces'] = [{**w, 'org_access': gov.workspace_access(staff, w)} for w in s.get('tm_workspaces', [])
+        out['tm_workspaces'] = [{**w, 'task_manager_options': manager_options(gov, w), 'org_access': gov.workspace_access(staff, w)} for w in s.get('tm_workspaces', [])
                                 if gov.can_view_workspace(staff, w)]
         workspace_ids = {w['id'] for w in out['tm_workspaces']}
         out['tm_members'] = [m for m in s.get('tm_members', []) if m['workspace_id'] in workspace_ids]
         record_workspaces = {r['workspace_id'] for r in out['tm_tasks'] + out.get('tm_meetings', []) + out.get('tm_task_refs', []) + out.get('tm_requests', [])}
-        out['tm_workspace_refs'] = [{'id': w['id'], 'name': w['name'], 'kind': w['kind'], 'visibility': w['visibility'], 'reference_only': True,
+        out['tm_workspace_refs'] = [{'id': w['id'], 'name': w['name'], 'kind': w['kind'], 'visibility': w['visibility'], 'reference_only': True, 'task_manager_options': manager_options(gov, w),
                                      'org_access': {'can_create': False, 'can_collaborate_outside': bool(gov.can_collaborate_outside(staff, w))}}
                                     for w in s.get('tm_workspaces', []) if w['id'] not in workspace_ids and w['id'] in record_workspaces]
         if 'tm_events' in s:

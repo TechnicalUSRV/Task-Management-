@@ -831,6 +831,7 @@ function TaskList({ c, scope, setScope, area, setArea }: { c: Ctx; scope: string
 
 const COMPANY_STATUS: [string, string][] = [['', 'Any status'], ['OPEN', 'Open'], ['NOT_STARTED', 'Not started'], ['IN_PROGRESS', 'In progress'], ['IN_REVIEW', 'In review'], ['STUCK', 'Stuck'], ['OVERDUE', 'Overdue'], ['COMPLETED', 'Completed'], ['CANCELLED', 'Cancelled']];
 function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; setArea: (a: 'mine' | 'company') => void }) {
+  const [category,setCategory]=useState('management');
   // V5.6.8: filters are kept while the app is open (going back from a task keeps them).
   const [f, setFState] = useState(companyMemory.f), [more, setMoreState] = useState(companyMemory.more);
   const setF = (next: Row) => { companyMemory.f = next; setFState(next); }, setMore = (v: boolean) => { companyMemory.more = v; setMoreState(v); };
@@ -840,7 +841,7 @@ function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; 
   const people = [...new Set<string>(c.tasks.flatMap(t => [...t.assignees, t.reviewer_id]).filter(Boolean))].map(id => [id, c.name(id)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]));
   const wss = [...new Map<string, string>(c.tasks.map(t => [t.workspace_id, t.workspace])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   const statusOk = (t: Row) => !f.status || (f.status === 'OPEN' ? OPEN_TASK_STATUSES.includes(t.status) : f.status === 'STUCK' ? t.stuck : f.status === 'OVERDUE' ? t.overdue : t.status === f.status);
-  const rows = c.tasks.filter(t => statusOk(t) && (!f.ws || t.workspace_id === f.ws) && (!f.person || t.assignees.includes(f.person) || t.reviewer_id === f.person) && (!f.priority || t.priority === f.priority)
+  const rows = c.tasks.filter(t => t.task_categories?.includes(category) && statusOk(t) && (!f.ws || t.workspace_id === f.ws) && (!f.person || t.assignees.includes(f.person) || t.reviewer_id === f.person) && (!f.priority || t.priority === f.priority)
     && (!f.from || t.due_date >= f.from) && (!f.to || t.due_date <= f.to) && `${t.title} ${t.id} ${t.workspace} ${t.department} ${c.name(t.pic_id)}`.toLowerCase().includes(f.q.toLowerCase()))
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const active = [f.ws, f.person, f.priority, f.from, f.to].filter(Boolean).length + (f.status !== 'OPEN' ? 1 : 0);
@@ -850,7 +851,7 @@ function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; 
   return (
     <>
       <Header title="Tasks" subtitle={reach} /><TaskActions c={c} />
-      <AreaSwitch area={area} setArea={setArea} />
+      <AreaSwitch area={area} setArea={setArea} /><TaskCategories value={category} onChange={setCategory} tasks={c.tasks} />
       <label className="search"><span className="sr-only">Search company tasks</span><input className="input" type="search" value={f.q} onChange={e => set({ q: e.target.value })} placeholder="Search tasks or people…" /></label>
       <div className="filter-grid">
         <label className="mini-field"><span>Status</span><select className="input" value={f.status} onChange={e => set({ status: e.target.value })}>{COMPANY_STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
@@ -1133,7 +1134,7 @@ function TaskForm({ c, id }: { c: Ctx; id?: string }) {
     <>
       <BackBar c={c} title={t ? 'Edit task' : 'New task'} />
       <form className="form" onSubmit={submit} noValidate ref={formRef}>
-        <TaskVisibility value={d.visibility} onChange={v=>set('visibility',v)} organizational={ws?.kind==='ORGANIZATIONAL'} disabled={!!t&&!t.can_manage_members} />
+        <TaskVisibility manager={d.governing_manager_id} onManager={v=>set('governing_manager_id',v)} managers={ws?.task_manager_options||[]} value={d.visibility} onChange={v=>set('visibility',v)} organizational={ws?.kind==='ORGANIZATIONAL'} disabled={!!t&&!t.can_manage_members} />
         {t && !target && <p className="hint small">Choose a different reviewer for a detail change to a task you manage alone. The change takes effect after approval.</p>}{target && <div className="callout tone-info"><strong><Scale aria-hidden="true" className="inline-icon" />Changes need {first(c.name(target))}’s approval.</strong> When you save, your changes are sent to {first(c.name(target))}; the task stays as it is until they approve.</div>}
         {locked && <div className="callout tone-neutral">You are the person in charge: you can change the expectation, supporting people and department note. Ask {first(c.name(t?.reviewer_id))} to change the rest, or use “Hand over” in the task.</div>}
         <LField label="Title" required><input className="input" value={d.title} maxLength={300} disabled={locked} onChange={e => set('title', e.target.value)} aria-required="true" aria-invalid={bad('title')} data-field="title" /></LField>
@@ -1272,7 +1273,7 @@ function RequestForm({ c, id }: { c: Ctx; id?: string }) {
     <>
       <BackBar c={c} title={old ? 'Edit request' : 'Request a task'} />
       <form className="form" onSubmit={submit} noValidate ref={formRef}>
-        <TaskVisibility request value={d.visibility} onChange={v=>set('visibility',v)} organizational={c.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
+        <TaskVisibility request manager={d.governing_manager_id} onManager={v=>set('governing_manager_id',v)} managers={c.data.tm_workspaces.find((ws:Row)=>ws.id===d.workspace_id)?.task_manager_options||[]} value={d.visibility} onChange={v=>set('visibility',v)} organizational={c.data.tm_workspaces.some((ws:Row)=>ws.id===d.workspace_id&&ws.kind==='ORGANIZATIONAL')} />
         {!people.length && <div className="callout tone-warning">Nobody else uses Task Management yet. Ask an administrator to create logins for your colleagues.</div>}
         <LField label="What do you need?" required><input className="input" value={d.title} maxLength={300} onChange={e => set('title', e.target.value)} aria-required="true" aria-invalid={invalid.includes('title') || undefined} data-field="title" placeholder="Short title" /></LField>
         <PersonSelect c={c} label="Ask" required value={d.manager_id} people={people} onChange={v => set('manager_id', v)} invalid={invalid.includes('manager_id')} field="manager_id" placeholder="Choose who you are asking" hint="Anyone who uses Task Management, whatever their role." />

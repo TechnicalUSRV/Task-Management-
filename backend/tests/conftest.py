@@ -29,6 +29,23 @@ ADMIN = {'username': 'Admin User', 'password': 'Admin-password-2026', 'email': '
          'company_name': 'Example Co'}
 
 
+@pytest.fixture(autouse=True)
+def migration_reference_data(request):
+    """Transaction tests flush data-migration rows; restore the real migration seeds.
+
+    This does not map any user or relax access rules. Tests that create an
+    operational employee must still assign their organizational level explicitly.
+    """
+    if (request.node.get_closest_marker('django_db') or
+            {'db', 'transactional_db'}.intersection(request.fixturenames)):
+        request.getfixturevalue('db')
+        from importlib import import_module
+        from django.apps import apps
+        for migration in ('accounts.migrations.0002_seed_defaults',
+                          'organization.migrations.0004_seed_owner_template'):
+            import_module(migration).seed(apps, None)
+
+
 @pytest.fixture
 def api(db):
     return Api()

@@ -11,7 +11,7 @@ from accounts.models import User
 from core.rows import row
 from notifications.models import Notification
 from organization.governance import Governance
-from organization.models import OrgAudit, OrgRequest, OrgSettings
+from organization.models import OrgAudit, OrgRequest, OrgSettings, Profile
 from workspaces.models import Workspace, WorkspaceMember
 
 from .conftest import Api
@@ -289,9 +289,11 @@ def test_legacy_workspaces_before_organizational_structure_is_initialized():
     n = Api()
     assert n.post('/api/auth/login', {'username': 'Member N', 'password': PASSWORD}).status_code == 200
     hidden = n.command('tm.workspace.save', {'id': w.id, 'name': 'Renamed', 'owner_id': admin_staff, 'member_ids': [m_staff], 'expected_version': 0})
-    assert hidden.status_code == 404
+    assert hidden.status_code == 403  # unmapped accounts are blocked before record lookup
     m = Api()
     assert m.post('/api/auth/login', {'username': 'Member M', 'password': PASSWORD}).status_code == 200
+    # Legacy workspace permissions still apply after the account is mapped.
+    Profile.objects.filter(staff_id=m_staff).update(org_level_id=3)
     add = m.command('tm.workspace.save', {'id': w.id, 'name': 'Operations', 'owner_id': admin_staff, 'member_ids': [m_staff, n_staff], 'expected_version': 0})
     assert add.status_code == 403
     rename = m.command('tm.workspace.save', {'id': w.id, 'name': 'Operations HQ', 'owner_id': admin_staff, 'member_ids': [m_staff], 'expected_version': 0})

@@ -19,7 +19,10 @@ def people(admin_api):
     def user(name):
         r = admin_api.command('admin.user.save', {'name': name, 'role_id': 'ROLE-MEMBER', 'password': name.split()[0] + '-password-2026'})
         assert r.status_code == 200, r.json()
-        return User.objects.get(id=r.json()['result']['id']).staff_id
+        staff = User.objects.get(id=r.json()['result']['id']).staff_id
+        from organization.models import Profile
+        Profile.objects.filter(staff_id=staff).update(org_level_id=3)  # operational fixture, explicitly mapped
+        return staff
     ids = {'a': user('Anan Single'), 'b': user('Bopha Other')}
     ws = ok(admin_api.command('tm.workspace.save', {'name': 'Approvals', 'owner_id': admin_api.user['staff_id'], 'member_ids': list(ids.values())}))['result']['id']
     clients = {'a': login('Anan Single', 'Anan-password-2026'), 'b': login('Bopha Other', 'Bopha-password-2026')}

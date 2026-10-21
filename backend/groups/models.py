@@ -259,12 +259,13 @@ class BoardDataShare(models.Model):
 
 
 class BoardDelivery(models.Model):
-    """Durable self-delivery jobs; originals stay in BoardFile, merged bytes are never stored."""
+    """Durable self-delivery jobs; originals stay in their attachment tables, prepared PDFs in expiring DeliveryPart rows."""
     id = models.CharField(max_length=60, primary_key=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='deliveries', null=True, blank=True)
     task = models.ForeignKey('tasks.Task', on_delete=models.PROTECT, related_name='deliveries', null=True, blank=True)
     preview = models.BooleanField(default=False, db_default=False)
     plan_json = models.TextField(default='[]', db_default='[]')
+    retry_at = models.DateTimeField(null=True, blank=True)
     worker_token = models.CharField(max_length=40, default='', db_default='')
     staff = models.ForeignKey(Staff, on_delete=models.PROTECT, related_name='+')
     request_key = models.CharField(max_length=64)

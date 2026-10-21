@@ -407,9 +407,7 @@ class Governance:
 
     def operational_access(self, staff):
         """Unmapped accounts keep sign-in/navigation, but no business records. Administration can onboard."""
-        # Existing installations do not require Organizational Structure.  Only
-        # enforce the mapping gate after an administrator enables it.
-        return self.active(staff) and (not self.settings()['enabled'] or bool(self.level(staff)) or self.legacy_admin(staff))
+        return self.active(staff) and (bool(self.level(staff)) or self.legacy_admin(staff))
 
     def require_operational(self, staff):
         if not self.operational_access(staff):
@@ -1335,7 +1333,7 @@ class Governance:
 
     # ------------------------------------------------------------ command guard (runs before every command)
     def guard(self, action, d, actor):
-        if action.startswith(('tm.', 'org.')):
+        if action.startswith('tm.') or (action.startswith('org.') and not self.can_manage_structure(actor)):
             self.require_operational(actor)
         if action not in ('tm.workspace.delete', 'tm.workspace.restore', 'org.workspace.delete', 'org.workspace.restore'):
             wid = d.get('workspace_id') or (d.get('id') if action.startswith(('tm.workspace.', 'org.workspace.')) else None)

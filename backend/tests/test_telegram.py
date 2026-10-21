@@ -41,7 +41,10 @@ def connected(admin_api):
     TelegramSettings.objects.filter(id=1).update(bot_username='sunny_test_bot', status='ON')
     created = admin_api.command('admin.user.save', {'name': 'Dara Member', 'role_id': 'ROLE-MEMBER', 'password': 'Dara-password-2026'}).json()['result']
     from accounts.models import User
-    return admin_api, {'staff_id': User.objects.get(id=created['id']).staff_id}
+    staff = User.objects.get(id=created['id']).staff_id
+    from organization.models import Profile
+    Profile.objects.filter(staff_id=staff).update(org_level_id=3)
+    return admin_api, {'staff_id': staff}
 
 
 def test_launch_data_is_checked_with_the_bot_token():
