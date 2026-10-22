@@ -20,6 +20,16 @@ class Notification(models.Model):
     meeting_id = models.CharField(max_length=60, null=True, blank=True)
     note_id = models.CharField(max_length=60, null=True, blank=True)
 
+    translation = models.JSONField(default=dict, blank=True)
+
+    def save(self, *args, **kwargs):
+        from core.i18n import Message, pack
+        for field in ('title', 'body'):
+            value = getattr(self, field)
+            if isinstance(value, Message):
+                self.translation = {**(self.translation or {}), field: pack(value)}
+        super().save(*args, **kwargs)
+
     class Meta:
         db_table = 'tm_notifications'
         indexes = [models.Index(fields=['staff', 'read_at', 'id'], name='tm_notification_staff'),

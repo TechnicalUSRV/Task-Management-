@@ -1,3 +1,4 @@
+import { uiText, useLanguage, dynamicLabels, translatedEntries } from "./i18n";
 import { Share2 } from 'lucide-react';
 import { CheckboxField } from './ui-kit';
 import { formatColumnNumber, cellColors } from './group-presentation';
@@ -48,16 +49,17 @@ const cellKey = (row: string, col: string) => `${row}:${col}`;
 
 // ------------------------------------------------------------------ small helpers
 const inactiveIds = (w: Workspace) => new Set<string>([...w.data.lookups.filter((l: Row) => l.kind === 'staff' && !l.active).map((l: Row) => l.id), ...(w.data.tm_profiles || []).filter((p: Row) => !p.active).map((p: Row) => p.staff_id)]);
-const personName = (w: Workspace, id: string, inactive: Set<string>) => `${w.lookup(id)}${inactive.has(id) ? ' (inactive)' : ''}`;
+const personName = (w: Workspace, id: string, inactive: Set<string>) => `${w.lookup(id)}${inactive.has(id) ? uiText(" (inactive)") : ''}`;
 const visibilityText = (w: Workspace, b: Row) => {
-  if (b.visibility !== 'TEAM') return b.owner_id === w.actor ? 'Personal · only you' : `Personal · only ${w.lookup(b.owner_id)}`;
-  if (b.audience === 'WORKSPACE') return `Team · everyone in ${w.data.tm_workspaces.find((x: Row) => x.id === b.workspace_id)?.name || 'the workspace'}`;
+  if (b.visibility !== 'TEAM') return b.owner_id === w.actor ? uiText("Personal · only you") : `Personal · only ${w.lookup(b.owner_id)}`;
+  if (b.audience === 'WORKSPACE') return `Team · everyone in ${w.data.tm_workspaces.find((x: Row) => x.id === b.workspace_id)?.name || uiText("the workspace")}`;
   const n = (w.data.tm_board_access || []).filter((a: Row) => a.board_id === b.id).length + 1;
   return `Team · ${n} ${plural(n, 'person', 'people')}`;
 };
 const capsFor = (w: Workspace, b: Row) => { const wsArchived = w.data.tm_workspaces.find((x: Row) => x.id === b.workspace_id)?.status !== 'ACTIVE'; return groupCaps(b.level || 0, (a: string) => w.can('tasks.groups', a), { admin: !!b.admin, owner: b.owner_id === w.actor, archived: b.status === 'ARCHIVED' || wsArchived, wsArchived }); };
 const colorClass = (c?: string) => `status-color-${String(c || 'GRAY').toLowerCase()}`;
 function StatusChip({ label }: { label?: Row | null }) {
+  useLanguage();
   if (!label) return null;
   return <span className={`status-chip ${colorClass(label.color)}`}>{label.name}</span>;
 }
@@ -65,6 +67,7 @@ function StatusChip({ label }: { label?: Row | null }) {
 // ================================================================ the Groups section
 /** V5.6.8: the open group is in the address (#/tasks/groups/<id>), so Back returns to the list; Task Management passes it in. */
 export function GroupsView({ w, workspace, setWorkspace, openId, setOpenId }: { w: Workspace; workspace: string; setWorkspace: (v: string) => void; openId: string; setOpenId: (id: string) => void }) {
+  useLanguage();
   const d = w.data, boards: Row[] = d.tm_boards || [], canCreateIn: string[] = d.tm_group_workspaces || [];
   const [f, setF] = useViewState('groups:list', { query: '', archived: false });
   const [editing, setEditing] = useState<Row | null>(null);
@@ -86,19 +89,19 @@ export function GroupsView({ w, workspace, setWorkspace, openId, setOpenId }: { 
       {/* V5.6.8: the workspace picker and the page's action on one line, the button level with the picker (the count of
           groups is in the summary below). */}
       <div className="groups-top">
-        <Picker label="Workspace" value={wid} allowNone={false} options={workspaces.map(x => [x.id, x.name + (x.status === 'ARCHIVED' ? ' (archived)' : '')])} onChange={v => setWorkspace(v)} className="groups-ws-picker" />
-        {canCreate && <Button onClick={create}><Plus />Create group</Button>}
+        <Picker label={uiText("Workspace")} value={wid} allowNone={false} options={workspaces.map(x => [x.id, x.name + (x.status === 'ARCHIVED' ? uiText(" (archived)") : '')])} onChange={v => setWorkspace(v)} className="groups-ws-picker" />
+        {canCreate && <Button onClick={create}><Plus />{uiText("Create group")}</Button>}
       </div>
-      {!workspaces.length ? <EmptyState icon={Sheet} title="No workspace to add groups to" description="Groups live inside a workspace. Ask a workspace owner to add you to their workspace, or create a workspace first." />
+      {!workspaces.length ? <EmptyState icon={Sheet} title={uiText("No workspace to add groups to")} description={uiText("Groups live inside a workspace. Ask a workspace owner to add you to their workspace, or create a workspace first.")} />
         : <>
-          <FilterBar className="mt-4" search={<SearchInput value={f.query} onChange={v => setF(s => ({ ...s, query: v }))} label="Search groups" placeholder="Search group name or description…" />}
-            filters={<ToggleFilter label="Show archived" pressed={f.archived} onChange={v => setF(s => ({ ...s, archived: v }))} />}
-            chips={chips} onReset={() => setF({ query: '', archived: false })} summary={<><strong>{list.length}</strong> {plural(list.length, 'group')} in {ws?.name}</>} />
+          <FilterBar className="mt-4" search={<SearchInput value={f.query} onChange={v => setF(s => ({ ...s, query: v }))} label={uiText("Search groups")} placeholder={uiText("Search group name or description…")} />}
+            filters={<ToggleFilter label={uiText("Show archived")} pressed={f.archived} onChange={v => setF(s => ({ ...s, archived: v }))} />}
+            chips={chips} onReset={() => setF({ query: '', archived: false })} summary={<><strong>{list.length}</strong> {plural(list.length, 'group')} {uiText("in ")}{ws?.name}</>} />
           {list.length ? <div className="card-grid">
             {list.map(b => {
               const cols = summaries.get(b.id)?.columns || 0, rows = summaries.get(b.id)?.rows || 0;
               return (
-                <article key={b.id} className={`group-card${b.status === 'ARCHIVED' ? ' is-archived' : ''}`}>
+                <article key={b.id} className={`group-card${b.status === 'ARCHIVED' ? " is-archived" : ''}`}>
                   <div className="group-card-top">
                     <span className="group-icon" aria-hidden="true">{b.visibility === 'TEAM' ? <Users /> : <Lock />}</span>
                     <div className="group-card-heading">
@@ -107,15 +110,15 @@ export function GroupsView({ w, workspace, setWorkspace, openId, setOpenId }: { 
                     </div>
                     {b.status === 'ARCHIVED' && <StatusBadge value="ARCHIVED" />}
                   </div>
-                  <ExpandableText className="group-description" text={b.description} lines={2} empty={<p className="muted small">No description.</p>} />
+                  <ExpandableText className="group-description" text={b.description} lines={2} empty={<p className="muted small">{uiText("No description.")}</p>} />
                   <p className="group-card-meta"><span className="num">{cols} {plural(cols, 'column')}</span><span className="num">{rows} {plural(rows, 'row')}</span><span>{LEVEL_LABELS[levelKey(b.level) as keyof typeof LEVEL_LABELS]}</span></p>
-                  <div className="group-card-foot"><span className="person-cell small"><Avatar name={w.lookup(b.owner_id)} size="sm" />{w.lookup(b.owner_id).split(' · ')[0]}</span><Button size="sm" variant="outline" onClick={() => setOpenId(b.id)}>Open<ChevronRight /></Button></div>
+                  <div className="group-card-foot"><span className="person-cell small"><Avatar name={w.lookup(b.owner_id)} size="sm" />{w.lookup(b.owner_id).split(' · ')[0]}</span><Button size="sm" variant="outline" onClick={() => setOpenId(b.id)}>{uiText("Open")}<ChevronRight /></Button></div>
                 </article>
               );
             })}
-          </div> : chips.length ? <EmptyState title="No matching groups" action={<Button size="sm" variant="outline" onClick={() => setF({ query: '', archived: false })}>Clear filters</Button>} />
-            : <EmptyState icon={Sheet} title={`No groups in ${ws?.name || 'this workspace'} yet`} description="A group is a table you design: add the columns you need (text, dates, numbers, statuses, people and formulas), then add rows. Keep it personal, or share it with the workspace."
-              action={canCreate ? <Button size="sm" onClick={create}><Plus />Create group</Button> : <p className="muted small">Your role can’t create groups here. Groups shared with you appear in this list.</p>} />}
+          </div> : chips.length ? <EmptyState title={uiText("No matching groups")} action={<Button size="sm" variant="outline" onClick={() => setF({ query: '', archived: false })}>{uiText("Clear filters")}</Button>} />
+            : <EmptyState icon={Sheet} title={uiText("No groups in {p0} yet", { p0: ws?.name || 'this workspace' })} description={uiText("A group is a table you design: add the columns you need (text, dates, numbers, statuses, people and formulas), then add rows. Keep it personal, or share it with the workspace.")}
+              action={canCreate ? <Button size="sm" onClick={create}><Plus />{uiText("Create group")}</Button> : <p className="muted small">{uiText("Your role can’t create groups here. Groups shared with you appear in this list.")}</p>} />}
         </>}
       {dialog}
     </>
@@ -123,8 +126,8 @@ export function GroupsView({ w, workspace, setWorkspace, openId, setOpenId }: { 
 }
 function buildGroupChips(f: { query: string; archived: boolean }, setF: (fn: (s: { query: string; archived: boolean }) => { query: string; archived: boolean }) => void): FilterChip[] {
   const out: FilterChip[] = [];
-  if (f.query) out.push({ key: 'q', label: <>Search: “{f.query}”</>, text: `Search ${f.query}`, onRemove: () => setF(s => ({ ...s, query: '' })) });
-  if (f.archived) out.push({ key: 'a', label: 'Including archived', text: 'Including archived', onRemove: () => setF(s => ({ ...s, archived: false })) });
+  if (f.query) out.push({ key: 'q', label: <>{uiText("Search: “")}{f.query}”</>, text: uiText("Search {p0}", { p0: f.query }), onRemove: () => setF(s => ({ ...s, query: '' })) });
+  if (f.archived) out.push({ key: 'a', label: uiText("Including archived"), text: uiText("Including archived"), onRemove: () => setF(s => ({ ...s, archived: false })) });
   return out;
 }
 
@@ -168,6 +171,7 @@ function queryOf(v: ViewState): Record<string, string> {
 }
 
 function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: string; onBack: () => void; onOpen: (id: string) => void; onEdit: (tab?: string) => void }) {
+  useLanguage();
   const [data, setData] = useState<Row | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [refreshing, setRefreshing] = useState(false);
   const [saved, setView] = useViewState<ViewState>(`group:${id}:view`, VIEW_DEFAULT);
   const view: ViewState = { ...VIEW_DEFAULT, ...saved, size: PAGE_SIZES.includes(saved.size) ? saved.size : 50 };
@@ -193,7 +197,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   // data, 2 = also Add column and Settings & sharing. On wide screens everything stays in the toolbar.
   const [fit, setFit] = useState(0);
   const confirm = useConfirm(), inactive = useMemo(() => inactiveIds(w), [w.data]); // eslint-disable-line react-hooks/exhaustive-deps
-  const narrow = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 640px)').matches;
+  const narrow = typeof window !== 'undefined' && window.matchMedia?.("(max-width: 640px)").matches;
   const mode = view.mode || (narrow ? 'cards' : 'table');
   const query = queryOf(view), queryKey = JSON.stringify(query);
   const seqRef = useRef(0), hasData = useRef(false), wrapRef = useRef<HTMLDivElement>(null), bodyRef = useRef<HTMLTableSectionElement>(null), headRefs = useRef(new Map<string, HTMLElement>()), dragRef = useRef<ColumnDrag | null>(null);
@@ -219,7 +223,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     if (current.target.hasPointerCapture(current.pointer)) current.target.releasePointerCapture(current.pointer);
   }, []);
   useEffect(() => {
-    const key = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape' && dragRef.current) { e.preventDefault(); e.stopPropagation(); cancelColumnDrag(); setAnnounce('Column move cancelled.'); } };
+    const key = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape' && dragRef.current) { e.preventDefault(); e.stopPropagation(); cancelColumnDrag(); setAnnounce(uiText("Column move cancelled.")); } };
     document.addEventListener('keydown', key, true); window.addEventListener('blur', cancelColumnDrag); window.addEventListener('resize', cancelColumnDrag);
     return () => { document.removeEventListener('keydown', key, true); window.removeEventListener('blur', cancelColumnDrag); window.removeEventListener('resize', cancelColumnDrag); if (dragRef.current) window.cancelAnimationFrame(dragRef.current.frame); };
   }, [cancelColumnDrag]);
@@ -276,7 +280,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
       if (!ahead || typeAhead.current === ahead) {
         if (ahead) { typeAhead.current = null; setGhost(null); }
         resume.current(at, p, ahead);
-        if (!at && p.row !== '@first' && !ahead?.away) toast.info('The new row was added on another page (rows were added meanwhile).');
+        if (!at && p.row !== '@first' && !ahead?.away) toast.info(uiText("The new row was added on another page (rows were added meanwhile)."));
       }
       // A later Enter (after a click elsewhere) is typing for its own row: this one only keeps what was typed for it.
       else resume.current(at, p, { ...ahead, parts: ahead.parts.slice(0, 1), end: ahead.parts.length > 1 ? 'keep' : ahead.end ?? 'keep', away: true });
@@ -321,7 +325,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     const show = (a: TypeAhead) => { if (a.ghost) setGhost({ col: a.col, parts: [...a.parts], end: a.end }); };
     const onKey = (e: Event) => {
       const k = e as globalThis.KeyboardEvent, t = k.target as HTMLElement | null, a = typeAhead.current;
-      if (!a || a.end || k.isComposing || t?.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"], [role="listbox"]')) return;
+      if (!a || a.end || k.isComposing || t?.closest?.("input, textarea, select, [contenteditable=\"true\"], [role=\"dialog\"], [role=\"menu\"], [role=\"listbox\"]")) return;
       const swallow = () => { k.preventDefault(); k.stopPropagation(); };
       // Shortcuts pass, except the keys that would reopen the cell just left. AltGr (Ctrl+Alt on Windows) types characters.
       if (k.metaKey || ((k.ctrlKey || k.altKey) && !k.getModifierState?.('AltGraph'))) { if (k.key === 'Enter' || k.key === 'F2') swallow(); return; }
@@ -359,8 +363,8 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   }, [measureFit, !!data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boards: Row[] = (w.data.tm_boards || []).filter((b: Row) => data && b.workspace_id === data.group.workspace_id && (b.status === 'ACTIVE' || b.id === id));
-  if (loading && !data) return <div className="group-loading" role="status"><Loader2 className="spin" aria-hidden="true" />Opening the group…</div>;
-  if (error && !data) return <><Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft />All groups</Button><ErrorState message={error} onRetry={() => void load()} /></>;
+  if (loading && !data) return <div className="group-loading" role="status"><Loader2 className="spin" aria-hidden="true" />{uiText("Opening the group…")}</div>;
+  if (error && !data) return <><Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft />{uiText("All groups")}</Button><ErrorState message={error} onRetry={() => void load()} /></>;
   if (!data) return null;
   // Live Data columns are shown, filtered and edited as their source column's type (`linked` keeps the connection).
   const g: Row = data.group, columns: Row[] = data.columns.map(viewColumn), page: Row = data.page, rows: Row[] = page.rows, caps: Row = g.caps;
@@ -394,7 +398,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   const replaceRow = (next: Row) => setData(d => d && ({ ...d, page: { ...d.page, rows: d.page.rows.map((r: Row) => (r.id === next.id ? { ...r, ...next, notes: next.notes ?? r.notes } : r)) } }));
   const structure = async (action: string, body: Row, message?: string) => {
     setBusy(true);
-    try { const r = await groupCommand(action, { group_id: id, ...body }); await load(true); void w.refresh({ quiet: true }); if (message !== '') toast.success(message || r.message || 'Saved'); return r; }
+    try { const r = await groupCommand(action, { group_id: id, ...body }); await load(true); void w.refresh({ quiet: true }); if (message !== '') toast.success(message || r.message || uiText("Saved")); return r; }
     finally { setBusy(false); }
   };
   const saveView = async (patch: Row, message?: string, reload = false) => {
@@ -433,8 +437,8 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
       if (r.id && colId && mode === 'table') pendingOpen.current = [...pendingOpen.current, { row: r.id, col: colId, offset: (toLast ? last : view.page) * view.size, after: seqRef.current, ahead }];
       else if (ahead && typeAhead.current === ahead) { typeAhead.current = null; setGhost(null); }
       if (toLast) setV({ page: last }); else await load(true);
-      if (quiet) setAnnounce('Row added.');
-      else toast.success(filtering ? 'Row added. It may not match your search or filters.' : view.sort ? 'Row added. With this sorting it may be on another page.' : 'Row added.');
+      if (quiet) setAnnounce(uiText("Row added."));
+      else toast.success(filtering ? uiText("Row added. It may not match your search or filters.") : view.sort ? uiText("Row added. With this sorting it may be on another page.") : uiText("Row added."));
     } catch (e) { if (ahead && typeAhead.current === ahead) { typeAhead.current = null; setGhost(null); } toast.error((e as Error).message); } finally { setBusy(false); }
   };
   // Enter in a cell (V5.5.1, like Excel): save, then edit the same column in the row below. On the last row of the
@@ -456,7 +460,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     const ahead: TypeAhead = { ...(from || { col: col.id, parts: [''], text: col.type === 'TEXT' || col.type === 'NUMBER', lines: col.type === 'TEXT', until: Date.now() + 10000 }), ghost: step === 'add' };
     typeAhead.current = ahead;
     setGhost(ahead.ghost ? { col: col.id, parts: [...ahead.parts], end: ahead.end } : null);
-    if (step === 'add') setAnnounce('Adding a row…');
+    if (step === 'add') setAnnounce(uiText("Adding a row…"));
     // A server that doesn't answer doesn't keep the keyboard: 10 seconds after the first Enter of a run of rows typed ahead,
     // keys go where they normally go again (what was typed is still saved when the row comes).
     window.setTimeout(() => {
@@ -527,8 +531,8 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     }
   };
   const deleteRow = async (row: Row, label: string) => {
-    if (!(await confirm({ title: `Delete ${label}?`, description: 'The row and its notes are deleted. This can’t be undone; the deletion is kept in the group’s activity.', confirmLabel: 'Delete row', tone: 'danger' }))) return;
-    try { await structure('tm.group.row.delete', { id: row.id, expected_version: row.version }, 'Row deleted.'); } catch (e) { toast.error((e as Error).message); await load(true); }
+    if (!(await confirm({ title: uiText("Delete {p0}?", { p0: label }), description: uiText("The row and its notes are deleted. This can’t be undone; the deletion is kept in the group’s activity."), confirmLabel: uiText("Delete row"), tone: 'danger' }))) return;
+    try { await structure('tm.group.row.delete', { id: row.id, expected_version: row.version }, uiText("Row deleted.")); } catch (e) { toast.error((e as Error).message); await load(true); }
   };
   const moveRow = async (row: Row, by: number) => {
     const to = page.offset + rows.findIndex(r => r.id === row.id) + by;
@@ -536,27 +540,27 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     try { await structure('tm.group.row.move', { id: row.id, to }, ''); if (to < page.offset || to >= page.offset + view.size) setV({ page: Math.floor(to / view.size) }); } catch (e) { toast.error((e as Error).message); }
   };
   const deleteColumn = async (col: Row) => {
-    if (col.used_by?.length) { toast.error(`“${col.name}” is used by ${col.used_by.map((x: string) => `“${columns.find(c => c.id === x)?.name}”`).join(', ')}. Change or delete those formulas first.`); return; }
-    if (!(await confirm({ title: `Delete the column “${col.name}”?`, description: 'Its values in every row are deleted too. This can’t be undone.', confirmLabel: 'Delete column', tone: 'danger' }))) return;
+    if (col.used_by?.length) { toast.error(uiText("“{p0}” is used by {p1}. Change or delete those formulas first.", { p0: col.name, p1: col.used_by.map((x: string) => `“${columns.find(c => c.id === x)?.name}”`).join(', ') })); return; }
+    if (!(await confirm({ title: uiText("Delete the column “{p0}”?", { p0: col.name }), description: uiText("Its values in every row are deleted too. This can’t be undone."), confirmLabel: uiText("Delete column"), tone: 'danger' }))) return;
     try { await structure('tm.group.column.delete', { id: col.id, expected_version: col.version, confirm: true }, `Column “${col.name}” deleted.`); } catch (e) { toast.error((e as Error).message); }
   };
   const archive = async () => {
     const archiving = g.status === 'ACTIVE';
-    if (!(await confirm({ title: `${archiving ? 'Archive' : 'Restore'} “${g.name}”?`, description: archiving ? `Its ${columns.length} ${plural(columns.length, 'column')} and ${page.all} ${plural(page.all, 'row')} are kept but can’t be changed while it is archived. It can be restored, or deleted permanently.` : 'The group can be changed again.', confirmLabel: archiving ? 'Archive group' : 'Restore group', tone: archiving ? 'danger' : 'default' }))) return;
+    if (!(await confirm({ title: uiText("{p0} “{p1}”?", { p0: archiving ? 'Archive' : 'Restore', p1: g.name }), description: archiving ? uiText("Its {p0} {p1} and {p2} {p3} are kept but can’t be changed while it is archived. It can be restored, or deleted permanently.", { p0: columns.length, p1: plural(columns.length, 'column'), p2: page.all, p3: plural(page.all, 'row') }) : uiText("The group can be changed again."), confirmLabel: archiving ? uiText("Archive group") : uiText("Restore group"), tone: archiving ? 'danger' : 'default' }))) return;
     try { await structure('tm.group.archive', { id: g.id, expected_version: g.version, status: archiving ? 'ARCHIVED' : 'ACTIVE' }); } catch (e) { toast.error((e as Error).message); }
   };
   const remove = async () => {
-    const r = await confirm({ title: `Delete “${g.name}” permanently?`, description: `The group, its ${columns.length} ${plural(columns.length, 'column')} and ${page.all} ${plural(page.all, 'row')} are deleted for everyone. This can’t be undone.`, confirmLabel: 'Delete permanently', tone: 'danger', reason: { label: 'Type the group name to confirm', required: true, placeholder: g.name } });
+    const r = await confirm({ title: uiText("Delete “{p0}” permanently?", { p0: g.name }), description: uiText("The group, its {p0} {p1} and {p2} {p3} are deleted for everyone. This can’t be undone.", { p0: columns.length, p1: plural(columns.length, 'column'), p2: page.all, p3: plural(page.all, 'row') }), confirmLabel: uiText("Delete permanently"), tone: 'danger', reason: { label: uiText("Type the group name to confirm"), required: true, placeholder: g.name } });
     if (!r) return;
-    if (r.reason.trim() !== g.name) { toast.error('The name you typed does not match the group name. Nothing was deleted.'); return; }
-    try { await groupCommand('tm.group.delete', { id: g.id, expected_version: g.version, confirm: true }); toast.success('Group deleted.'); void w.refresh({ quiet: true }); onBack(); } catch (e) { toast.error((e as Error).message); }
+    if (r.reason.trim() !== g.name) { toast.error(uiText("The name you typed does not match the group name. Nothing was deleted.")); return; }
+    try { await groupCommand('tm.group.delete', { id: g.id, expected_version: g.version, confirm: true }); toast.success(uiText("Group deleted.")); void w.refresh({ quiet: true }); onBack(); } catch (e) { toast.error((e as Error).message); }
   };
 
   // ---------------------------------------------------------------- my view: hide rows and columns (only for me)
-  const hideRows = (ids: string[]) => void saveView({ hidden_rows: [...new Set([...hiddenRows, ...ids])] }, ids.length === 1 ? 'Hidden in your view. Others still see it.' : `${ids.length} rows hidden in your view. Others still see them.`, true).then(() => { setSelected({}); });
-  const showRow = (rid: string) => void saveView({ hidden_rows: [...hiddenRows].filter(x => x !== rid) }, 'Shown in your view again.', true);
+  const hideRows = (ids: string[]) => void saveView({ hidden_rows: [...new Set([...hiddenRows, ...ids])] }, ids.length === 1 ? uiText("Hidden in your view. Others still see it.") : `${ids.length} rows hidden in your view. Others still see them.`, true).then(() => { setSelected({}); });
+  const showRow = (rid: string) => void saveView({ hidden_rows: [...hiddenRows].filter(x => x !== rid) }, uiText("Shown in your view again."), true);
   const hideColumn = (col: Row) => void saveView({ hidden_columns: [...hiddenCols, col.id] }, `“${col.name}” is hidden in your view. Others still see it.`);
-  const resetLayout = async () => { try { await groupCommand('tm.group.view.save', { group_id: id, reset: true }); setWidths({}); setRownumDraft(null); toast.success('Your view is back to the group’s default.'); await load(true); } catch (e) { toast.error((e as Error).message); } };
+  const resetLayout = async () => { try { await groupCommand('tm.group.view.save', { group_id: id, reset: true }); setWidths({}); setRownumDraft(null); toast.success(uiText("Your view is back to the group’s default.")); await load(true); } catch (e) { toast.error((e as Error).message); } };
   const saveDefaultLayout = async () => {
     const all = Object.fromEntries(ordered.map(c => [c.id, widthOf(c)]));
     try { await structure('tm.group.layout.save', { layout: { widths: all, order: ordered.map(c => c.id), rownum: rownumW } }); } catch (e) { toast.error((e as Error).message); }
@@ -571,7 +575,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     const full = [...ids];
     ordered.forEach((c, i) => { if (hiddenCols.has(c.id)) full.splice(Math.min(i, full.length), 0, c.id); });
     void saveView({ order: full });
-    const name = columns.find(c => c.id === moved)?.name || 'Column';
+    const name = columns.find(c => c.id === moved)?.name || uiText("Column");
     setAnnounce(`${name} moved to position ${ids.indexOf(moved) + 1} of ${ids.length}.`);
   };
   const moveColumnBy = (colId: string, by: number) => {
@@ -659,7 +663,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   // it, Shift+Arrow keys extend, Ctrl+A selects the page, Escape clears. Right-click (or the ⋮ button) for row actions.
   const ids = Object.keys(selected), pageAll = rows.length > 0 && rows.every(r => selected[r.id] !== undefined);
   const selCount = allMatching ? page.total : ids.length;
-  const say = (n: number) => setAnnounce(n ? `${n} ${plural(n, 'row')} selected.` : 'Selection cleared.');
+  const say = (n: number) => setAnnounce(n ? `${n} ${plural(n, 'row')} selected.` : uiText("Selection cleared."));
   const pageSelection = () => Object.fromEntries(rows.map(r => [r.id, r.version])) as Record<string, number>;
   const pick = (next: Record<string, number>) => { setAllMatching(false); setSelected(next); say(Object.keys(next).length); };
   const rangeOf = (a: number, b: number) => {
@@ -708,7 +712,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
     s.frame = window.requestAnimationFrame(autoScroll);
   };
   const rowDown = (e: ReactPointerEvent<HTMLElement>, i: number) => {
-    if (e.button !== 0 || rowDrag.current || (e.target as HTMLElement).closest('.note-button, .rownum-menu')) return;
+    if (e.button !== 0 || rowDrag.current || (e.target as HTMLElement).closest(".note-button, .rownum-menu")) return;
     const r = rows[i]; if (!r) return;
     e.currentTarget.querySelector<HTMLButtonElement>('.rownum-select')?.focus({ preventScroll: true });
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* older browsers: the drag still works inside the table */ }
@@ -744,7 +748,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   const rowClick = (e: MouseEvent, i: number) => { if (e.detail > 0) return; if (e.shiftKey) extendTo(i); else toggleOne(i); };
   const rowKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
     const go = (j: number) => wrapRef.current?.querySelectorAll<HTMLButtonElement>('.rownum-select')[j]?.focus();
-    if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(e.key)) {
+    if (['ArrowDown', 'ArrowUp', "Home", "End", 'PageDown', 'PageUp'].includes(e.key)) {
       e.preventDefault();
       const step = e.key === 'PageDown' ? 10 : e.key === 'PageUp' ? -10 : e.key === 'ArrowDown' ? 1 : -1;
       const j = e.key === 'Home' ? 0 : e.key === 'End' ? rows.length - 1 : Math.max(0, Math.min(rows.length - 1, i + step));
@@ -772,23 +776,23 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
   const cardClick = (e: MouseEvent, i: number) => { if (e.shiftKey && anchorAt() >= 0) extendTo(i); else toggleOne(i); };
   const boardKeys = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Escape' || !selCount || e.defaultPrevented) return;
-    if ((e.target as HTMLElement).closest('input, textarea, select, [role="menu"], [role="dialog"], [role="listbox"]')) return;
+    if ((e.target as HTMLElement).closest("input, textarea, select, [role=\"menu\"], [role=\"dialog\"], [role=\"listbox\"]")) return;
     e.preventDefault(); clearSelection(); say(0);
   };
   const deleteSelected = async () => {
     const count = selCount, big = count > 20;
     const r = await confirm({
-      title: `Delete ${count.toLocaleString('en-US')} ${plural(count, 'row')}?`,
-      description: allMatching ? `Every row matching your search and filters is deleted, with its notes. This can’t be undone.` : `The selected ${plural(count, 'row')} and ${count === 1 ? 'its' : 'their'} notes are deleted. This can’t be undone. If any of them changed or can’t be deleted, nothing is deleted.`,
-      confirmLabel: `Delete ${count.toLocaleString('en-US')} ${plural(count, 'row')}`, tone: 'danger', ...(big ? { reason: { label: `Type ${count} to confirm`, required: true, placeholder: String(count), singleLine: true, inputMode: 'numeric' } } : {}),
+      title: uiText("Delete {p0} {p1}?", { p0: count.toLocaleString('en-US'), p1: plural(count, 'row') }),
+      description: allMatching ? uiText("Every row matching your search and filters is deleted, with its notes. This can’t be undone.") : uiText("The selected {p0} and {p1} notes are deleted. This can’t be undone. If any of them changed or can’t be deleted, nothing is deleted.", { p0: plural(count, 'row'), p1: count === 1 ? 'its' : 'their' }),
+      confirmLabel: uiText("Delete {p0} {p1}", { p0: count.toLocaleString('en-US'), p1: plural(count, 'row') }), tone: 'danger', ...(big ? { reason: { label: uiText("Type {p0} to confirm", { p0: count }), required: true, placeholder: String(count), singleLine: true, inputMode: 'numeric' } } : {}),
     });
     if (!r) return;
-    if (big && r.reason.replace(/[,\s]/g, '') !== String(count)) { toast.error('The number you typed does not match. Nothing was deleted.'); return; }
+    if (big && r.reason.replace(/[,\s]/g, '') !== String(count)) { toast.error(uiText("The number you typed does not match. Nothing was deleted.")); return; }
     setBusy(true);
     try {
       const body = allMatching ? { match: { q: query.q || '', filters: view.filters, ...(view.showHidden ? { hidden: '1' } : {}) }, expected_count: count, match_key: matchKey } : { ids, expected: selected };
       const res = await groupCommand('tm.group.row.delete', { group_id: id, ...body });
-      toast.success(res.message || 'Deleted.'); clearSelection(); await load(true); void w.refresh({ quiet: true });
+      toast.success(res.message || uiText("Deleted.")); clearSelection(); await load(true); void w.refresh({ quiet: true });
     } catch (e) { toast.error((e as Error).message); await load(true); } finally { setBusy(false); }
   };
   const restrictRows = (list: Row[], label: string) => {
@@ -799,7 +803,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
 
   // ---------------------------------------------------------------- filters shown as chips
   const chips: FilterChip[] = [
-    ...(view.q ? [{ key: 'q', label: <>Search: “{view.q}”</>, text: `Search ${view.q}`, onRemove: () => { setSearch(''); setV({ q: '' }); } }] : []),
+    ...(view.q ? [{ key: 'q', label: <>{uiText("Search: “")}{view.q}”</>, text: uiText("Search {p0}", { p0: view.q }), onRemove: () => { setSearch(''); setV({ q: '' }); } }] : []),
     ...view.filters.map((f, i) => { const col = columns.find(c => c.id === f.col); return { key: `f${i}`, label: <>{filterLabel(col, f, nameOf)}</>, text: filterLabel(col, f, nameOf), onRemove: () => setV({ filters: view.filters.filter((_, n) => n !== i) }) }; }),
   ];
   const editors: Editors = { active, setActive, cells, saveCell, discard, groupId: id, w, nameOf, caps, replaceRow, advance, lastRowId, enterTo, seed };
@@ -811,33 +815,33 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
       onNotes={() => setNotesFor({ row: r, title: rowLabel(r, n) })} onInsert={() => void addRow(r.id)} onMove={by => void moveRow(r, by)} onHide={() => (hiddenRows.has(r.id) ? showRow(r.id) : hideRows([r.id]))}
       onRestrict={() => restrictRows([r], rowLabel(r, n).toLowerCase())} onDelete={() => void deleteRow(r, rowLabel(r, n).toLowerCase())} />;
   };
-  const notesButton = (r: Row, n: number) => <button type="button" className={`note-button${r.notes ? ' has-notes' : ''}`} onClick={() => setNotesFor({ row: r, title: rowLabel(r, n) })} aria-label={r.notes ? `${r.notes} ${plural(r.notes, 'note')} on ${rowLabel(r, n)}` : `Notes on ${rowLabel(r, n)}`} title={r.notes ? `${r.notes} ${plural(r.notes, 'note')}` : 'Notes'}><MessageSquareText aria-hidden="true" />{r.notes > 0 && <span className="num">{r.notes > 99 ? '99+' : r.notes}</span>}</button>;
+  const notesButton = (r: Row, n: number) => <button type="button" className={`note-button${r.notes ? " has-notes" : ''}`} onClick={() => setNotesFor({ row: r, title: rowLabel(r, n) })} aria-label={r.notes ? uiText("{p0} {p1} on {p2}", { p0: r.notes, p1: plural(r.notes, 'note'), p2: rowLabel(r, n) }) : uiText("Notes on {p0}", { p0: rowLabel(r, n) })} title={r.notes ? uiText("{p0} {p1}", { p0: r.notes, p1: plural(r.notes, 'note') }) : uiText("Notes")}><MessageSquareText aria-hidden="true" />{r.notes > 0 && <span className="num">{r.notes > 99 ? '99+' : r.notes}</span>}</button>;
   const sizeText = (n: number) => n.toLocaleString('en-US');
   const moved = (fit >= 2 && (caps.structure || canSettings)) || (fit >= 1 && (caps.import || caps.export));
   const moreMenu = (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`More actions for ${g.name}`} title="More"><MoreHorizontal /></Button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={uiText("More actions for {p0}", { p0: g.name })} title={uiText("More")}><MoreHorizontal /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="group-more-menu">
-        {fit >= 2 && caps.structure && <DropdownMenuItem disabled={busy || columns.length >= GROUP_LIMITS.columns} onSelect={() => setColumnDialog({})}><Columns3 />Add column</DropdownMenuItem>}
-        {fit >= 2 && canSettings && <DropdownMenuItem disabled={busy} onSelect={() => onEdit()}><Settings2 />Settings & sharing</DropdownMenuItem>}
-        {fit >= 1 && caps.import && <DropdownMenuItem disabled={busy} onSelect={() => setImporting(true)}><Upload />Import data</DropdownMenuItem>}
-        {fit >= 1 && caps.export && <DropdownMenuItem onSelect={() => setExporting(true)}><Download />Export data</DropdownMenuItem>}
+        {fit >= 2 && caps.structure && <DropdownMenuItem disabled={busy || columns.length >= GROUP_LIMITS.columns} onSelect={() => setColumnDialog({})}><Columns3 />{uiText("Add column")}</DropdownMenuItem>}
+        {fit >= 2 && canSettings && <DropdownMenuItem disabled={busy} onSelect={() => onEdit()}><Settings2 />{uiText("Settings & sharing")}</DropdownMenuItem>}
+        {fit >= 1 && caps.import && <DropdownMenuItem disabled={busy} onSelect={() => setImporting(true)}><Upload />{uiText("Import data")}</DropdownMenuItem>}
+        {fit >= 1 && caps.export && <DropdownMenuItem onSelect={() => setExporting(true)}><Download />{uiText("Export data")}</DropdownMenuItem>}
         {moved && <DropdownMenuSeparator />}
-        {(caps.structure || (caps.share && caps.export)) && <DropdownMenuLabel>Live Data</DropdownMenuLabel>}
-        {caps.share && caps.export && <DropdownMenuItem disabled={busy} onSelect={() => setLiveShare({})}><Share2 />Share Live Data…</DropdownMenuItem>}
-        {caps.structure && <DropdownMenuItem disabled={busy || columns.length >= GROUP_LIMITS.columns} onSelect={() => setLiveColumn({})}><Link2 />Add Live Data column…</DropdownMenuItem>}
+        {(caps.structure || (caps.share && caps.export)) && <DropdownMenuLabel>{uiText("Live Data")}</DropdownMenuLabel>}
+        {caps.share && caps.export && <DropdownMenuItem disabled={busy} onSelect={() => setLiveShare({})}><Share2 />{uiText("Share Live Data…")}</DropdownMenuItem>}
+        {caps.structure && <DropdownMenuItem disabled={busy || columns.length >= GROUP_LIMITS.columns} onSelect={() => setLiveColumn({})}><Link2 />{uiText("Add Live Data column…")}</DropdownMenuItem>}
         {(caps.structure || (caps.share && caps.export)) && <DropdownMenuSeparator />}
-        {data.activity && <DropdownMenuItem onSelect={() => setShowActivity(true)}><History />Recent changes</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={() => setShowAccess(true)}><Users />Who can open it</DropdownMenuItem>
+        {data.activity && <DropdownMenuItem onSelect={() => setShowActivity(true)}><History />{uiText("Recent changes")}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={() => setShowAccess(true)}><Users />{uiText("Who can open it")}</DropdownMenuItem>
         {g.description && <DropdownMenuLabel className="group-menu-desc">{g.description.slice(0, 200)}</DropdownMenuLabel>}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>Layout</DropdownMenuLabel>
-        {hiddenCols.size > 0 && <DropdownMenuItem onSelect={() => void saveView({ hidden_columns: [] }, 'All columns are shown again.')}><Eye />Show {hiddenCols.size} hidden {plural(hiddenCols.size, 'column')}</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={() => void resetLayout()}><RotateCcw />Reset my view</DropdownMenuItem>
-        {caps.structure && <DropdownMenuItem onSelect={() => void saveDefaultLayout()}><Save />Save my layout as everyone’s default</DropdownMenuItem>}
+        <DropdownMenuLabel>{uiText("Layout")}</DropdownMenuLabel>
+        {hiddenCols.size > 0 && <DropdownMenuItem onSelect={() => void saveView({ hidden_columns: [] }, uiText("All columns are shown again."))}><Eye />{uiText("Show ")}{hiddenCols.size} {uiText("hidden ")}{plural(hiddenCols.size, 'column')}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={() => void resetLayout()}><RotateCcw />{uiText("Reset my view")}</DropdownMenuItem>
+        {caps.structure && <DropdownMenuItem onSelect={() => void saveDefaultLayout()}><Save />{uiText("Save my layout as everyone’s default")}</DropdownMenuItem>}
         {caps.archive && <><DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => void archive()}>{g.status === 'ACTIVE' ? <><Archive />Archive group…</> : <><ArchiveRestore />Restore group…</>}</DropdownMenuItem>
-          {g.status === 'ARCHIVED' && <DropdownMenuItem tone="danger" onSelect={() => void remove()}><Trash2 />Delete permanently…</DropdownMenuItem>}</>}
+          <DropdownMenuItem onSelect={() => void archive()}>{g.status === 'ACTIVE' ? <><Archive />{uiText("Archive group…")}</> : <><ArchiveRestore />{uiText("Restore group…")}</>}</DropdownMenuItem>
+          {g.status === 'ARCHIVED' && <DropdownMenuItem tone="danger" onSelect={() => void remove()}><Trash2 />{uiText("Delete permanently…")}</DropdownMenuItem>}</>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -847,83 +851,83 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
       {/* The page's heading (the page title is not shown while a group is open). */}
       <h1 className="sr-only">{g.name}</h1>
       {/* V5.5.1: one compact bar above the table (no page title, tabs or title row while a group is open). */}
-      <div ref={toolbarRef} className="group-toolbar" role="group" aria-label={`${g.name} tools`}>
-          <IconButton label="All groups" icon={ArrowLeft} onClick={onBack} className="group-back" />
-          <div className="group-search" data-min-width="150"><SearchInput value={search} onChange={setSearch} label="Search this group" placeholder="Search every column…" /></div>
+      <div ref={toolbarRef} className="group-toolbar" role="group" aria-label={uiText("{p0} tools", { p0: g.name })}>
+          <IconButton label={uiText("All groups")} icon={ArrowLeft} onClick={onBack} className="group-back" />
+          <div className="group-search" data-min-width="150"><SearchInput value={search} onChange={setSearch} label={uiText("Search this group")} placeholder={uiText("Search every column…")} /></div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><ListFilter />Filter{view.filters.length ? <span className="count-inline num">{view.filters.length}</span> : null}</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><ListFilter />{uiText("Filter")}{view.filters.length ? <span className="count-inline num">{view.filters.length}</span> : null}</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuLabel>Filter by column</DropdownMenuLabel>
+              <DropdownMenuLabel>{uiText("Filter by column")}</DropdownMenuLabel>
               {shown.map(c => { const Icon = TYPE_ICON[c.type]; return <DropdownMenuItem key={c.id} onSelect={() => setFilterFor(c)}><Icon />{c.name}</DropdownMenuItem>; })}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Segmented label="View" size="sm" value={mode} onChange={v => setV({ mode: v as ViewState['mode'], page: view.page })} options={[{ value: 'table', label: 'Table', icon: Sheet, hideLabel: narrow }, { value: 'cards', label: 'Cards', icon: LayoutList, hideLabel: narrow }]} />
+          <Segmented label={uiText("View")} size="sm" value={mode} onChange={v => setV({ mode: v as ViewState['mode'], page: view.page })} options={[{ value: 'table', label: uiText("Table"), icon: Sheet, hideLabel: narrow }, { value: 'cards', label: uiText("Cards"), icon: LayoutList, hideLabel: narrow }]} />
           <span className="toolbar-sep" aria-hidden="true" />
-          {caps.addRows && <Button size="sm" onClick={() => void addRow()} disabled={busy}><Plus />Add row</Button>}
-          {fit < 2 && caps.structure && <Button size="sm" variant="outline" data-fit="column" onClick={() => setColumnDialog({})} disabled={busy || columns.length >= GROUP_LIMITS.columns}><Columns3 />Add column</Button>}
-          {fit < 2 && canSettings && <Button size="sm" variant="outline" data-fit="settings" onClick={() => onEdit()} disabled={busy}><Settings2 />Settings & sharing</Button>}
-          {fit < 1 && caps.import && <Button size="sm" variant="outline" data-fit="import" onClick={() => setImporting(true)} disabled={busy} title="Import data from Excel"><Upload />Import</Button>}
-          {fit < 1 && caps.export && <Button size="sm" variant="outline" data-fit="export" onClick={() => setExporting(true)} title="Export data to Excel"><Download />Export</Button>}
+          {caps.addRows && <Button size="sm" onClick={() => void addRow()} disabled={busy}><Plus />{uiText("Add row")}</Button>}
+          {fit < 2 && caps.structure && <Button size="sm" variant="outline" data-fit="column" onClick={() => setColumnDialog({})} disabled={busy || columns.length >= GROUP_LIMITS.columns}><Columns3 />{uiText("Add column")}</Button>}
+          {fit < 2 && canSettings && <Button size="sm" variant="outline" data-fit="settings" onClick={() => onEdit()} disabled={busy}><Settings2 />{uiText("Settings & sharing")}</Button>}
+          {fit < 1 && caps.import && <Button size="sm" variant="outline" data-fit="import" onClick={() => setImporting(true)} disabled={busy} title={uiText("Import data from Excel")}><Upload />{uiText("Import")}</Button>}
+          {fit < 1 && caps.export && <Button size="sm" variant="outline" data-fit="export" onClick={() => setExporting(true)} title={uiText("Export data to Excel")}><Download />{uiText("Export")}</Button>}
           {moreMenu}
       </div>
-      {g.workspace_status === 'ARCHIVED' ? <Alert tone="neutral" title="This group’s workspace is archived">Restore the workspace “{g.workspace_name}” to change its groups.</Alert>
-        : g.status === 'ARCHIVED' ? <Alert tone="neutral" title="This group is archived">Nobody can change it. {caps.archive ? 'Restore it to use it again, or delete it permanently.' : 'Its owner can restore it.'}</Alert>
-          : !caps.editRows && <p className="group-readonly muted small"><Lock aria-hidden="true" className="inline-icon" />View only{w.can('tasks.groups', 'update') ? ': changing records needs “Can edit records” access from its owner.' : '.'}</p>}
+      {g.workspace_status === 'ARCHIVED' ? <Alert tone="neutral" title={uiText("This group’s workspace is archived")}>{uiText("Restore the workspace “")}{g.workspace_name}{uiText("” to change its groups.")}</Alert>
+        : g.status === 'ARCHIVED' ? <Alert tone="neutral" title={uiText("This group is archived")}>{uiText("Nobody can change it. ")}{caps.archive ? uiText("Restore it to use it again, or delete it permanently.") : uiText("Its owner can restore it.")}</Alert>
+          : !caps.editRows && <p className="group-readonly muted small"><Lock aria-hidden="true" className="inline-icon" />{uiText("View only")}{w.can('tasks.groups', 'update') ? uiText(": changing records needs “Can edit records” access from its owner.") : '.'}</p>}
       {/* While rows are selected, what can be done with them lies over the line with the row count: nothing moves, so the
           rows under the pointer stay put during a drag, and the toolbar above stays usable. */}
-      <div className={`group-status-wrap${selecting ? ' is-selecting' : ''}`}>
-      {selecting && <div className="selection-bar" role="region" aria-label="Selected rows">
-        <IconButton label="Clear the selection" icon={X} size="icon-xs" onClick={clearAndFocus} />
-        <span className="selection-count"><strong className="num">{sizeText(selCount)}</strong> {allMatching ? `selected: every row ${filtering ? 'matching your search and filters' : 'in this group'}` : `${plural(selCount, 'row')} selected${page.total > rows.length ? ' on this page' : ''}`}</span>
+      <div className={`group-status-wrap${selecting ? " is-selecting" : ''}`}>
+      {selecting && <div className="selection-bar" role="region" aria-label={uiText("Selected rows")}>
+        <IconButton label={uiText("Clear the selection")} icon={X} size="icon-xs" onClick={clearAndFocus} />
+        <span className="selection-count"><strong className="num">{sizeText(selCount)}</strong> {allMatching ? uiText("selected: every row {p0}", { p0: filtering ? 'matching your search and filters' : 'in this group' }) : uiText("{p0} selected{p1}", { p0: plural(selCount, 'row'), p1: page.total > rows.length ? ' on this page' : '' })}</span>
         {(allMatching || pageAll) && page.total > rows.length && <Button size="xs" variant="link" onClick={() => { if (allMatching) { setAllMatching(false); say(rows.length); } else { setMatchKey(page.match_key || ''); setAllMatching(true); say(page.total); } }}>
-          {allMatching ? `Select only the ${sizeText(rows.length)} on this page` : `Select all ${sizeText(page.total)} ${filtering ? 'matching rows' : 'rows'}`}</Button>}
+          {allMatching ? `Select only the ${sizeText(rows.length)} on this page` : `Select all ${sizeText(page.total)} ${filtering ? uiText("matching rows") : 'rows'}`}</Button>}
         <span className="selection-actions">
-          {caps.export && <Button size="xs" variant="outline" onClick={() => setExporting(true)}><Download />Export</Button>}
-          {!allMatching && <Button size="xs" variant="outline" onClick={() => hideRows(ids)}><EyeOff /><span className="label-long">Hide in my view</span><span className="label-short">Hide for me</span></Button>}
-          {caps.share && !allMatching && <Button size="xs" variant="outline" onClick={restrictSelected}><Lock /><span className="label-long">Restrict access…</span><span className="label-short">Restrict…</span></Button>}
-          {caps.deleteRows && <Button size="xs" variant="danger-outline" onClick={() => void deleteSelected()} disabled={busy}><Trash2 /><span className="label-long">Delete selected</span><span className="label-short">Delete</span></Button>}
+          {caps.export && <Button size="xs" variant="outline" onClick={() => setExporting(true)}><Download />{uiText("Export")}</Button>}
+          {!allMatching && <Button size="xs" variant="outline" onClick={() => hideRows(ids)}><EyeOff /><span className="label-long">{uiText("Hide in my view")}</span><span className="label-short">{uiText("Hide for me")}</span></Button>}
+          {caps.share && !allMatching && <Button size="xs" variant="outline" onClick={restrictSelected}><Lock /><span className="label-long">{uiText("Restrict access…")}</span><span className="label-short">{uiText("Restrict…")}</span></Button>}
+          {caps.deleteRows && <Button size="xs" variant="danger-outline" onClick={() => void deleteSelected()} disabled={busy}><Trash2 /><span className="label-long">{uiText("Delete selected")}</span><span className="label-short">{uiText("Delete")}</span></Button>}
         </span>
       </div>}
       <div className="filter-status group-status">
         <GroupSwitch name={g.name} boards={boards} current={id} onOpen={onOpen} onBack={onBack} />
-        <span className="filter-summary" aria-live="polite"><strong className="num">{sizeText(page.total)}</strong>{filtering ? ` of ${sizeText(page.all)}` : ''} {plural(filtering ? page.all : page.total, 'row')}
-          {page.hidden_mine > 0 && <> · <button type="button" className="text-link" onClick={() => setV({ showHidden: !view.showHidden })}>{view.showHidden ? `Hide the ${page.hidden_mine} ${plural(page.hidden_mine, 'row')} I hid` : `${page.hidden_mine} hidden in your view (show)`}</button></>}
-          {hiddenCols.size > 0 && <> · <button type="button" className="text-link" onClick={() => void saveView({ hidden_columns: [] }, 'All columns are shown again.')}>{hiddenCols.size} {plural(hiddenCols.size, 'column')} hidden in your view (show)</button></>}
+        <span className="filter-summary" aria-live="polite"><strong className="num">{sizeText(page.total)}</strong>{filtering ? uiText(" of {p0}", { p0: sizeText(page.all) }) : ''} {plural(filtering ? page.all : page.total, 'row')}
+          {page.hidden_mine > 0 && <> · <button type="button" className="text-link" onClick={() => setV({ showHidden: !view.showHidden })}>{view.showHidden ? uiText("Hide the {p0} {p1} I hid", { p0: page.hidden_mine, p1: plural(page.hidden_mine, 'row') }) : uiText("{p0} hidden in your view (show)", { p0: page.hidden_mine })}</button></>}
+          {hiddenCols.size > 0 && <> · <button type="button" className="text-link" onClick={() => void saveView({ hidden_columns: [] }, uiText("All columns are shown again."))}>{hiddenCols.size} {plural(hiddenCols.size, 'column')} {uiText("hidden in your view (show)")}</button></>}
         </span>
-        {chips.length > 0 && <ul className="filter-chips" aria-label="Active filters">{chips.map(c => <li key={c.key} className="chip"><span>{c.label}</span><button type="button" aria-label={`Remove filter ${c.text}`} onClick={c.onRemove}><X aria-hidden="true" /></button></li>)}</ul>}
-        {chips.length > 1 && <Button variant="link" size="xs" onClick={() => { setSearch(''); setV({ q: '', filters: [] }); }}>Reset all</Button>}
-        {view.sort && <Button size="xs" variant="ghost" onClick={() => setV({ sort: null })}><X />Sorted by {columns.find(c => c.id === view.sort!.col)?.name} ({view.sort.dir === 'asc' ? 'A→Z, 1→9' : 'Z→A, 9→1'})</Button>}
+        {chips.length > 0 && <ul className="filter-chips" aria-label={uiText("Active filters")}>{chips.map(c => <li key={c.key} className="chip"><span>{c.label}</span><button type="button" aria-label={uiText("Remove filter {p0}", { p0: c.text })} onClick={c.onRemove}><X aria-hidden="true" /></button></li>)}</ul>}
+        {chips.length > 1 && <Button variant="link" size="xs" onClick={() => { setSearch(''); setV({ q: '', filters: [] }); }}>{uiText("Reset all")}</Button>}
+        {view.sort && <Button size="xs" variant="ghost" onClick={() => setV({ sort: null })}><X />{uiText("Sorted by ")}{columns.find(c => c.id === view.sort!.col)?.name} ({view.sort.dir === 'asc' ? uiText("A→Z, 1→9") : uiText("Z→A, 9→1")})</Button>}
         <span className="group-status-end">
-          {data.sync && <button type="button" className={`sync-chip is-${String(data.sync.status).toLowerCase()}`} onClick={caps.share ? () => onEdit('google') : undefined} disabled={!caps.share} title={caps.share ? 'Google Sheets settings' : undefined}>
+          {data.sync && <button type="button" className={`sync-chip is-${String(data.sync.status).toLowerCase()}`} onClick={caps.share ? () => onEdit('google') : undefined} disabled={!caps.share} title={caps.share ? uiText("Google Sheets settings") : undefined}>
             <Sheet aria-hidden="true" />{syncLabel(data.sync)}{data.sync.conflicts ? <span className="sync-conflicts"> · {data.sync.conflicts} {plural(data.sync.conflicts, 'conflict')}</span> : null}</button>}
-          {refreshing && <span className="muted small" role="status"><Loader2 className="spin inline-icon" aria-hidden="true" />Updating…</span>}
-          {error && !refreshing && <span className="group-refresh-error small" role="alert"><CircleAlert aria-hidden="true" />{error} <button type="button" className="text-link" onClick={() => void load(true)}>Try again</button></span>}
+          {refreshing && <span className="muted small" role="status"><Loader2 className="spin inline-icon" aria-hidden="true" />{uiText("Updating…")}</span>}
+          {error && !refreshing && <span className="group-refresh-error small" role="alert"><CircleAlert aria-hidden="true" />{error} <button type="button" className="text-link" onClick={() => void load(true)}>{uiText("Try again")}</button></span>}
         </span>
       </div>
       </div>
       <p className="sr-only" aria-live="polite">{announce}</p>
-      <p className="sr-only" id={gripHint}>Drag to move the column, or press the left and right arrow keys.</p>
-      {!columns.length ? <EmptyState icon={Columns3} title="This group has no columns" description="Add a column to start." action={caps.structure && <Button size="sm" onClick={() => setColumnDialog({})}><Plus />Add column</Button>} />
+      <p className="sr-only" id={gripHint}>{uiText("Drag to move the column, or press the left and right arrow keys.")}</p>
+      {!columns.length ? <EmptyState icon={Columns3} title={uiText("This group has no columns")} description={uiText("Add a column to start.")} action={caps.structure && <Button size="sm" onClick={() => setColumnDialog({})}><Plus />{uiText("Add column")}</Button>} />
         : mode === 'table' ? (
-          <div ref={wrapRef} className={`grid-wrap${refreshing ? ' is-refreshing' : ''}${drag ? ' is-column-dragging' : ''}`} role="region" aria-label={`${g.name} table`} tabIndex={0}>
+          <div ref={wrapRef} className={`grid-wrap${refreshing ? " is-refreshing" : ''}${drag ? " is-column-dragging" : ''}`} role="region" aria-label={uiText("{p0} table", { p0: g.name })} tabIndex={0}>
             {drag && <div className="column-drop-slot" aria-hidden="true" />}
             <table className="grid-table" style={{ width: tableWidth, ['--grid-rownum-w' as string]: `${rownumW}px` }}>
-              <caption className="sr-only">{g.name}: rows {sizeText(page.total ? page.offset + 1 : 0)} to {sizeText(page.offset + rows.length)} of {sizeText(page.total)}. {caps.editRows ? 'Select a cell to edit it. Enter saves and moves to the row below (on the last row, without a search, filter or sorting, it adds a new row); Escape cancels.' : 'Read-only.'} Select rows on their numbers: click, drag, Shift+click or Ctrl+click; on a number, Space selects and Shift+Arrow keys extend.</caption>
+              <caption className="sr-only">{g.name}{uiText(": rows ")}{sizeText(page.total ? page.offset + 1 : 0)} {uiText("to ")}{sizeText(page.offset + rows.length)} {uiText("of ")}{sizeText(page.total)}. {caps.editRows ? uiText("Select a cell to edit it. Enter saves and moves to the row below (on the last row, without a search, filter or sorting, it adds a new row); Escape cancels.") : 'Read-only.'} Select rows on their numbers: click, drag, Shift+click or Ctrl+click; on a number, Space selects and Shift+Arrow keys extend.</caption>
               <colgroup><col style={{ width: rownumW }} />{shown.map(c => <col key={c.id} style={{ width: widthOf(c) }} />)}</colgroup>
               <thead>
                 <tr>
                   <th scope="col" className="grid-rownum grid-corner">
                     <button type="button" className="rownum-all" onClick={togglePage} disabled={!rows.length} aria-pressed={pageAll || allMatching}
-                      aria-label={pageAll || allMatching ? 'Clear the selection' : 'Select every row on this page'} title={pageAll || allMatching ? 'Clear the selection' : 'Select every row on this page'}>#</button>
-                    <ResizeHandle name="the row numbers" width={rownumW} limits={GROUP_LIMITS.rownumWidth} reset={NUMBER_W} onResize={setRownumDraft} onCommit={commitRownum} />
+                      aria-label={pageAll || allMatching ? uiText("Clear the selection") : uiText("Select every row on this page")} title={pageAll || allMatching ? uiText("Clear the selection") : uiText("Select every row on this page")}>#</button>
+                    <ResizeHandle name={uiText("the row numbers")} width={rownumW} limits={GROUP_LIMITS.rownumWidth} reset={NUMBER_W} onResize={setRownumDraft} onCommit={commitRownum} />
                   </th>
                   {shown.map(c => (
-                    <th key={c.id} ref={el => { if (el) headRefs.current.set(c.id, el); else headRefs.current.delete(c.id); }} scope="col" data-column-id={c.id} style={columnStyle(c.id)} className={`grid-head type-${c.type.toLowerCase()}${drag?.id === c.id ? ' is-dragging' : ''}`}
+                    <th key={c.id} ref={el => { if (el) headRefs.current.set(c.id, el); else headRefs.current.delete(c.id); }} scope="col" data-column-id={c.id} style={columnStyle(c.id)} className={`grid-head type-${c.type.toLowerCase()}${drag?.id === c.id ? " is-dragging" : ''}`}
                       onPointerDown={e => gripDown(e, c)} onPointerMove={gripMove} onPointerUp={gripUp} onPointerCancel={cancelColumnDrag} onLostPointerCapture={cancelColumnDrag}
                       onClickCapture={e => { if (suppressColumnClick.current) { e.preventDefault(); e.stopPropagation(); suppressColumnClick.current = false; } }}
                       aria-sort={view.sort?.col === c.id ? (view.sort?.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
                       <div className="grid-head-inner">
-                        <button type="button" className="col-grip" aria-label={`Move column ${c.name}`} aria-describedby={gripHint} title="Drag to move (or use the arrow keys)"
+                        <button type="button" className="col-grip" aria-label={uiText("Move column {p0}", { p0: c.name })} aria-describedby={gripHint} title={uiText("Drag to move (or use the arrow keys)")}
                           onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); moveColumnBy(c.id, e.key === 'ArrowLeft' ? -1 : 1); } }}><GripVertical aria-hidden="true" /></button>
                         <ColumnMenu col={c} caps={caps} sort={view.sort?.col === c.id ? view.sort?.dir ?? null : null} columns={columns}
                           onSort={dir => setV({ sort: dir ? { col: c.id, dir } : null })} onFilter={() => setFilterFor(c)} onHide={() => hideColumn(c)} onEdit={() => setColumnDialog({ column: c })} onInsert={() => setColumnDialog({ after: c.id })}
@@ -940,11 +944,11 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                 {rows.map((r, i) => {
                   const n = page.offset + i + 1, on = allMatching || selected[r.id] !== undefined;
                   return (
-                    <tr key={r.id} className={`${on ? 'is-selected' : ''}${hiddenRows.has(r.id) ? ' is-hidden-mine' : ''}`}>
+                    <tr key={r.id} className={`${on ? 'is-selected' : ''}${hiddenRows.has(r.id) ? " is-hidden-mine" : ''}`}>
                       <th scope="row" className="grid-rownum" onPointerDown={e => rowDown(e, i)} onPointerMove={rowMove} onPointerUp={rowUp} onPointerCancel={rowCancel} onLostPointerCapture={rowCancel} onContextMenu={e => rowContext(e, i)}>
                         <div className="rownum-inner">
                           <button type="button" className="rownum-select num" aria-pressed={on} aria-label={`Select ${rowLabel(r, n)}`} onClick={e => rowClick(e, i)} onKeyDown={e => rowKey(e, i)}>{n}</button>
-                          {r.access?.length ? <Lock className="row-lock" aria-label="Visible to some people only" /> : null}
+                          {r.access?.length ? <Lock className="row-lock" aria-label={uiText("Visible to some people only")} /> : null}
                           {notesButton(r, n)}{rowMenu(r, n, i)}
                         </div>
                       </th>
@@ -952,7 +956,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                     </tr>
                   );
                 })}
-                {!rows.length && <tr><td colSpan={shown.length + 1} className="grid-empty">{page.all ? 'No rows match your search or filters.' : caps.addRows ? 'No rows yet. Use “Add row” to start, or import data from Excel.' : 'No rows yet.'}</td></tr>}
+                {!rows.length && <tr><td colSpan={shown.length + 1} className="grid-empty">{page.all ? uiText("No rows match your search or filters.") : caps.addRows ? uiText("No rows yet. Use “Add row” to start, or import data from Excel.") : uiText("No rows yet.")}</td></tr>}
               </tbody>
               {ghost && rows.length > 0 && <tbody className="grid-adding" aria-hidden="true">
                 {ghost.parts.map((t, k) => {
@@ -960,29 +964,29 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                   return (
                     <tr key={k} className="row-adding">
                       <th className="grid-rownum"><div className="rownum-inner"><Loader2 className="spin row-adding-spin" /></div></th>
-                      {shown.map(c => <td key={c.id} ref={typing && c.id === ghost.col ? ghostCell : undefined} data-column-id={c.id} style={columnStyle(c.id)} className={`grid-cell type-${c.type.toLowerCase()}${drag?.id === c.id ? ' is-dragging' : ''}`}>{c.id === ghost.col && <div className="grid-cell-view"><span className="cell-text">{typing && ghost.end === 'cancel' ? '' : t}</span>{typing && !ghost.end && <span className="adding-caret" />}</div>}</td>)}
+                      {shown.map(c => <td key={c.id} ref={typing && c.id === ghost.col ? ghostCell : undefined} data-column-id={c.id} style={columnStyle(c.id)} className={`grid-cell type-${c.type.toLowerCase()}${drag?.id === c.id ? " is-dragging" : ''}`}>{c.id === ghost.col && <div className="grid-cell-view"><span className="cell-text">{typing && ghost.end === 'cancel' ? '' : t}</span>{typing && !ghost.end && <span className="adding-caret" />}</div>}</td>)}
                     </tr>
                   );
                 })}
               </tbody>}
               {Object.keys(page.totals || {}).some(k => shown.some(c => c.id === k)) && rows.length > 0 && <tfoot>
                 <tr>
-                  <th scope="row" className="grid-rownum"><span className="small" title={`Totals of all ${page.total} matching rows`}>Σ</span></th>
-                  {shown.map((c, i) => { const t = page.totals[c.id]; return <td key={c.id} data-column-id={c.id} style={columnStyle(c.id)} data-lifted={drag?.id === c.id || undefined} className={t ? 'grid-total num' : 'grid-total'}>{t ? (t.errors ? <span className="text-danger small" title="Some rows have an error in this column, so no total is shown.">{t.errors} {plural(t.errors, 'error')}</span> : <span title={`Total of ${page.total} ${plural(page.total, 'row')}`}>{formatColumnNumber(t.sum, c.settings)}</span>) : i === 0 ? <span className="muted small">Total of {sizeText(page.total)}</span> : null}</td>; })}
+                  <th scope="row" className="grid-rownum"><span className="small" title={uiText("Totals of all {p0} matching rows", { p0: page.total })}>Σ</span></th>
+                  {shown.map((c, i) => { const t = page.totals[c.id]; return <td key={c.id} data-column-id={c.id} style={columnStyle(c.id)} data-lifted={drag?.id === c.id || undefined} className={t ? "grid-total num" : 'grid-total'}>{t ? (t.errors ? <span className="text-danger small" title={uiText("Some rows have an error in this column, so no total is shown.")}>{t.errors} {plural(t.errors, 'error')}</span> : <span title={uiText("Total of {p0} {p1}", { p0: page.total, p1: plural(page.total, 'row') })}>{formatColumnNumber(t.sum, c.settings)}</span>) : i === 0 ? <span className="muted small">{uiText("Total of ")}{sizeText(page.total)}</span> : null}</td>; })}
                 </tr>
               </tfoot>}
             </table>
           </div>
         ) : (
-          <div className={`group-cards${refreshing ? ' is-refreshing' : ''}`}>
+          <div className={`group-cards${refreshing ? " is-refreshing" : ''}`}>
             {rows.map((r, i) => {
               const n = page.offset + i + 1, on = allMatching || selected[r.id] !== undefined;
               return (
-                <article key={r.id} className={`row-card${on ? ' is-selected' : ''}`} aria-label={rowLabel(r, n)}>
+                <article key={r.id} className={`row-card${on ? " is-selected" : ''}`} aria-label={rowLabel(r, n)}>
                   <div className="row-card-head">
-                    <button type="button" className="row-card-num num" aria-pressed={on} aria-label={`Select ${rowLabel(r, n)}`} title={on ? 'Selected: tap to unselect' : 'Tap to select'} onClick={e => cardClick(e, i)}>{n}</button>
-                    <span className="cell-title">{(firstCol && text(firstCol, r)) || <span className="muted">Row {n}</span>}</span>
-                    {r.access?.length ? <Lock className="row-lock" aria-label="Visible to some people only" /> : null}
+                    <button type="button" className="row-card-num num" aria-pressed={on} aria-label={`Select ${rowLabel(r, n)}`} title={on ? uiText("Selected: tap to unselect") : uiText("Tap to select")} onClick={e => cardClick(e, i)}>{n}</button>
+                    <span className="cell-title">{(firstCol && text(firstCol, r)) || <span className="muted">{uiText("Row ")}{n}</span>}</span>
+                    {r.access?.length ? <Lock className="row-lock" aria-label={uiText("Visible to some people only")} /> : null}
                     {notesButton(r, n)}{rowMenu(r, n, i)}
                   </div>
                   <dl className="row-card-fields">
@@ -990,7 +994,7 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                       <div key={c.id} className="row-card-field" style={cellColors(r, c)}>
                         <dt>{c.name}{caps.editRows && <CellFormatControl groupId={id} row={r} col={c} onSaved={replaceRow} />}</dt>
                         <dd>{c.type === 'ATTACHMENT' ? <AttachmentCell row={r} col={c} groupId={id} caps={caps} replaceRow={replaceRow} inline /> : <CellDisplay row={r} col={c} value={valueOf(c, r)} nameOf={nameOf} />}
-                          {caps.editRows && c.type !== 'FORMULA' && c.type !== 'ATTACHMENT' && !c.linked?.readOnly && <IconButton label={`Edit ${c.name}`} icon={Pencil} onClick={() => setCellDialog({ row: r, col: c })} />}
+                          {caps.editRows && c.type !== 'FORMULA' && c.type !== 'ATTACHMENT' && !c.linked?.readOnly && <IconButton label={uiText("Edit {p0}", { p0: c.name })} icon={Pencil} onClick={() => setCellDialog({ row: r, col: c })} />}
                           {cells[cellKey(r.id, c.id)]?.state === 'error' && <span className="text-danger small">{cells[cellKey(r.id, c.id)]?.message}</span>}
                         </dd>
                       </div>
@@ -999,14 +1003,14 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
                 </article>
               );
             })}
-            {!rows.length && <EmptyState compact title={page.all ? 'No rows match your search or filters' : 'No rows yet'} action={!page.all && caps.addRows ? <Button size="sm" onClick={() => void addRow()}><Plus />Add row</Button> : undefined} />}
+            {!rows.length && <EmptyState compact title={page.all ? uiText("No rows match your search or filters") : uiText("No rows yet")} action={!page.all && caps.addRows ? <Button size="sm" onClick={() => void addRow()}><Plus />{uiText("Add row")}</Button> : undefined} />}
           </div>
         )}
-      {page.total > 0 && <nav className="group-pager" aria-label="Pages">
-        <span className="small num" aria-live="polite">{sizeText(page.offset + 1)}–{sizeText(page.offset + rows.length)} of {sizeText(page.total)}</span>
-        <Button size="sm" variant="outline" disabled={view.page === 0} onClick={() => setV({ page: view.page - 1 })}><ChevronLeft />Previous</Button>
-        <Button size="sm" variant="outline" disabled={(view.page + 1) * view.size >= page.total} onClick={() => setV({ page: view.page + 1 })}>Next<ChevronRight /></Button>
-        <label className="page-size small">Rows per page <select className="control" value={view.size} onChange={e => setV({ size: Number(e.target.value) })}>{PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+      {page.total > 0 && <nav className="group-pager" aria-label={uiText("Pages")}>
+        <span className="small num" aria-live="polite">{sizeText(page.offset + 1)}–{sizeText(page.offset + rows.length)} {uiText("of ")}{sizeText(page.total)}</span>
+        <Button size="sm" variant="outline" disabled={view.page === 0} onClick={() => setV({ page: view.page - 1 })}><ChevronLeft />{uiText("Previous")}</Button>
+        <Button size="sm" variant="outline" disabled={(view.page + 1) * view.size >= page.total} onClick={() => setV({ page: view.page + 1 })}>{uiText("Next")}<ChevronRight /></Button>
+        <label className="page-size small">{uiText("Rows per page ")}<select className="control" value={view.size} onChange={e => setV({ size: Number(e.target.value) })}>{PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}</select></label>
       </nav>}
       {shareColumn && <ShareDataDialog groupId={id} columns={columns.filter(c => !c.linked)} initialColumn={shareColumn.id} onClose={() => setShareColumn(null)} />}
       {liveShare && <ShareLiveDialog groupId={id} groupName={g.name} initialColumn={liveShare.column} onClose={() => setLiveShare(null)} />}
@@ -1029,17 +1033,18 @@ function GroupBoard({ w, id, onBack, onOpen, onEdit }: { w: Workspace; id: strin
 
 /** The group's name above the table: opens the other groups of the workspace, or the list of all groups. */
 function GroupSwitch({ name, boards, current, onOpen, onBack }: { name: string; boards: Row[]; current: string; onOpen: (id: string) => void; onBack: () => void }) {
+  useLanguage();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="group-crumb" title={name}><span className="group-crumb-name">{name}</span><ChevronDown aria-hidden="true" /><span className="sr-only">: switch to another group</span></button>
+        <button type="button" className="group-crumb" title={name}><span className="group-crumb-name">{name}</span><ChevronDown aria-hidden="true" /><span className="sr-only">{uiText(": switch to another group")}</span></button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="group-switch-menu">
-        <DropdownMenuItem onSelect={onBack}><ArrowLeft />All groups</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onBack}><ArrowLeft />{uiText("All groups")}</DropdownMenuItem>
         {boards.length > 1 && <>
           <DropdownMenuSeparator />
-          <DropdownMenuLabel>Open another group</DropdownMenuLabel>
-          {boards.map(b => <DropdownMenuItem key={b.id} aria-current={b.id === current ? 'true' : undefined} onSelect={() => { if (b.id !== current) onOpen(b.id); }}>{b.id === current ? <Check /> : <Sheet />}{b.name}{b.status === 'ARCHIVED' ? ' (archived)' : ''}</DropdownMenuItem>)}
+          <DropdownMenuLabel>{uiText("Open another group")}</DropdownMenuLabel>
+          {boards.map(b => <DropdownMenuItem key={b.id} aria-current={b.id === current ? 'true' : undefined} onSelect={() => { if (b.id !== current) onOpen(b.id); }}>{b.id === current ? <Check /> : <Sheet />}{b.name}{b.status === 'ARCHIVED' ? uiText(" (archived)") : ''}</DropdownMenuItem>)}
         </>}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1047,8 +1052,8 @@ function GroupSwitch({ name, boards, current, onOpen, onBack }: { name: string; 
 }
 
 function filterLabel(col: Row | undefined, f: Filter, nameOf: (id: string) => string) {
-  if (!col) return 'Filter';
-  if (col.type === 'NUMBER' || col.type === 'FORMULA') return `${col.name}: ${f.min !== undefined && f.min !== '' ? `≥ ${f.min}` : ''}${f.min && f.max ? ' and ' : ''}${f.max !== undefined && f.max !== '' ? `≤ ${f.max}` : ''}`;
+  if (!col) return uiText("Filter");
+  if (col.type === 'NUMBER' || col.type === 'FORMULA') return `${col.name}: ${f.min !== undefined && f.min !== '' ? `≥ ${f.min}` : ''}${f.min && f.max ? uiText(" and ") : ''}${f.max !== undefined && f.max !== '' ? `≤ ${f.max}` : ''}`;
   if (col.type === 'DATE') return `${col.name}: ${f.from ? `from ${formatDay(f.from)}` : ''}${f.from && f.to ? ' ' : ''}${f.to ? `to ${formatDay(f.to)}` : ''}`;
   if (col.type === 'STATUS') return `${col.name}: ${f.value ? statusLabels(col).find((l: Row) => l.id === f.value)?.name || '?' : 'empty'}`;
   if (col.type === 'IN_CHARGE' || col.type === 'SUPPORT') return `${col.name}: ${f.value ? nameOf(f.value) : 'nobody'}`;
@@ -1058,11 +1063,12 @@ function filterLabel(col: Row | undefined, f: Filter, nameOf: (id: string) => st
 // ---------------------------------------------------------------- column header, resize handle and row menu
 /** The border of a column: drag it (mouse, pen or touch) or use the arrow keys on it (Shift for bigger steps). */
 function ResizeHandle({ name, width, onResize, onCommit, limits = GROUP_LIMITS.width, reset = DEFAULT_WIDTH.TEXT }: { name: string; width: number; onResize: (w: number) => void; onCommit: () => void; limits?: number[]; reset?: number }) {
+  useLanguage();
   const start = useRef<{ x: number; w: number } | null>(null), timer = useRef(0);
   const later = () => { window.clearTimeout(timer.current); timer.current = window.setTimeout(onCommit, 700); };
   useEffect(() => () => window.clearTimeout(timer.current), []);
   return (
-    <span role="separator" aria-orientation="vertical" aria-label={`Width of ${name}`} aria-valuenow={width} aria-valuemin={limits[0]} aria-valuemax={limits[1]} tabIndex={0} className="col-resize" title="Drag to resize"
+    <span role="separator" aria-orientation="vertical" aria-label={uiText("Width of {p0}", { p0: name })} aria-valuenow={width} aria-valuemin={limits[0]} aria-valuemax={limits[1]} tabIndex={0} className="col-resize" title={uiText("Drag to resize")}
       onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); start.current = { x: e.clientX, w: width }; }}
       onPointerMove={e => { if (start.current) onResize(clampWidth(start.current.w + e.clientX - start.current.x, limits)); }}
       onPointerUp={() => { if (start.current) { start.current = null; onCommit(); } }}
@@ -1076,39 +1082,40 @@ function ColumnMenu({ col, caps, sort, columns, onSort, onFilter, onHide, onEdit
   col: Row; caps: Row; sort: 'asc' | 'desc' | null; columns: Row[]; onShare: () => void; onSort: (d: 'asc' | 'desc' | null) => void; onFilter: () => void; onHide: () => void; onEdit: () => void; onInsert: () => void; onRestrict: () => void; onDelete: () => void;
   onShareLive: () => void; onHistory: () => void; onAddRows: () => void;
 }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   const live: Row | undefined = col.linked;
   const Icon = live ? Link2 : TYPE_ICON[col.type], formula = col.type === 'FORMULA' ? col.settings?.display : '';
-  const liveText = live ? (live.state === 'ok' ? `Live Data from ${live.source_group_name} · ${live.permission === 'EDIT' ? 'Can edit' : 'Viewer'}` : live.state === 'broken' ? 'Live Data · the source column was removed' : 'Live Data · not available to you') : '';
+  const liveText = live ? (live.state === 'ok' ? `Live Data from ${live.source_group_name} · ${live.permission === 'EDIT' ? uiText("Can edit") : uiText("Viewer")}` : live.state === 'broken' ? uiText("Live Data · the source column was removed") : uiText("Live Data · not available to you")) : '';
   const usedBy = (col.used_by || []).map((x: string) => columns.find(c => c.id === x)?.name).filter(Boolean), restricted = !!col.access?.length;
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <button type="button" className={`grid-head-button${live ? ' is-live' : ''}`} onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) e.preventDefault(); }} onClick={() => setOpen(value => !value)} title={formula ? `${col.name} ${formula}` : live ? `${col.name} · ${liveText}` : `${col.name} · ${COLUMN_TYPES[col.type as ColumnType]} · Drag to move`}>
+        <button type="button" className={`grid-head-button${live ? " is-live" : ''}`} onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) e.preventDefault(); }} onClick={() => setOpen(value => !value)} title={formula ? uiText("{p0} {p1}", { p0: col.name, p1: formula }) : live ? uiText("{p0} · {p1}", { p0: col.name, p1: liveText }) : uiText("{p0} · {p1} · Drag to move", { p0: col.name, p1: COLUMN_TYPES[col.type as ColumnType] })}>
           <Icon aria-hidden="true" className="grid-type-icon" /><span className="grid-head-name">{col.name}</span>
           {restricted && <Lock aria-hidden="true" className="grid-lock" />}
           {sort && (sort === 'asc' ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />)}
-          <span className="sr-only">, {live ? liveText : `${COLUMN_TYPES[col.type as ColumnType]} column`}{restricted ? ', visible to some people only' : ''}{sort ? `, sorted ${sort === 'asc' ? 'ascending' : 'descending'}` : ''}. Open the column menu.</span>
+          <span className="sr-only">, {live ? liveText : uiText("{p0} column", { p0: COLUMN_TYPES[col.type as ColumnType] })}{restricted ? uiText(", visible to some people only") : ''}{sort ? uiText(", sorted {p0}", { p0: sort === 'asc' ? 'ascending' : 'descending' }) : ''}{uiText(". Open the column menu.")}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="column-menu">
-        <DropdownMenuLabel>{live ? liveText : COLUMN_TYPES[col.type as ColumnType]}{live?.state === 'ok' ? <span className="column-menu-note">Matched by {live.source_key_name} = {columns.find(c => c.id === live.key_column_id)?.name || 'a column of this group'}</span> : null}{formula ? <code className="column-menu-formula">{formula}</code> : null}{usedBy.length ? <span className="column-menu-note">Used by {usedBy.join(', ')}</span> : null}{restricted ? <span className="column-menu-note">Visible to some people only</span> : null}</DropdownMenuLabel>
-        <DropdownMenuItem onSelect={() => onSort('asc')}><ArrowUp />Sort ascending</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => onSort('desc')}><ArrowDown />Sort descending</DropdownMenuItem>
-        {sort && <DropdownMenuItem onSelect={() => onSort(null)}><ArrowUpDown />Clear sorting</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={onFilter}><ListFilter />Filter…</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onHide}><EyeOff />Hide in my view</DropdownMenuItem>
+        <DropdownMenuLabel>{live ? liveText : COLUMN_TYPES[col.type as ColumnType]}{live?.state === 'ok' ? <span className="column-menu-note">{uiText("Matched by ")}{live.source_key_name} = {columns.find(c => c.id === live.key_column_id)?.name || uiText("a column of this group")}</span> : null}{formula ? <code className="column-menu-formula">{formula}</code> : null}{usedBy.length ? <span className="column-menu-note">{uiText("Used by ")}{usedBy.join(', ')}</span> : null}{restricted ? <span className="column-menu-note">{uiText("Visible to some people only")}</span> : null}</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onSort('asc')}><ArrowUp />{uiText("Sort ascending")}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onSort('desc')}><ArrowDown />{uiText("Sort descending")}</DropdownMenuItem>
+        {sort && <DropdownMenuItem onSelect={() => onSort(null)}><ArrowUpDown />{uiText("Clear sorting")}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={onFilter}><ListFilter />{uiText("Filter…")}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onHide}><EyeOff />{uiText("Hide in my view")}</DropdownMenuItem>
         {caps.structure && <>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={onEdit}><Pencil />{live ? 'Rename Live Data column…' : col.type === 'FORMULA' ? 'Edit formula and column…' : 'Rename or change column…'}</DropdownMenuItem>
-          <DropdownMenuItem onSelect={onInsert}><Plus />Add column after</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onEdit}><Pencil />{live ? uiText("Rename Live Data column…") : col.type === 'FORMULA' ? uiText("Edit formula and column…") : uiText("Rename or change column…")}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onInsert}><Plus />{uiText("Add column after")}</DropdownMenuItem>
         </>}
-        {live?.state === 'ok' && caps.addRows && <DropdownMenuItem onSelect={onAddRows}><Plus />Add rows for shared records</DropdownMenuItem>}
-        {(live?.can_history || (!live && col.shared_live)) && <DropdownMenuItem onSelect={onHistory}><History />Live Data edit history…</DropdownMenuItem>}
-        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShare}><Share2 />Share Data (copy)…</DropdownMenuItem>}
-        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShareLive}><Link2 />Share Live Data…</DropdownMenuItem>}
-        {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />Restrict access…</DropdownMenuItem>}
-        {caps.deleteColumns && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />Delete column…</DropdownMenuItem></>}
+        {live?.state === 'ok' && caps.addRows && <DropdownMenuItem onSelect={onAddRows}><Plus />{uiText("Add rows for shared records")}</DropdownMenuItem>}
+        {(live?.can_history || (!live && col.shared_live)) && <DropdownMenuItem onSelect={onHistory}><History />{uiText("Live Data edit history…")}</DropdownMenuItem>}
+        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShare}><Share2 />{uiText("Share Data (copy)…")}</DropdownMenuItem>}
+        {!live && caps.share && caps.export && col.type !== 'ATTACHMENT' && <DropdownMenuItem onSelect={onShareLive}><Link2 />{uiText("Share Live Data…")}</DropdownMenuItem>}
+        {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />{uiText("Restrict access…")}</DropdownMenuItem>}
+        {caps.deleteColumns && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />{uiText("Delete column…")}</DropdownMenuItem></>}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -1120,30 +1127,31 @@ function RowMenu({ label, caps, reorderable, first, last, hiddenMine, open, onOp
   label: string; caps: Row; reorderable: boolean; first: boolean; last: boolean; hiddenMine: boolean; open: boolean; onOpenChange: (open: boolean) => void; bulk?: BulkActions;
   onNotes: () => void; onInsert: () => void; onMove: (by: number) => void; onHide: () => void; onRestrict: () => void; onDelete: () => void;
 }) {
+  useLanguage();
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild><button type="button" className="rownum-menu" aria-label={`${label}: actions`} title="Row actions (or right-click the row number)"><MoreVertical aria-hidden="true" /></button></DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><button type="button" className="rownum-menu" aria-label={uiText("{p0}: actions", { p0: label })} title={uiText("Row actions (or right-click the row number)")}><MoreVertical aria-hidden="true" /></button></DropdownMenuTrigger>
       {bulk ? <DropdownMenuContent align="start">
-        <DropdownMenuLabel>{bulk.all ? `Every matching row (${bulk.count.toLocaleString('en-US')})` : `${bulk.count} rows selected`}</DropdownMenuLabel>
-        {caps.export && <DropdownMenuItem onSelect={bulk.onExport}><Download />Export…</DropdownMenuItem>}
-        {!bulk.all && <DropdownMenuItem onSelect={bulk.onHide}><EyeOff />Hide in my view</DropdownMenuItem>}
-        {caps.share && !bulk.all && <DropdownMenuItem onSelect={bulk.onRestrict}><Lock />Restrict access…</DropdownMenuItem>}
-        {caps.deleteRows && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={bulk.onDelete}><Trash2 />Delete {bulk.count.toLocaleString('en-US')} rows…</DropdownMenuItem></>}
+        <DropdownMenuLabel>{bulk.all ? uiText("Every matching row ({p0})", { p0: bulk.count.toLocaleString('en-US') }) : uiText("{p0} rows selected", { p0: bulk.count })}</DropdownMenuLabel>
+        {caps.export && <DropdownMenuItem onSelect={bulk.onExport}><Download />{uiText("Export…")}</DropdownMenuItem>}
+        {!bulk.all && <DropdownMenuItem onSelect={bulk.onHide}><EyeOff />{uiText("Hide in my view")}</DropdownMenuItem>}
+        {caps.share && !bulk.all && <DropdownMenuItem onSelect={bulk.onRestrict}><Lock />{uiText("Restrict access…")}</DropdownMenuItem>}
+        {caps.deleteRows && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={bulk.onDelete}><Trash2 />{uiText("Delete ")}{bulk.count.toLocaleString('en-US')} {uiText("rows…")}</DropdownMenuItem></>}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={bulk.onClear}><X />Clear the selection</DropdownMenuItem>
+        <DropdownMenuItem onSelect={bulk.onClear}><X />{uiText("Clear the selection")}</DropdownMenuItem>
       </DropdownMenuContent> : <DropdownMenuContent align="start">
         <DropdownMenuLabel>{label}</DropdownMenuLabel>
-        <DropdownMenuItem onSelect={onNotes}><MessageSquareText />Notes…</DropdownMenuItem>
-        {caps.addRows && <DropdownMenuItem onSelect={onInsert}><Plus />Insert row below</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={onNotes}><MessageSquareText />{uiText("Notes…")}</DropdownMenuItem>
+        {caps.addRows && <DropdownMenuItem onSelect={onInsert}><Plus />{uiText("Insert row below")}</DropdownMenuItem>}
         {caps.editRows && <>
-          <DropdownMenuItem disabled={!reorderable || first} onSelect={() => onMove(-1)}><ArrowUp />Move up</DropdownMenuItem>
-          <DropdownMenuItem disabled={!reorderable || last} onSelect={() => onMove(1)}><ArrowDown />Move down</DropdownMenuItem>
-          {!reorderable && <DropdownMenuLabel className="text-xs">Clear sorting, search and filters to move rows.</DropdownMenuLabel>}
+          <DropdownMenuItem disabled={!reorderable || first} onSelect={() => onMove(-1)}><ArrowUp />{uiText("Move up")}</DropdownMenuItem>
+          <DropdownMenuItem disabled={!reorderable || last} onSelect={() => onMove(1)}><ArrowDown />{uiText("Move down")}</DropdownMenuItem>
+          {!reorderable && <DropdownMenuLabel className="text-xs">{uiText("Clear sorting, search and filters to move rows.")}</DropdownMenuLabel>}
         </>}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onHide}>{hiddenMine ? <><Eye />Show in my view</> : <><EyeOff />Hide in my view</>}</DropdownMenuItem>
-        {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />Restrict access…</DropdownMenuItem>}
-        {caps.deleteRows && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />Delete row…</DropdownMenuItem></>}
+        <DropdownMenuItem onSelect={onHide}>{hiddenMine ? <><Eye />{uiText("Show in my view")}</> : <><EyeOff />{uiText("Hide in my view")}</>}</DropdownMenuItem>
+        {caps.share && <DropdownMenuItem onSelect={onRestrict}><Lock />{uiText("Restrict access…")}</DropdownMenuItem>}
+        {caps.deleteRows && <><DropdownMenuSeparator /><DropdownMenuItem tone="danger" onSelect={onDelete}><Trash2 />{uiText("Delete row…")}</DropdownMenuItem></>}
       </DropdownMenuContent>}
     </DropdownMenu>
   );
@@ -1162,6 +1170,7 @@ type Editors = {
 };
 
 function CellDisplay({ row, col, value, nameOf }: { row: Row; col: Row; value: unknown; nameOf: (id: string) => string }) {
+  useLanguage();
   if (emptyValue(value)) return <span className="cell-empty"><span className="sr-only">empty</span></span>;
   // A Live Data cell that can't show a value: #N/A (no access), #DUP! (several matches), #REF! (source removed).
   if (col.linked && value && typeof value === 'object' && !Array.isArray(value)) { const code = String((value as Row).error || ''); return <span className="cell-error" title={LIVE_ERRORS[code]}><CircleAlert aria-hidden="true" />{code}<span className="sr-only">: {LIVE_ERRORS[code]}</span></span>; }
@@ -1182,11 +1191,13 @@ function CellDisplay({ row, col, value, nameOf }: { row: Row; col: Row; value: u
 }
 
 function GridCell(props: Editors & { row: Row; col: Row; onExpand: () => void; lifted?: boolean }) {
+  useLanguage();
   // V5.6.9: an Attachment cell lists its files (open, download, and for editors upload and remove) in its own panel.
   if (props.col.type === 'ATTACHMENT') return <AttachmentCell row={props.row} col={props.col} groupId={props.groupId} caps={props.caps} replaceRow={props.replaceRow} lifted={props.lifted} />;
   return <EditableCell {...props} />;
 }
 function EditableCell({ row, col, active, setActive, cells, saveCell, discard, groupId, w, nameOf, caps, advance, lastRowId, enterTo, seed, onExpand, lifted, replaceRow }: Editors & { row: Row; col: Row; onExpand: () => void; lifted?: boolean }) {
+  useLanguage();
   const key = cellKey(row.id, col.id), st = cells[key], editable = caps.editRows && col.type !== 'FORMULA' && !col.linked?.readOnly;
   const isActive = active?.row === row.id && active?.col === col.id;
   const value = col.type === 'FORMULA' ? row.computed?.[col.id] : row.values?.[col.id];
@@ -1202,11 +1213,11 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
     if (wasActive.current && !isActive && (!document.activeElement || document.activeElement === document.body)) viewRef.current?.focus({ preventScroll: true });
     wasActive.current = isActive;
   }, [isActive]);
-  const className = `grid-cell type-${col.type.toLowerCase()}${col.linked ? ' is-live' : ''}${st?.state === 'error' ? ' has-error' : ''}${st?.state === 'saving' ? ' is-saving' : ''}${isActive ? ' is-editing' : ''}${lifted ? ' is-dragging' : ''}`;
-  const status = st?.state === 'saving' ? <Loader2 className="spin cell-status" aria-label="Saving" /> : st?.state === 'saved' ? <Check className="cell-status is-saved" aria-label="Saved" /> : null;
+  const className = `grid-cell type-${col.type.toLowerCase()}${col.linked ? " is-live" : ''}${st?.state === 'error' ? " has-error" : ''}${st?.state === 'saving' ? " is-saving" : ''}${isActive ? " is-editing" : ''}${lifted ? " is-dragging" : ''}`;
+  const status = st?.state === 'saving' ? <Loader2 className="spin cell-status" aria-label={uiText("Saving")} /> : st?.state === 'saved' ? <Check className="cell-status is-saved" aria-label={uiText("Saved")} /> : null;
   // “Undo my change” puts the saved value back: the editor closes without saving (pressing the button does not count as
   // leaving the editor, so the rejected value is not sent again).
-  const error = st?.state === 'error' ? <span className="cell-message" role="alert">{st.message} <button type="button" className="text-link" onMouseDown={e => e.preventDefault()} onClick={() => { discard(row, col); close(); }}>Undo my change</button></span> : null;
+  const error = st?.state === 'error' ? <span className="cell-message" role="alert">{st.message} <button type="button" className="text-link" onMouseDown={e => e.preventDefault()} onClick={() => { discard(row, col); close(); }}>{uiText("Undo my change")}</button></span> : null;
   const colorControl = caps.editRows ? <CellFormatControl groupId={groupId} row={row} col={col} onSaved={replaceRow} /> : null;
   if (isActive) {
     const typed = seed.current?.key === key ? seed.current.text : null;
@@ -1226,11 +1237,11 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
     return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className}><CellEditor row={row} col={col} initial={initial} groupId={groupId} w={w} nameOf={nameOf} onSave={onSave} onCancel={() => { discard(row, col); close(); }} onExpand={onExpand} saving={st?.state === 'saving'}
       lastRow={lastRowId === row.id} selectAll={typed === null && enterTo.current === key} seeded={typed !== null} onOpened={opened} />{error}</td>;
   }
-  if (!editable) return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className} title={col.type === 'FORMULA' ? `${col.settings?.display || ''}${value && typeof value === 'object' ? ` · ${FORMULA_ERRORS[(value as Row).error as keyof typeof FORMULA_ERRORS] || ''}` : ''}` : undefined}><div className="grid-cell-view"><CellDisplay row={row} col={col} value={value} nameOf={nameOf} /></div>{colorControl}</td>;
+  if (!editable) return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className} title={col.type === 'FORMULA' ? uiText("{p0}{p1}", { p0: col.settings?.display || '', p1: value && typeof value === 'object' ? ` · ${FORMULA_ERRORS[(value as Row).error as keyof typeof FORMULA_ERRORS] || ''}` : '' }) : undefined}><div className="grid-cell-view"><CellDisplay row={row} col={col} value={value} nameOf={nameOf} /></div>{colorControl}</td>;
   return (
     <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={className}>
       <button ref={viewRef} type="button" className="grid-cell-view" data-cell={key} onClick={start} onKeyDown={e => { if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); start(); } }}
-        aria-label={`${col.name}: ${cellText(col, shownValue, nameOf) || 'empty'}. Edit`}>
+        aria-label={uiText("{p0}: {p1}. Edit", { p0: col.name, p1: cellText(col, shownValue, nameOf) || 'empty' })}>
         <CellDisplay row={row} col={col} value={shownValue} nameOf={nameOf} />{status}
       </button>
       {error}{colorControl}
@@ -1239,11 +1250,12 @@ function EditableCell({ row, col, active, setActive, cells, saveCell, discard, g
 }
 
 // ---------------------------------------------------------------- V5.6.9 Attachment cells
-const fileUrl = (groupId: string, f: Row, inline = false) => apiPath(`/api/tasks/group/file?id=${encodeURIComponent(groupId)}&file=${encodeURIComponent(f.id)}${inline ? '&inline=1' : ''}`);
+const fileUrl = (groupId: string, f: Row, inline = false) => apiPath(`/api/tasks/group/file?id=${encodeURIComponent(groupId)}&file=${encodeURIComponent(f.id)}${inline ? "&inline=1" : ''}`);
 const fileSize = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.ceil(n / 1024))} KB`);
 const FileKindIcon = ({ f }: { f: Row }) => (String(f.mime || '').startsWith('image/') ? <FileImage aria-hidden="true" /> : <FileText aria-hidden="true" />);
 /** The files of a cell as small chips (the first three, then “+n”). */
 function FileChips({ files }: { files: Row[] }) {
+  useLanguage();
   const list = Array.isArray(files) ? files : [];
   return <span className="cell-files">{list.slice(0, 3).map(f => <span key={f.id} className="file-chip" title={f.name}><FileKindIcon f={f} /><span className="file-chip-name">{f.name}</span></span>)}{list.length > 3 && <span className="file-more">+{list.length - 3}</span>}</span>;
 }
@@ -1251,6 +1263,7 @@ function FileChips({ files }: { files: Row[] }) {
  *  download; people who can edit records upload more (several at once) and remove them. In the table it is a cell; in
  *  card view, a field. */
 function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }: { row: Row; col: Row; groupId: string; caps: Row; replaceRow: (row: Row) => void; lifted?: boolean; inline?: boolean }) {
+  useLanguage();
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(''), [error, setError] = useState(''), [preview, setPreview] = useState<Row | null>(null);
   const input = useRef<HTMLInputElement>(null), confirm = useConfirm(), asking = useRef(false);
   const files: Row[] = Array.isArray(row.values?.[col.id]) ? row.values[col.id] : [];
@@ -1261,14 +1274,14 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
     setError('');
     for (const file of Array.from(list)) {
       const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : '';
-      if (!Object.hasOwn(TASK_FILE_TYPES, ext)) { setError(`${file.name}: attach an image, a PDF, a Word, Excel or PowerPoint document, or a CSV, TXT or ZIP file.`); continue; }
-      if (!file.size || file.size > GROUP_LIMITS.fileBytes) { setError(`${file.name}: choose a file between 1 byte and ${limitMb} MB.`); continue; }
+      if (!Object.hasOwn(TASK_FILE_TYPES, ext)) { setError(uiText("{p0}: attach an image, a PDF, a Word, Excel or PowerPoint document, or a CSV, TXT or ZIP file.", { p0: file.name })); continue; }
+      if (!file.size || file.size > GROUP_LIMITS.fileBytes) { setError(uiText("{p0}: choose a file between 1 byte and {p1} MB.", { p0: file.name, p1: limitMb })); continue; }
       setBusy(file.name);
       try {
         const r = await groupCommand('tm.group.file.add', { group_id: groupId, row_id: row.id, column_id: col.id, name: file.name, base64: await fileToBase64(file) });
         if (r.row) replaceRow(r.row);
-        toast.success(r.message || `${file.name} attached.`);
-      } catch (e) { setError(`${file.name}: ${(e as Error).message}`); }
+        toast.success(r.message || uiText("{p0} attached.", { p0: file.name }));
+      } catch (e) { setError(uiText("{p0}: {p1}", { p0: file.name, p1: (e as Error).message })); }
     }
     setBusy('');
     if (input.current) input.current.value = '';
@@ -1276,52 +1289,53 @@ function AttachmentCell({ row, col, groupId, caps, replaceRow, lifted, inline }:
   const remove = async (f: Row) => {
     // The panel stays open while the question is asked (it would otherwise close as the question takes the focus).
     asking.current = true;
-    const ok = await confirm({ title: `Remove “${f.name}”?`, description: 'The file is deleted from this row for everyone.', confirmLabel: 'Remove file', tone: 'danger' });
+    const ok = await confirm({ title: uiText("Remove “{p0}”?", { p0: f.name }), description: uiText("The file is deleted from this row for everyone."), confirmLabel: uiText("Remove file"), tone: 'danger' });
     asking.current = false;
     if (!ok) return;
     setBusy(f.name); setError('');
-    try { const r = await groupCommand('tm.group.file.remove', { group_id: groupId, row_id: row.id, column_id: col.id, file_id: f.id }); if (r.row) replaceRow(r.row); toast.success(r.message || 'File removed.'); }
+    try { const r = await groupCommand('tm.group.file.remove', { group_id: groupId, row_id: row.id, column_id: col.id, file_id: f.id }); if (r.row) replaceRow(r.row); toast.success(r.message || uiText("File removed.")); }
     catch (e) { setError((e as Error).message); } finally { setBusy(''); }
   };
-  const summary = files.length ? `${files.length} ${plural(files.length, 'file')}` : 'no files';
+  const summary = files.length ? `${files.length} ${plural(files.length, 'file')}` : uiText("no files");
   const trigger = (
-    <button type="button" className={inline ? 'attach-field' : 'grid-cell-view'} data-cell={inline ? undefined : key} aria-label={`${col.name}: ${summary}. ${editable ? 'Open to view, upload or remove files' : 'Open to view the files'}`}>
-      {files.length ? <FileChips files={files} /> : editable ? <span className="cell-attach-hint"><Paperclip aria-hidden="true" />Attach files</span> : <span className="cell-empty"><span className="sr-only">no files</span></span>}
-      {busy && <Loader2 className="spin cell-status" aria-label="Uploading" />}
+    <button type="button" className={inline ? 'attach-field' : 'grid-cell-view'} data-cell={inline ? undefined : key} aria-label={uiText("{p0}: {p1}. {p2}", { p0: col.name, p1: summary, p2: editable ? 'Open to view, upload or remove files' : 'Open to view the files' })}>
+      {files.length ? <FileChips files={files} /> : editable ? <span className="cell-attach-hint"><Paperclip aria-hidden="true" />{uiText("Attach files")}</span> : <span className="cell-empty"><span className="sr-only">{uiText("no files")}</span></span>}
+      {busy && <Loader2 className="spin cell-status" aria-label={uiText("Uploading")} />}
     </button>
   );
   const panel = (<>
     <Popover open={open} onOpenChange={o => { if (!busy && !asking.current) setOpen(o); }}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align="start" className="attach-popover" aria-label={`${col.name}: files`}>
+      <PopoverContent align="start" className="attach-popover" aria-label={uiText("{p0}: files", { p0: col.name })}>
         <p className="attach-title"><Paperclip aria-hidden="true" />{col.name}<span className="muted small"> · {summary}</span></p>
         {error && <p className="field-error" role="alert">{error}</p>}
         {files.length ? <ul className="attach-list">
           {files.map(f => <li key={f.id} className="attach-item">
             <FileKindIcon f={f} />
-            <span className="attach-text"><button type="button" className="attach-name" onClick={() => { setOpen(false); setPreview({ ...f, detail: col.name }); }} title="Preview">{f.name}</button><small>{fileSize(f.size)}</small></span>
-            <a className="attach-action" href={fileUrl(groupId, f)} download={f.name} aria-label={`Download ${f.name}`} title="Download"><Download aria-hidden="true" /></a>
-            {editable && <button type="button" className="attach-action" aria-label={`Remove ${f.name}`} title="Remove" disabled={!!busy} onClick={() => void remove(f)}><Trash2 aria-hidden="true" /></button>}
+            <span className="attach-text"><button type="button" className="attach-name" onClick={() => { setOpen(false); setPreview({ ...f, detail: col.name }); }} title={uiText("Preview")}>{f.name}</button><small>{fileSize(f.size)}</small></span>
+            <a className="attach-action" href={fileUrl(groupId, f)} download={f.name} aria-label={uiText("Download {p0}", { p0: f.name })} title={uiText("Download")}><Download aria-hidden="true" /></a>
+            {editable && <button type="button" className="attach-action" aria-label={uiText("Remove {p0}", { p0: f.name })} title={uiText("Remove")} disabled={!!busy} onClick={() => void remove(f)}><Trash2 aria-hidden="true" /></button>}
           </li>)}
-        </ul> : <p className="muted small attach-empty">No files in this cell yet.</p>}
+        </ul> : <p className="muted small attach-empty">{uiText("No files in this cell yet.")}</p>}
         {!!files.length && <GroupDelivery groupId={groupId} files={files} command={groupCommand} read={delivery => groupRead('/api/tasks/group/delivery', { id: groupId, delivery })} />}
         {editable && <div className="attach-foot">
           <CameraAttachment maxBytes={GROUP_LIMITS.fileBytes} disabled={!!busy||files.length>=GROUP_LIMITS.files} upload={async file=>{const r=await groupCommand('tm.group.file.add',{group_id:groupId,row_id:row.id,column_id:col.id,name:file.name,base64:await fileToBase64(file)});if(r.row)replaceRow(r.row);}} />
           <input ref={input} type="file" multiple accept={TASK_FILE_ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={e => void upload(e.target.files)} />
-          <Button type="button" size="sm" loading={!!busy} disabled={!!busy || files.length >= GROUP_LIMITS.files} onClick={() => input.current?.click()}><Upload />{busy ? `Uploading ${busy}…` : 'Upload files'}</Button>
-          <p className="field-hint">Images, PDF, Word, Excel, PowerPoint, CSV, TXT or ZIP · up to {limitMb} MB each · {GROUP_LIMITS.files} files per cell</p>
+          <Button type="button" size="sm" loading={!!busy} disabled={!!busy || files.length >= GROUP_LIMITS.files} onClick={() => input.current?.click()}><Upload />{busy ? uiText("Uploading {p0}…", { p0: busy }) : uiText("Upload files")}</Button>
+          <p className="field-hint">{uiText("Images, PDF, Word, Excel, PowerPoint, CSV, TXT or ZIP · up to ")}{limitMb} {uiText("MB each · ")}{GROUP_LIMITS.files} {uiText("files per cell")}</p>
         </div>}
       </PopoverContent>
     </Popover>
     {preview && <GroupFilePreview groupId={groupId} file={preview as Row & { id: string; name: string; mime: string }} navigation={{ index: files.findIndex(f => f.id === preview.id), total: files.length, onSelect: i => setPreview({ ...files[i], detail: col.name }) }} onClose={() => setPreview(null)} />}
   </>);
   if (inline) return panel;
-  return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={`grid-cell type-attachment${lifted ? ' is-dragging' : ''}`}>{panel}{caps.editRows && <CellFormatControl groupId={groupId} row={row} col={col} onSaved={replaceRow} />}</td>;
+  return <td data-column-id={col.id} style={{ ...columnStyle(col.id), ...cellColors(row, col) }} className={`grid-cell type-attachment${lifted ? " is-dragging" : ''}`}>{panel}{caps.editRows && <CellFormatControl groupId={groupId} row={row} col={col} onSaved={replaceRow} />}</td>;
 }
 
 /** The editor inside a cell: Enter saves and moves to the row below (V5.5.1: on the last row it adds a new row), Escape
  *  cancels, leaving the cell saves. What was typed stays if saving fails. */
 function CellEditor({ row, col, initial, groupId, w, nameOf, onSave, onCancel, onExpand, saving, lastRow, selectAll, seeded, onOpened }: { row: Row; col: Row; initial: unknown; groupId: string; w: Workspace; nameOf: (id: string) => string; onSave: (v: unknown, next?: boolean) => Promise<boolean>; onCancel: () => void; onExpand?: () => void; saving?: boolean; lastRow?: boolean; selectAll?: boolean; seeded?: boolean; onOpened?: () => void }) {
+  useLanguage();
   const [v, setV] = useState<unknown>(col.type === 'NUMBER' && typeof initial === 'number' ? String(initial) : initial ?? (col.type === 'SUPPORT' ? [] : ''));
   // `finished`: once a value is saved and the editor is moving on, nothing more is sent from it (for example when the
   // field loses focus as it closes).
@@ -1346,7 +1360,7 @@ function CellEditor({ row, col, initial, groupId, w, nameOf, onSave, onCancel, o
   if (col.type === 'TEXT') return (
     <div className="cell-editor">
       <Textarea ref={ref} aria-label={label} value={String(v ?? '')} rows={Math.min(6, Math.max(1, String(v ?? '').split('\n').length))} maxLength={GROUP_LIMITS.text} onChange={e => setV(e.target.value)} onKeyDown={keys} onBlur={() => void save()} disabled={saving} />
-      <div className="cell-editor-tools"><span className="muted text-xs">Enter saves {lastRow ? 'and adds a row' : 'and moves down'} · Shift+Enter new line · Esc cancels</span>{onExpand && <IconButton label="Open a larger editor" icon={Expand} onMouseDown={e => e.preventDefault()} onClick={() => { onCancel(); onExpand(); }} />}</div>
+      <div className="cell-editor-tools"><span className="muted text-xs">{uiText("Enter saves ")}{lastRow ? uiText("and adds a row") : uiText("and moves down")} {uiText("· Shift+Enter new line · Esc cancels")}</span>{onExpand && <IconButton label={uiText("Open a larger editor")} icon={Expand} onMouseDown={e => e.preventDefault()} onClick={() => { onCancel(); onExpand(); }} />}</div>
     </div>
   );
   if (col.type === 'NUMBER') return <div className="cell-editor"><input ref={ref} className="cell-input num" type="text" inputMode="decimal" aria-label={label} value={String(v ?? '')} onChange={e => setV(e.target.value)} onKeyDown={keys} onBlur={() => void save()} disabled={saving} placeholder="0" /></div>;
@@ -1354,10 +1368,10 @@ function CellEditor({ row, col, initial, groupId, w, nameOf, onSave, onCancel, o
   if (col.type === 'STATUS') return (
     <Popover open onOpenChange={o => { if (!o) onCancel(); }}>
       <PopoverAnchor asChild><span className="cell-anchor"><CellDisplay row={row} col={col} value={v} nameOf={nameOf} /></span></PopoverAnchor>
-      <PopoverContent align="start" className="status-popover" aria-label={`Choose ${col.name}`} onKeyDown={e => { if (e.key === 'Escape') onCancel(); }}>
+      <PopoverContent align="start" className="status-popover" aria-label={uiText("Choose {p0}", { p0: col.name })} onKeyDown={e => { if (e.key === 'Escape') onCancel(); }}>
         <ul className="status-options" aria-label={col.name}>
           {statusLabels(col).map((l: Row) => <li key={l.id}><button type="button" className="status-option" aria-pressed={v === l.id} onClick={() => void save(l.id)} autoFocus={v === l.id}><StatusChip label={l} />{v === l.id && <Check aria-hidden="true" />}</button></li>)}
-          <li><button type="button" className="status-option muted" aria-pressed={emptyValue(v)} onClick={() => void save(null)}>Clear</button></li>
+          <li><button type="button" className="status-option muted" aria-pressed={emptyValue(v)} onClick={() => void save(null)}>{uiText("Clear")}</button></li>
         </ul>
       </PopoverContent>
     </Popover>
@@ -1367,12 +1381,12 @@ function CellEditor({ row, col, initial, groupId, w, nameOf, onSave, onCancel, o
     return (
       <Popover open onOpenChange={o => { if (!o) { if (multiple && !same(chosen, initial ?? [])) void save(chosen); else onCancel(); } }}>
         <PopoverAnchor asChild><span className="cell-anchor"><CellDisplay row={row} col={col} value={v} nameOf={nameOf} /></span></PopoverAnchor>
-        <PopoverContent align="start" className="person-popover member-popover" aria-label={`Choose ${col.name}`}>
+        <PopoverContent align="start" className="person-popover member-popover" aria-label={uiText("Choose {p0}", { p0: col.name })}>
           <MemberSearch groupId={groupId} w={w} nameOf={nameOf} selected={chosen} multiple={multiple}
             onPick={id => { if (multiple) setV(chosen.includes(id) ? chosen.filter(x => x !== id) : [...chosen, id]); else void save(id); }} />
           <div className="member-popover-foot">
-            {!multiple && chosen.length > 0 && <Button size="xs" variant="ghost" onClick={() => void save(null)}><X />Nobody</Button>}
-            {multiple && <><Button size="xs" variant="outline" onClick={onCancel}>Cancel</Button><Button size="xs" onClick={() => void save(chosen)} loading={saving}>Save</Button></>}
+            {!multiple && chosen.length > 0 && <Button size="xs" variant="ghost" onClick={() => void save(null)}><X />{uiText("Nobody")}</Button>}
+            {multiple && <><Button size="xs" variant="outline" onClick={onCancel}>{uiText("Cancel")}</Button><Button size="xs" onClick={() => void save(chosen)} loading={saving}>{uiText("Save")}</Button></>}
           </div>
         </PopoverContent>
       </Popover>
@@ -1384,13 +1398,14 @@ function CellEditor({ row, col, initial, groupId, w, nameOf, onSave, onCancel, o
 /** Eligible members from the server (active members of the group's workspace, narrowed by its sharing), with search
  *  and paging so everyone can be found. People already chosen stay listed even if they are no longer available. */
 function MemberSearch({ groupId, w, nameOf, selected, multiple, onPick }: { groupId: string; w: Workspace; nameOf: (id: string) => string; selected: string[]; multiple: boolean; onPick: (id: string) => void }) {
+  useLanguage();
   const [q, setQ] = useState(''), [items, setItems] = useState<Row[]>([]), [total, setTotal] = useState(0), [loading, setLoading] = useState(false), [error, setError] = useState('');
   const listId = useId();
   const fetchPage = useCallback(async (query: string, offset: number) => {
     setLoading(true);
     try {
       const res = await apiFetch(`/api/tasks/group/members?id=${encodeURIComponent(groupId)}&q=${encodeURIComponent(query)}&offset=${offset}&limit=30`), body = await res.json();
-      if (!res.ok) throw new Error(body.error || 'People could not be loaded.');
+      if (!res.ok) throw new Error(body.error || uiText("People could not be loaded."));
       setItems(old => (offset ? [...old, ...body.items] : body.items)); setTotal(body.total); setError('');
     } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
   }, [groupId]);
@@ -1398,24 +1413,25 @@ function MemberSearch({ groupId, w, nameOf, selected, multiple, onPick }: { grou
   const unavailable = selected.filter(x => !items.some(p => p.id === x));
   return (
     <div className="person-list-popup">
-      <div className="person-search"><Search aria-hidden="true" /><input type="text" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search by name or department" aria-label="Search people" aria-controls={listId} autoComplete="off" spellCheck={false} /></div>
+      <div className="person-search"><Search aria-hidden="true" /><input type="text" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder={uiText("Search by name or department")} aria-label={uiText("Search people")} aria-controls={listId} autoComplete="off" spellCheck={false} /></div>
       {error && <p className="field-error">{error}</p>}
-      <ul id={listId} className="person-options" role="listbox" aria-multiselectable={multiple || undefined} aria-label="People">
-        {!q && unavailable.map(x => <li key={x} role="option" aria-selected className="person-option" onClick={() => onPick(x)}><Avatar name={w.lookup(x)} size="sm" /><span className="person-option-text"><span className="person-option-name">{nameOf(x)}</span><small>Already chosen · can’t be chosen again once removed</small></span><Check className="person-option-check" aria-hidden="true" /></li>)}
+      <ul id={listId} className="person-options" role="listbox" aria-multiselectable={multiple || undefined} aria-label={uiText("People")}>
+        {!q && unavailable.map(x => <li key={x} role="option" aria-selected className="person-option" onClick={() => onPick(x)}><Avatar name={w.lookup(x)} size="sm" /><span className="person-option-text"><span className="person-option-name">{nameOf(x)}</span><small>{uiText("Already chosen · can’t be chosen again once removed")}</small></span><Check className="person-option-check" aria-hidden="true" /></li>)}
         {items.map(p => <li key={p.id} role="option" aria-selected={selected.includes(p.id)} className="person-option" onClick={() => onPick(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(p.id); } }} tabIndex={0}>
-          <Avatar name={p.name} size="sm" /><span className="person-option-text"><span className="person-option-name">{p.name}{p.id === w.actor && <span className="muted"> (you)</span>}</span>{(p.department || p.position) && <small>{[p.department, p.position].filter(Boolean).join(' · ')}</small>}</span>
+          <Avatar name={p.name} size="sm" /><span className="person-option-text"><span className="person-option-name">{p.name}{p.id === w.actor && <span className="muted"> {uiText("(you)")}</span>}</span>{(p.department || p.position) && <small>{[p.department, p.position].filter(Boolean).join(' · ')}</small>}</span>
           {selected.includes(p.id) && <Check className="person-option-check" aria-hidden="true" />}
         </li>)}
       </ul>
-      {!loading && !items.length && !error && <p className="person-empty" role="status">{q ? 'Nobody matches your search.' : 'Nobody can be chosen in this group yet.'}</p>}
-      {loading && <p className="person-empty" role="status"><Loader2 className="spin inline-icon" aria-hidden="true" />Loading…</p>}
-      {!loading && items.length < total && <button type="button" className="person-clear" onClick={() => void fetchPage(q, items.length)}>Show more ({total - items.length})</button>}
+      {!loading && !items.length && !error && <p className="person-empty" role="status">{q ? uiText("Nobody matches your search.") : uiText("Nobody can be chosen in this group yet.")}</p>}
+      {loading && <p className="person-empty" role="status"><Loader2 className="spin inline-icon" aria-hidden="true" />{uiText("Loading…")}</p>}
+      {!loading && items.length < total && <button type="button" className="person-clear" onClick={() => void fetchPage(q, items.length)}>{uiText("Show more (")}{total - items.length})</button>}
     </div>
   );
 }
 
 /** A cell in a dialog: long text, and editing on small screens (card layout). */
 function CellDialog({ row, col, cells, saveCell, discard, groupId, w, nameOf, onClose }: Editors & { row: Row; col: Row; onClose: () => void }) {
+  useLanguage();
   const st = cells[cellKey(row.id, col.id)], initial = st?.state === 'error' || st?.state === 'saving' ? st.draft : row.values?.[col.id];
   const [v, setV] = useState<unknown>(col.type === 'NUMBER' && typeof initial === 'number' ? String(initial) : initial ?? (col.type === 'SUPPORT' ? [] : ''));
   const [saving, setSaving] = useState(false);
@@ -1429,22 +1445,22 @@ function CellDialog({ row, col, cells, saveCell, discard, groupId, w, nameOf, on
         <form className="dialog-form" onSubmit={submit} noValidate>
           <fieldset disabled={saving}>
             <div className="dialog-body stack">
-              {error && <Alert tone="danger" title="Not saved" live>{error}</Alert>}
-              {col.type === 'TEXT' ? <div className="field"><label className="field-label" htmlFor="cell-dialog-text">{col.name}</label><Textarea id="cell-dialog-text" autoFocus rows={10} value={String(v ?? '')} maxLength={GROUP_LIMITS.text} onChange={e => setV(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void save(); } }} /><p className="field-hint">{String(v ?? '').length.toLocaleString('en-US')} of {GROUP_LIMITS.text.toLocaleString('en-US')} characters · Ctrl+Enter saves</p></div>
-                : col.type === 'NUMBER' ? <Field label={col.name} value={String(v ?? '')} onChange={setV} inputMode="decimal" hint="Whole numbers or decimals, for example -12.5. Leave empty to clear." />
-                  : col.type === 'DATE' ? <Field label={col.name} type="date" value={String(v ?? '')} onChange={setV} hint="Leave empty to clear." />
-                    : col.type === 'STATUS' ? <Picker label={col.name} value={v} none="Empty" options={statusLabels(col).map((l: Row) => [l.id, l.name])} onChange={x => setV(x || null)} />
+              {error && <Alert tone="danger" title={uiText("Not saved")} live>{error}</Alert>}
+              {col.type === 'TEXT' ? <div className="field"><label className="field-label" htmlFor="cell-dialog-text">{col.name}</label><Textarea id="cell-dialog-text" autoFocus rows={10} value={String(v ?? '')} maxLength={GROUP_LIMITS.text} onChange={e => setV(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void save(); } }} /><p className="field-hint">{String(v ?? '').length.toLocaleString('en-US')} {uiText("of ")}{GROUP_LIMITS.text.toLocaleString('en-US')} {uiText("characters · Ctrl+Enter saves")}</p></div>
+                : col.type === 'NUMBER' ? <Field label={col.name} value={String(v ?? '')} onChange={setV} inputMode="decimal" hint={uiText("Whole numbers or decimals, for example -12.5. Leave empty to clear.")} />
+                  : col.type === 'DATE' ? <Field label={col.name} type="date" value={String(v ?? '')} onChange={setV} hint={uiText("Leave empty to clear.")} />
+                    : col.type === 'STATUS' ? <Picker label={col.name} value={v} none={uiText("Empty")} options={statusLabels(col).map((l: Row) => [l.id, l.name])} onChange={x => setV(x || null)} />
                       : <div className="member-inline"><p className="field-label">{col.name}</p>
-                        {col.type === 'SUPPORT' && Array.isArray(v) && (v as string[]).length > 0 && <ul className="people-chips">{(v as string[]).map(x => <li key={x} className="person-chip"><Avatar name={w.lookup(x)} size="sm" /><span className="person-chip-name">{nameOf(x)}</span><button type="button" className="person-chip-remove" aria-label={`Remove ${w.lookup(x)}`} onClick={() => setV((v as string[]).filter(y => y !== x))}><X aria-hidden="true" /></button></li>)}</ul>}
-                        {col.type === 'IN_CHARGE' && !!v && <p className="person-cell"><Avatar name={w.lookup(v as string)} size="sm" />{nameOf(v as string)} <Button type="button" size="xs" variant="ghost" onClick={() => setV(null)}>Remove</Button></p>}
+                        {col.type === 'SUPPORT' && Array.isArray(v) && (v as string[]).length > 0 && <ul className="people-chips">{(v as string[]).map(x => <li key={x} className="person-chip"><Avatar name={w.lookup(x)} size="sm" /><span className="person-chip-name">{nameOf(x)}</span><button type="button" className="person-chip-remove" aria-label={uiText("Remove {p0}", { p0: w.lookup(x) })} onClick={() => setV((v as string[]).filter(y => y !== x))}><X aria-hidden="true" /></button></li>)}</ul>}
+                        {col.type === 'IN_CHARGE' && !!v && <p className="person-cell"><Avatar name={w.lookup(v as string)} size="sm" />{nameOf(v as string)} <Button type="button" size="xs" variant="ghost" onClick={() => setV(null)}>{uiText("Remove")}</Button></p>}
                         <MemberSearch groupId={groupId} w={w} nameOf={nameOf} selected={col.type === 'SUPPORT' ? (Array.isArray(v) ? v as string[] : []) : v ? [v as string] : []} multiple={col.type === 'SUPPORT'}
                           onPick={id => setV(col.type === 'SUPPORT' ? ((Array.isArray(v) ? v as string[] : []).includes(id) ? (v as string[]).filter(x => x !== id) : [...(Array.isArray(v) ? v as string[] : []), id]) : id)} />
                       </div>}
             </div>
             <div className="dialog-footer">
-              {error && <div className="footer-start"><Button type="button" variant="ghost" onClick={() => { discard(row, col); onClose(); }}>Undo my change</Button></div>}
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" loading={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+              {error && <div className="footer-start"><Button type="button" variant="ghost" onClick={() => { discard(row, col); onClose(); }}>{uiText("Undo my change")}</Button></div>}
+              <Button type="button" variant="outline" onClick={onClose}>{uiText("Cancel")}</Button>
+              <Button type="submit" loading={saving}>{saving ? uiText("Saving…") : uiText("Save")}</Button>
             </div>
           </fieldset>
         </form>
@@ -1455,6 +1471,7 @@ function CellDialog({ row, col, cells, saveCell, discard, groupId, w, nameOf, on
 
 // ---------------------------------------------------------------- filters
 function FilterDialog({ col, groupId, nameOf, onClose, onApply }: { col: Row; groupId: string; nameOf: (id: string) => string; onClose: () => void; onApply: (f: Filter) => void }) {
+  useLanguage();
   const [f, setF] = useState<Filter>({ col: col.id, value: '' });
   const [people, setPeople] = useState<Row[]>([]);
   useEffect(() => {
@@ -1465,16 +1482,16 @@ function FilterDialog({ col, groupId, nameOf, onClose, onApply }: { col: Row; gr
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="dialog-sm">
-        <DialogHeader><DialogTitle>Filter by {col.name}</DialogTitle><DialogDescription>Show only the rows that match. Filters can be removed from the list above the table.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{uiText("Filter by ")}{col.name}</DialogTitle><DialogDescription>{uiText("Show only the rows that match. Filters can be removed from the list above the table.")}</DialogDescription></DialogHeader>
         <form className="dialog-form" onSubmit={submit}>
           <div className="dialog-body stack">
-            {col.type === 'NUMBER' || col.type === 'FORMULA' ? <div className="grid-2"><Field label="At least" value={f.min || ''} inputMode="decimal" onChange={v => setF(s => ({ ...s, min: v }))} /><Field label="At most" value={f.max || ''} inputMode="decimal" onChange={v => setF(s => ({ ...s, max: v }))} /></div>
-              : col.type === 'DATE' ? <div className="grid-2"><Field label="From" type="date" value={f.from || ''} onChange={v => setF(s => ({ ...s, from: v }))} /><Field label="To" type="date" value={f.to || ''} onChange={v => setF(s => ({ ...s, to: v }))} /></div>
-                : col.type === 'STATUS' ? <Picker label={col.name} value={f.value} none="Empty (no status)" options={statusLabels(col).map((l: Row) => [l.id, l.name])} onChange={v => setF(s => ({ ...s, value: v }))} />
-                  : col.type === 'IN_CHARGE' || col.type === 'SUPPORT' ? <Picker label={col.type === 'SUPPORT' ? `${col.name} includes` : col.name} value={f.value} none="Nobody chosen" options={people.map(p => [p.id, nameOf(p.id)])} onChange={v => setF(s => ({ ...s, value: v }))} />
-                    : <Field label="Contains" value={f.value || ''} onChange={v => setF(s => ({ ...s, value: v }))} placeholder="Text to look for" />}
+            {col.type === 'NUMBER' || col.type === 'FORMULA' ? <div className="grid-2"><Field label={uiText("At least")} value={f.min || ''} inputMode="decimal" onChange={v => setF(s => ({ ...s, min: v }))} /><Field label={uiText("At most")} value={f.max || ''} inputMode="decimal" onChange={v => setF(s => ({ ...s, max: v }))} /></div>
+              : col.type === 'DATE' ? <div className="grid-2"><Field label={uiText("From")} type="date" value={f.from || ''} onChange={v => setF(s => ({ ...s, from: v }))} /><Field label={uiText("To")} type="date" value={f.to || ''} onChange={v => setF(s => ({ ...s, to: v }))} /></div>
+                : col.type === 'STATUS' ? <Picker label={col.name} value={f.value} none={uiText("Empty (no status)")} options={statusLabels(col).map((l: Row) => [l.id, l.name])} onChange={v => setF(s => ({ ...s, value: v }))} />
+                  : col.type === 'IN_CHARGE' || col.type === 'SUPPORT' ? <Picker label={col.type === 'SUPPORT' ? uiText("{p0} includes", { p0: col.name }) : col.name} value={f.value} none={uiText("Nobody chosen")} options={people.map(p => [p.id, nameOf(p.id)])} onChange={v => setF(s => ({ ...s, value: v }))} />
+                    : <Field label={uiText("Contains")} value={f.value || ''} onChange={v => setF(s => ({ ...s, value: v }))} placeholder={uiText("Text to look for")} />}
           </div>
-          <div className="dialog-footer"><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button type="submit">Apply filter</Button></div>
+          <div className="dialog-footer"><Button type="button" variant="outline" onClick={onClose}>{uiText("Cancel")}</Button><Button type="submit">{uiText("Apply filter")}</Button></div>
         </form>
       </DialogContent>
     </Dialog>
@@ -1484,35 +1501,37 @@ function FilterDialog({ col, groupId, nameOf, onClose, onApply }: { col: Row; gr
 // ---------------------------------------------------------------- group activity and access
 /** Recent changes to the group (structure, sharing, rows added or deleted), from the group's “More” menu. */
 function ActivityDialog({ w, name, activity, onClose }: { w: Workspace; name: string; activity: Row[]; onClose: () => void }) {
+  useLanguage();
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="dialog-md">
-        <DialogHeader><DialogTitle>Recent changes</DialogTitle><DialogDescription>{name}. Structure, sharing and rows added or deleted are recorded; individual cell edits are not listed here.</DialogDescription></DialogHeader>
-        <div className="dialog-body" role="region" aria-label="Recent changes" tabIndex={0}>
+        <DialogHeader><DialogTitle>{uiText("Recent changes")}</DialogTitle><DialogDescription>{name}{uiText(". Structure, sharing and rows added or deleted are recorded; individual cell edits are not listed here.")}</DialogDescription></DialogHeader>
+        <div className="dialog-body" role="region" aria-label={uiText("Recent changes")} tabIndex={0}>
           {activity.length ? <ol className="timeline compact">{activity.map((a, i) => <li key={i}><span className="timeline-dot" aria-hidden="true" /><div className="timeline-body"><p className="timeline-title">{a.action}</p>{a.detail && <p className="timeline-detail">{a.detail}</p>}<p className="timeline-meta">{formatDateTime(a.created_at)} · {w.lookup(a.actor_id)}</p></div></li>)}</ol>
-            : <p className="muted small">No changes recorded yet.</p>}
+            : <p className="muted small">{uiText("No changes recorded yet.")}</p>}
         </div>
-        <div className="dialog-footer"><Button onClick={onClose}>Close</Button></div>
+        <div className="dialog-footer"><Button onClick={onClose}>{uiText("Close")}</Button></div>
       </DialogContent>
     </Dialog>
   );
 }
 function AccessDialog({ w, group: g, onClose, onEdit }: { w: Workspace; group: Row; onClose: () => void; onEdit?: () => void }) {
+  useLanguage();
   const ws = w.data.tm_workspaces.find((x: Row) => x.id === g.workspace_id), members = (w.data.tm_members || []).filter((m: Row) => m.workspace_id === g.workspace_id).length;
   return (
     <Dialog open onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="dialog-md">
-        <DialogHeader><DialogTitle>Who can open “{g.name}”</DialogTitle><DialogDescription>{g.visibility === 'TEAM' ? `A team group in ${ws?.name || 'this workspace'}.` : 'A personal group.'} Choosing someone in an In Charge or Support cell never gives them access.</DialogDescription></DialogHeader>
-        <div className="dialog-body stack" role="region" aria-label="People who can open this group" tabIndex={0}>
+        <DialogHeader><DialogTitle>{uiText("Who can open “")}{g.name}”</DialogTitle><DialogDescription>{g.visibility === 'TEAM' ? uiText("A team group in {p0}.", { p0: ws?.name || 'this workspace' }) : uiText("A personal group.")} {uiText("Choosing someone in an In Charge or Support cell never gives them access.")}</DialogDescription></DialogHeader>
+        <div className="dialog-body stack" role="region" aria-label={uiText("People who can open this group")} tabIndex={0}>
           <ul className="access-list">
-            <li><Avatar name={w.lookup(g.owner_id)} size="md" /><span className="cell-stack"><span className="person-name">{w.lookup(g.owner_id)}{g.owner_id === w.actor && <span className="muted"> (you)</span>}</span><small>{LEVEL_HINTS.OWNER}</small></span><StatusBadge value="OWNER" label="Owner" tone="accent" /></li>
-            {g.visibility === 'TEAM' && g.audience === 'WORKSPACE' && <li><span className="access-icon" aria-hidden="true"><Users /></span><span className="cell-stack"><span className="person-name">Everyone in {ws?.name || 'the workspace'}</span><small>{members} {plural(members, 'member')} · {LEVEL_HINTS[g.workspace_level as keyof typeof LEVEL_HINTS]}</small></span><StatusBadge value={g.workspace_level} label={LEVEL_LABELS[g.workspace_level as keyof typeof LEVEL_LABELS]} tone="info" /></li>}
-            {g.visibility === 'TEAM' && (g.shared || []).map((a: Row) => <li key={a.staff_id}><Avatar name={a.name} size="md" /><span className="cell-stack"><span className="person-name">{a.name}{a.staff_id === w.actor && <span className="muted"> (you)</span>}</span><small>{LEVEL_HINTS[a.level as keyof typeof LEVEL_HINTS]}</small></span><StatusBadge value={a.level} label={LEVEL_LABELS[a.level as keyof typeof LEVEL_LABELS]} tone="info" /></li>)}
+            <li><Avatar name={w.lookup(g.owner_id)} size="md" /><span className="cell-stack"><span className="person-name">{w.lookup(g.owner_id)}{g.owner_id === w.actor && <span className="muted"> {uiText("(you)")}</span>}</span><small>{LEVEL_HINTS.OWNER}</small></span><StatusBadge value="OWNER" label={uiText("Owner")} tone="accent" /></li>
+            {g.visibility === 'TEAM' && g.audience === 'WORKSPACE' && <li><span className="access-icon" aria-hidden="true"><Users /></span><span className="cell-stack"><span className="person-name">{uiText("Everyone in ")}{ws?.name || uiText("the workspace")}</span><small>{members} {plural(members, 'member')} · {LEVEL_HINTS[g.workspace_level as keyof typeof LEVEL_HINTS]}</small></span><StatusBadge value={g.workspace_level} label={LEVEL_LABELS[g.workspace_level as keyof typeof LEVEL_LABELS]} tone="info" /></li>}
+            {g.visibility === 'TEAM' && (g.shared || []).map((a: Row) => <li key={a.staff_id}><Avatar name={a.name} size="md" /><span className="cell-stack"><span className="person-name">{a.name}{a.staff_id === w.actor && <span className="muted"> {uiText("(you)")}</span>}</span><small>{LEVEL_HINTS[a.level as keyof typeof LEVEL_HINTS]}</small></span><StatusBadge value={a.level} label={LEVEL_LABELS[a.level as keyof typeof LEVEL_LABELS]} tone="info" /></li>)}
           </ul>
-          {g.visibility !== 'TEAM' ? <p className="muted small">Nobody else can open a personal group, including administrators. Its owner can share it by making it a team group.</p>
-            : <p className="muted small">People must still belong to {ws?.name || 'the workspace'} to open it. Administrators with the Groups “Approve” permission can also manage team groups. What each person can change also depends on their role’s Groups permissions.</p>}
+          {g.visibility !== 'TEAM' ? <p className="muted small">{uiText("Nobody else can open a personal group, including administrators. Its owner can share it by making it a team group.")}</p>
+            : <p className="muted small">{uiText("People must still belong to ")}{ws?.name || uiText("the workspace")} {uiText("to open it. Administrators with the Groups “Approve” permission can also manage team groups. What each person can change also depends on their role’s Groups permissions.")}</p>}
         </div>
-        <div className="dialog-footer">{onEdit && <div className="footer-start"><Button variant="outline" onClick={onEdit}><Settings2 />Change sharing</Button></div>}<Button onClick={onClose}>Close</Button></div>
+        <div className="dialog-footer">{onEdit && <div className="footer-start"><Button variant="outline" onClick={onEdit}><Settings2 />{uiText("Change sharing")}</Button></div>}<Button onClick={onClose}>{uiText("Close")}</Button></div>
       </DialogContent>
     </Dialog>
   );
@@ -1520,6 +1539,7 @@ function AccessDialog({ w, group: g, onClose, onEdit }: { w: Workspace; group: R
 
 // ================================================================ group settings (create, rename, sharing)
 function GroupSettingsDialog({ w, group, workspaceId, tab: initialTab, onClose, onSaved }: { w: Workspace; group: Row | null; workspaceId: string; tab?: string; onClose: () => void; onSaved: (id?: string) => void }) {
+  useLanguage();
   const [tab, setTab] = useState(initialTab === 'google' ? 'google' : 'general');
   const isNew = !group, caps = group ? capsFor(w, group) : null;
   const shared0: Row[] = group ? (w.data.tm_board_access || []).filter((a: Row) => a.board_id === group.id).map((a: Row) => ({ staff_id: a.staff_id, level: a.level })) : [];
@@ -1533,114 +1553,114 @@ function GroupSettingsDialog({ w, group, workspaceId, tab: initialTab, onClose, 
   const profiles = new Map<string, Row>((w.data.tm_profiles || []).map((p: Row) => [p.staff_id, p]));
   const options = members.map((m: Row) => ({ id: m.staff_id, name: w.lookup(m.staff_id), detail: [profiles.get(m.staff_id)?.department, profiles.get(m.staff_id)?.position].filter(Boolean).join(' · ') || undefined })).filter(p => profiles.get(p.id)?.active !== 0);
   const canName = isNew || caps?.rename, canShare = isNew || caps?.share, canVisibility = isNew || caps?.visibility;
-  const close = async () => { if (busy) return; if (dirty && !(await confirm({ title: 'Discard your changes?', confirmLabel: 'Discard', cancelLabel: 'Keep editing', tone: 'danger' }))) return; onClose(); };
+  const close = async () => { if (busy) return; if (dirty && !(await confirm({ title: uiText("Discard your changes?"), confirmLabel: uiText("Discard"), cancelLabel: uiText("Keep editing"), tone: 'danger' }))) return; onClose(); };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!d.name.trim()) { setNameError('Enter a name for the group.'); return; }
-    if (isNew && !d.workspace_id) { setError('Choose a workspace.'); return; }
-    if (group && group.visibility === 'TEAM' && d.visibility === 'PERSONAL' && !(await confirm({ title: 'Make this group personal?', description: 'Only its owner will be able to open it. Everyone it is shared with loses access.', confirmLabel: 'Make personal', tone: 'danger' }))) return;
+    if (!d.name.trim()) { setNameError(uiText("Enter a name for the group.")); return; }
+    if (isNew && !d.workspace_id) { setError(uiText("Choose a workspace.")); return; }
+    if (group && group.visibility === 'TEAM' && d.visibility === 'PERSONAL' && !(await confirm({ title: uiText("Make this group personal?"), description: uiText("Only its owner will be able to open it. Everyone it is shared with loses access."), confirmLabel: uiText("Make personal"), tone: 'danger' }))) return;
     setBusy(true); setError('');
     try {
       const r = await groupCommand('tm.group.save', { ...(group ? { id: group.id, expected_version: group.version } : { workspace_id: d.workspace_id }), name: d.name, description: d.description, visibility: d.visibility, audience: d.audience, workspace_level: d.workspace_level, shared: d.visibility === 'TEAM' ? d.shared : [] });
-      toast.success(r.message || 'Saved'); await w.refresh({ quiet: true }); onSaved(isNew ? r.id : undefined);
+      toast.success(r.message || uiText("Saved")); await w.refresh({ quiet: true }); onSaved(isNew ? r.id : undefined);
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
   const addPeople = (ids: string[]) => set('shared', [...d.shared.filter((x: Row) => ids.includes(x.staff_id)), ...ids.filter(id => !d.shared.some((x: Row) => x.staff_id === id)).map(id => ({ staff_id: id, level: 'EDIT' }))]);
   return (
     <Dialog open onOpenChange={o => { if (!o) void close(); }}>
       <DialogContent className="dialog-lg" onInteractOutside={e => e.preventDefault()}>
-        <DialogHeader><DialogTitle>{isNew ? 'Create a group' : `Settings for “${group!.name}”`}</DialogTitle><DialogDescription>{isNew ? 'A group is a table you design. It starts with one text column, “Item”, which you can rename.' : 'Name, description and who can open this group.'}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{isNew ? uiText("Create a group") : uiText("Settings for “{p0}”", { p0: group!.name })}</DialogTitle><DialogDescription>{isNew ? uiText("A group is a table you design. It starts with one text column, “Item”, which you can rename.") : uiText("Name, description and who can open this group.")}</DialogDescription></DialogHeader>
         {group && caps?.share ? <Tabs value={tab} onValueChange={setTab} className="settings-tabs">
-          <TabsList className="settings-tablist"><TabsTrigger value="general">Name and sharing</TabsTrigger><TabsTrigger value="google"><Sheet aria-hidden="true" />Google Sheets</TabsTrigger></TabsList>
+          <TabsList className="settings-tablist"><TabsTrigger value="general">{uiText("Name and sharing")}</TabsTrigger><TabsTrigger value="google"><Sheet aria-hidden="true" />{uiText("Google Sheets")}</TabsTrigger></TabsList>
           <TabsContent value="general">
         <form className="dialog-form" onSubmit={submit} noValidate>
           <fieldset disabled={busy}>
             <div className="dialog-body">
-              {error && <Alert tone="danger" title="This could not be saved" live>{error}</Alert>}
-              <FormSection title="Group">
-                {isNew && <Picker label="Workspace" required value={d.workspace_id} allowNone={false} options={wsList.map(x => [x.id, x.name])} onChange={v => { set('workspace_id', v); set('shared', []); }} hint="Groups belong to one workspace. Only its members can be given access." />}
-                <Field label="Group name" required value={d.name} onChange={v => { set('name', v); setNameError(''); }} error={nameError} maxLength={GROUP_LIMITS.name} disabled={!canName} placeholder="For example: Operational Tracking" wide={!isNew} />
-                <Field label="Description" type="textarea" wide value={d.description} onChange={v => set('description', v)} maxLength={GROUP_LIMITS.description} disabled={!canName} hint="Optional. What the group is for." />
+              {error && <Alert tone="danger" title={uiText("This could not be saved")} live>{error}</Alert>}
+              <FormSection title={uiText("Group")}>
+                {isNew && <Picker label={uiText("Workspace")} required value={d.workspace_id} allowNone={false} options={wsList.map(x => [x.id, x.name])} onChange={v => { set('workspace_id', v); set('shared', []); }} hint={uiText("Groups belong to one workspace. Only its members can be given access.")} />}
+                <Field label={uiText("Group name")} required value={d.name} onChange={v => { set('name', v); setNameError(''); }} error={nameError} maxLength={GROUP_LIMITS.name} disabled={!canName} placeholder={uiText("For example: Operational Tracking")} wide={!isNew} />
+                <Field label={uiText("Description")} type="textarea" wide value={d.description} onChange={v => set('description', v)} maxLength={GROUP_LIMITS.description} disabled={!canName} hint={uiText("Optional. What the group is for.")} />
               </FormSection>
-              <FormSection title="Who can open it" columns={1}>
+              <FormSection title={uiText("Who can open it")} columns={1}>
                 <fieldset className="choice-cards" aria-describedby={`${visId}-hint`} disabled={!canVisibility}>
-                  <legend className="field-label">Visibility</legend>
-                  {[['PERSONAL', 'Personal', 'Private tracking. Only you can open it.', Lock], ['TEAM', 'Team', 'Shared tracking with people in this workspace, or the whole workspace.', Users]].map(([value, label, hint, Icon]) => {
+                  <legend className="field-label">{uiText("Visibility")}</legend>
+                  {[['PERSONAL', uiText("Personal"), uiText("Private tracking. Only you can open it."), Lock], ['TEAM', uiText("Team"), uiText("Shared tracking with people in this workspace, or the whole workspace."), Users]].map(([value, label, hint, Icon]) => {
                     const I = Icon as LucideIcon;
-                    return <label key={value as string} className={`choice-card${d.visibility === value ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-vis`} value={value as string} checked={d.visibility === value} onChange={() => set('visibility', value)} /><I aria-hidden="true" className="choice-icon" /><span className="cell-stack"><span className="cell-title">{label as string}</span><small>{hint as string}</small></span></label>;
+                    return <label key={value as string} className={`choice-card${d.visibility === value ? " is-checked" : ''}`}><input type="radio" name={`${visId}-vis`} value={value as string} checked={d.visibility === value} onChange={() => set('visibility', value)} /><I aria-hidden="true" className="choice-icon" /><span className="cell-stack"><span className="cell-title">{label as string}</span><small>{hint as string}</small></span></label>;
                   })}
-                  <p className="field-hint" id={`${visId}-hint`}>{canVisibility ? 'Choosing someone in an In Charge or Support cell never gives them access.' : 'Only the group’s owner can change this.'}</p>
+                  <p className="field-hint" id={`${visId}-hint`}>{canVisibility ? uiText("Choosing someone in an In Charge or Support cell never gives them access.") : uiText("Only the group’s owner can change this.")}</p>
                 </fieldset>
                 {d.visibility === 'TEAM' && <>
                   <fieldset className="choice-cards" disabled={!canShare}>
-                    <legend className="field-label">Share with</legend>
-                    <label className={`choice-card${d.audience === 'WORKSPACE' ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'WORKSPACE'} onChange={() => set('audience', 'WORKSPACE')} /><span className="cell-stack"><span className="cell-title">Everyone in {w.data.tm_workspaces.find((x: Row) => x.id === d.workspace_id)?.name || 'the workspace'}</span><small>All current and future members of the workspace.</small></span></label>
-                    <label className={`choice-card${d.audience === 'SELECTED' ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'SELECTED'} onChange={() => set('audience', 'SELECTED')} /><span className="cell-stack"><span className="cell-title">Selected people</span><small>Only the members you choose below.</small></span></label>
+                    <legend className="field-label">{uiText("Share with")}</legend>
+                    <label className={`choice-card${d.audience === 'WORKSPACE' ? " is-checked" : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'WORKSPACE'} onChange={() => set('audience', 'WORKSPACE')} /><span className="cell-stack"><span className="cell-title">{uiText("Everyone in ")}{w.data.tm_workspaces.find((x: Row) => x.id === d.workspace_id)?.name || uiText("the workspace")}</span><small>{uiText("All current and future members of the workspace.")}</small></span></label>
+                    <label className={`choice-card${d.audience === 'SELECTED' ? " is-checked" : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'SELECTED'} onChange={() => set('audience', 'SELECTED')} /><span className="cell-stack"><span className="cell-title">{uiText("Selected people")}</span><small>{uiText("Only the members you choose below.")}</small></span></label>
                   </fieldset>
-                  {d.audience === 'WORKSPACE' && <Picker label="Everyone in the workspace can" value={d.workspace_level} allowNone={false} disabled={!canShare} options={[['VIEW', LEVEL_LABELS.VIEW], ['EDIT', LEVEL_LABELS.EDIT]]} onChange={v => set('workspace_level', v)} hint="Give individual people more access below, for example “Can manage” to change columns." />}
+                  {d.audience === 'WORKSPACE' && <Picker label={uiText("Everyone in the workspace can")} value={d.workspace_level} allowNone={false} disabled={!canShare} options={[['VIEW', LEVEL_LABELS.VIEW], ['EDIT', LEVEL_LABELS.EDIT]]} onChange={v => set('workspace_level', v)} hint={uiText("Give individual people more access below, for example “Can manage” to change columns.")} />}
                   <div className="share-people">
-                    <p className="field-label">{d.audience === 'WORKSPACE' ? 'People with more access (optional)' : 'People'}</p>
+                    <p className="field-label">{d.audience === 'WORKSPACE' ? uiText("People with more access (optional)") : uiText("People")}</p>
                     <SharePicker options={options} value={d.shared.map((x: Row) => x.staff_id)} onChange={addPeople} disabled={!canShare} />
                     {d.shared.length > 0 && <ul className="share-list">
                       {d.shared.map((x: Row) => <li key={x.staff_id}><Avatar name={w.lookup(x.staff_id)} size="sm" /><span className="person-name">{w.lookup(x.staff_id)}</span>
-                        <Picker label={`Access for ${w.lookup(x.staff_id)}`} hideLabel value={x.level} allowNone={false} disabled={!canShare} options={(['VIEW', 'EDIT', 'MANAGE'] as const).map(l => [l, LEVEL_LABELS[l]])} onChange={v => set('shared', d.shared.map((y: Row) => (y.staff_id === x.staff_id ? { ...y, level: v } : y)))} className="share-level" />
-                        {canShare && <IconButton label={`Remove ${w.lookup(x.staff_id)}`} icon={X} onClick={() => set('shared', d.shared.filter((y: Row) => y.staff_id !== x.staff_id))} />}</li>)}
+                        <Picker label={uiText("Access for {p0}", { p0: w.lookup(x.staff_id) })} hideLabel value={x.level} allowNone={false} disabled={!canShare} options={(['VIEW', 'EDIT', 'MANAGE'] as const).map(l => [l, LEVEL_LABELS[l]])} onChange={v => set('shared', d.shared.map((y: Row) => (y.staff_id === x.staff_id ? { ...y, level: v } : y)))} className="share-level" />
+                        {canShare && <IconButton label={uiText("Remove {p0}", { p0: w.lookup(x.staff_id) })} icon={X} onClick={() => set('shared', d.shared.filter((y: Row) => y.staff_id !== x.staff_id))} />}</li>)}
                     </ul>}
-                    <p className="field-hint">Can view: read only. Can edit records: add, change and delete rows. Can manage: also change columns, formulas and sharing. {options.length ? '' : 'This workspace has no other members yet.'}</p>
+                    <p className="field-hint">{uiText("Can view: read only. Can edit records: add, change and delete rows. Can manage: also change columns, formulas and sharing. ")}{options.length ? '' : uiText("This workspace has no other members yet.")}</p>
                   </div>
                 </>}
               </FormSection>
             </div>
             <div className="dialog-footer">
-              <Button type="button" variant="outline" onClick={() => void close()}>Cancel</Button>
-              <Button type="submit" loading={busy}>{busy ? 'Saving…' : isNew ? 'Create group' : 'Save'}</Button>
+              <Button type="button" variant="outline" onClick={() => void close()}>{uiText("Cancel")}</Button>
+              <Button type="submit" loading={busy}>{busy ? uiText("Saving…") : isNew ? uiText("Create group") : uiText("Save")}</Button>
             </div>
           </fieldset>
         </form>
           </TabsContent>
-          <TabsContent value="google"><div className="dialog-body"><GoogleSheetsPanel w={w} groupId={group.id} groupName={group.name} /></div><div className="dialog-footer"><Button type="button" onClick={onClose}>Close</Button></div></TabsContent>
+          <TabsContent value="google"><div className="dialog-body"><GoogleSheetsPanel w={w} groupId={group.id} groupName={group.name} /></div><div className="dialog-footer"><Button type="button" onClick={onClose}>{uiText("Close")}</Button></div></TabsContent>
         </Tabs> : <>
         <form className="dialog-form" onSubmit={submit} noValidate>
           <fieldset disabled={busy}>
             <div className="dialog-body">
-              {error && <Alert tone="danger" title="This could not be saved" live>{error}</Alert>}
-              <FormSection title="Group">
-                {isNew && <Picker label="Workspace" required value={d.workspace_id} allowNone={false} options={wsList.map(x => [x.id, x.name])} onChange={v => { set('workspace_id', v); set('shared', []); }} hint="Groups belong to one workspace. Only its members can be given access." />}
-                <Field label="Group name" required value={d.name} onChange={v => { set('name', v); setNameError(''); }} error={nameError} maxLength={GROUP_LIMITS.name} disabled={!canName} placeholder="For example: Operational Tracking" wide={!isNew} />
-                <Field label="Description" type="textarea" wide value={d.description} onChange={v => set('description', v)} maxLength={GROUP_LIMITS.description} disabled={!canName} hint="Optional. What the group is for." />
+              {error && <Alert tone="danger" title={uiText("This could not be saved")} live>{error}</Alert>}
+              <FormSection title={uiText("Group")}>
+                {isNew && <Picker label={uiText("Workspace")} required value={d.workspace_id} allowNone={false} options={wsList.map(x => [x.id, x.name])} onChange={v => { set('workspace_id', v); set('shared', []); }} hint={uiText("Groups belong to one workspace. Only its members can be given access.")} />}
+                <Field label={uiText("Group name")} required value={d.name} onChange={v => { set('name', v); setNameError(''); }} error={nameError} maxLength={GROUP_LIMITS.name} disabled={!canName} placeholder={uiText("For example: Operational Tracking")} wide={!isNew} />
+                <Field label={uiText("Description")} type="textarea" wide value={d.description} onChange={v => set('description', v)} maxLength={GROUP_LIMITS.description} disabled={!canName} hint={uiText("Optional. What the group is for.")} />
               </FormSection>
-              <FormSection title="Who can open it" columns={1}>
+              <FormSection title={uiText("Who can open it")} columns={1}>
                 <fieldset className="choice-cards" aria-describedby={`${visId}-hint`} disabled={!canVisibility}>
-                  <legend className="field-label">Visibility</legend>
-                  {[['PERSONAL', 'Personal', 'Private tracking. Only you can open it.', Lock], ['TEAM', 'Team', 'Shared tracking with people in this workspace, or the whole workspace.', Users]].map(([value, label, hint, Icon]) => {
+                  <legend className="field-label">{uiText("Visibility")}</legend>
+                  {[['PERSONAL', uiText("Personal"), uiText("Private tracking. Only you can open it."), Lock], ['TEAM', uiText("Team"), uiText("Shared tracking with people in this workspace, or the whole workspace."), Users]].map(([value, label, hint, Icon]) => {
                     const I = Icon as LucideIcon;
-                    return <label key={value as string} className={`choice-card${d.visibility === value ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-vis`} value={value as string} checked={d.visibility === value} onChange={() => set('visibility', value)} /><I aria-hidden="true" className="choice-icon" /><span className="cell-stack"><span className="cell-title">{label as string}</span><small>{hint as string}</small></span></label>;
+                    return <label key={value as string} className={`choice-card${d.visibility === value ? " is-checked" : ''}`}><input type="radio" name={`${visId}-vis`} value={value as string} checked={d.visibility === value} onChange={() => set('visibility', value)} /><I aria-hidden="true" className="choice-icon" /><span className="cell-stack"><span className="cell-title">{label as string}</span><small>{hint as string}</small></span></label>;
                   })}
-                  <p className="field-hint" id={`${visId}-hint`}>{canVisibility ? 'Choosing someone in an In Charge or Support cell never gives them access.' : 'Only the group’s owner can change this.'}</p>
+                  <p className="field-hint" id={`${visId}-hint`}>{canVisibility ? uiText("Choosing someone in an In Charge or Support cell never gives them access.") : uiText("Only the group’s owner can change this.")}</p>
                 </fieldset>
                 {d.visibility === 'TEAM' && <>
                   <fieldset className="choice-cards" disabled={!canShare}>
-                    <legend className="field-label">Share with</legend>
-                    <label className={`choice-card${d.audience === 'WORKSPACE' ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'WORKSPACE'} onChange={() => set('audience', 'WORKSPACE')} /><span className="cell-stack"><span className="cell-title">Everyone in {w.data.tm_workspaces.find((x: Row) => x.id === d.workspace_id)?.name || 'the workspace'}</span><small>All current and future members of the workspace.</small></span></label>
-                    <label className={`choice-card${d.audience === 'SELECTED' ? ' is-checked' : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'SELECTED'} onChange={() => set('audience', 'SELECTED')} /><span className="cell-stack"><span className="cell-title">Selected people</span><small>Only the members you choose below.</small></span></label>
+                    <legend className="field-label">{uiText("Share with")}</legend>
+                    <label className={`choice-card${d.audience === 'WORKSPACE' ? " is-checked" : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'WORKSPACE'} onChange={() => set('audience', 'WORKSPACE')} /><span className="cell-stack"><span className="cell-title">{uiText("Everyone in ")}{w.data.tm_workspaces.find((x: Row) => x.id === d.workspace_id)?.name || uiText("the workspace")}</span><small>{uiText("All current and future members of the workspace.")}</small></span></label>
+                    <label className={`choice-card${d.audience === 'SELECTED' ? " is-checked" : ''}`}><input type="radio" name={`${visId}-aud`} checked={d.audience === 'SELECTED'} onChange={() => set('audience', 'SELECTED')} /><span className="cell-stack"><span className="cell-title">{uiText("Selected people")}</span><small>{uiText("Only the members you choose below.")}</small></span></label>
                   </fieldset>
-                  {d.audience === 'WORKSPACE' && <Picker label="Everyone in the workspace can" value={d.workspace_level} allowNone={false} disabled={!canShare} options={[['VIEW', LEVEL_LABELS.VIEW], ['EDIT', LEVEL_LABELS.EDIT]]} onChange={v => set('workspace_level', v)} hint="Give individual people more access below, for example “Can manage” to change columns." />}
+                  {d.audience === 'WORKSPACE' && <Picker label={uiText("Everyone in the workspace can")} value={d.workspace_level} allowNone={false} disabled={!canShare} options={[['VIEW', LEVEL_LABELS.VIEW], ['EDIT', LEVEL_LABELS.EDIT]]} onChange={v => set('workspace_level', v)} hint={uiText("Give individual people more access below, for example “Can manage” to change columns.")} />}
                   <div className="share-people">
-                    <p className="field-label">{d.audience === 'WORKSPACE' ? 'People with more access (optional)' : 'People'}</p>
+                    <p className="field-label">{d.audience === 'WORKSPACE' ? uiText("People with more access (optional)") : uiText("People")}</p>
                     <SharePicker options={options} value={d.shared.map((x: Row) => x.staff_id)} onChange={addPeople} disabled={!canShare} />
                     {d.shared.length > 0 && <ul className="share-list">
                       {d.shared.map((x: Row) => <li key={x.staff_id}><Avatar name={w.lookup(x.staff_id)} size="sm" /><span className="person-name">{w.lookup(x.staff_id)}</span>
-                        <Picker label={`Access for ${w.lookup(x.staff_id)}`} hideLabel value={x.level} allowNone={false} disabled={!canShare} options={(['VIEW', 'EDIT', 'MANAGE'] as const).map(l => [l, LEVEL_LABELS[l]])} onChange={v => set('shared', d.shared.map((y: Row) => (y.staff_id === x.staff_id ? { ...y, level: v } : y)))} className="share-level" />
-                        {canShare && <IconButton label={`Remove ${w.lookup(x.staff_id)}`} icon={X} onClick={() => set('shared', d.shared.filter((y: Row) => y.staff_id !== x.staff_id))} />}</li>)}
+                        <Picker label={uiText("Access for {p0}", { p0: w.lookup(x.staff_id) })} hideLabel value={x.level} allowNone={false} disabled={!canShare} options={(['VIEW', 'EDIT', 'MANAGE'] as const).map(l => [l, LEVEL_LABELS[l]])} onChange={v => set('shared', d.shared.map((y: Row) => (y.staff_id === x.staff_id ? { ...y, level: v } : y)))} className="share-level" />
+                        {canShare && <IconButton label={uiText("Remove {p0}", { p0: w.lookup(x.staff_id) })} icon={X} onClick={() => set('shared', d.shared.filter((y: Row) => y.staff_id !== x.staff_id))} />}</li>)}
                     </ul>}
-                    <p className="field-hint">Can view: read only. Can edit records: add, change and delete rows. Can manage: also change columns, formulas and sharing. {options.length ? '' : 'This workspace has no other members yet.'}</p>
+                    <p className="field-hint">{uiText("Can view: read only. Can edit records: add, change and delete rows. Can manage: also change columns, formulas and sharing. ")}{options.length ? '' : uiText("This workspace has no other members yet.")}</p>
                   </div>
                 </>}
               </FormSection>
             </div>
             <div className="dialog-footer">
-              <Button type="button" variant="outline" onClick={() => void close()}>Cancel</Button>
-              <Button type="submit" loading={busy}>{busy ? 'Saving…' : isNew ? 'Create group' : 'Save'}</Button>
+              <Button type="button" variant="outline" onClick={() => void close()}>{uiText("Cancel")}</Button>
+              <Button type="submit" loading={busy}>{busy ? uiText("Saving…") : isNew ? uiText("Create group") : uiText("Save")}</Button>
             </div>
           </fieldset>
         </form>
@@ -1650,18 +1670,19 @@ function GroupSettingsDialog({ w, group, workspaceId, tab: initialTab, onClose, 
   );
 }
 function SharePicker({ options, value, onChange, disabled }: { options: { id: string; name: string; detail?: string }[]; value: string[]; onChange: (ids: string[]) => void; disabled?: boolean }) {
+  useLanguage();
   const [open, setOpen] = useState(false), [q, setQ] = useState('');
   const available = options.filter(p => !value.includes(p.id) && `${p.name} ${p.detail || ''}`.toLowerCase().includes(q.toLowerCase()));
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild><Button type="button" variant="outline" size="sm" disabled={disabled || !options.some(p => !value.includes(p.id))}><Plus />Add people</Button></PopoverTrigger>
-      <PopoverContent align="start" className="person-popover" aria-label="Add people">
+      <PopoverTrigger asChild><Button type="button" variant="outline" size="sm" disabled={disabled || !options.some(p => !value.includes(p.id))}><Plus />{uiText("Add people")}</Button></PopoverTrigger>
+      <PopoverContent align="start" className="person-popover" aria-label={uiText("Add people")}>
         <div className="person-list-popup">
-          <div className="person-search"><Search aria-hidden="true" /><input type="text" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search workspace members" aria-label="Search workspace members" /></div>
-          <ul className="person-options" role="listbox" aria-label="Workspace members">
+          <div className="person-search"><Search aria-hidden="true" /><input type="text" autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder={uiText("Search workspace members")} aria-label={uiText("Search workspace members")} /></div>
+          <ul className="person-options" role="listbox" aria-label={uiText("Workspace members")}>
             {available.map(p => <li key={p.id} role="option" aria-selected={false} tabIndex={0} className="person-option" onClick={() => onChange([...value, p.id])} onKeyDown={e => { if (e.key === 'Enter') onChange([...value, p.id]); }}><Avatar name={p.name} size="sm" /><span className="person-option-text"><span className="person-option-name">{p.name}</span>{p.detail && <small>{p.detail}</small>}</span></li>)}
           </ul>
-          {!available.length && <p className="person-empty">Nobody else to add.</p>}
+          {!available.length && <p className="person-empty">{uiText("Nobody else to add.")}</p>}
         </div>
       </PopoverContent>
     </Popover>
@@ -1669,8 +1690,9 @@ function SharePicker({ options, value, onChange, disabled }: { options: { id: st
 }
 
 // ================================================================ columns
-const DECIMAL_OPTIONS: [string, string][] = [['auto', 'As entered (up to 6)'], ...[0, 1, 2, 3, 4, 5, 6].map(n => [String(n), n === 0 ? 'No decimals' : `${n} decimal place${n === 1 ? '' : 's'}`] as [string, string])];
+const DECIMAL_OPTIONS: [string, string][] = [dynamicLabels(['auto', "As entered (up to 6)"], { 1: () => uiText("As entered (up to 6)") }), ...[0, 1, 2, 3, 4, 5, 6].map(n => [String(n), n === 0 ? uiText("No decimals") : `${n} decimal place${n === 1 ? '' : 's'}`] as [string, string])];
 function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved }: { w: Workspace; group: Row; columns: Row[]; rows: Row[]; column?: Row; after?: string; onClose: () => void; onSaved: (message: string) => void | Promise<void> }) {
+  useLanguage();
   const isNew = !column, live: Row | undefined = column?.linked;
   const [d, setD] = useState<Row>(() => ({
     format: column?.settings?.format || 'GENERAL', prefix: column?.settings?.prefix || '', suffix: column?.settings?.suffix || '', grouping: column?.settings?.grouping !== false,
@@ -1685,7 +1707,7 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
   const nameError = d.name ? columnNameError(d.name, columns, column?.id) : null;
   const typeChanged = !!column && column.type !== d.type;
   const dependents = column ? (column.used_by || []).map((x: string) => columns.find(c => c.id === x)?.name).filter(Boolean) : [];
-  const close = async () => { if (busy) return; if (dirty && !(await confirm({ title: 'Discard your changes?', confirmLabel: 'Discard', cancelLabel: 'Keep editing', tone: 'danger' }))) return; onClose(); };
+  const close = async () => { if (busy) return; if (dirty && !(await confirm({ title: uiText("Discard your changes?"), confirmLabel: uiText("Discard"), cancelLabel: uiText("Keep editing"), tone: 'danger' }))) return; onClose(); };
   const send = async (extra: Row = {}): Promise<void> => {
     setBusy(true); setError('');
     try {
@@ -1694,67 +1716,67 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
       if (d.type === 'STATUS') settings.labels = d.labels.map((l: Row) => ({ ...(l.id ? { id: l.id } : {}), name: l.name, color: l.color }));
       if (d.type === 'FORMULA') settings.expression = d.expression;
       const r = await groupCommand('tm.group.column.save', { group_id: group.id, ...(column ? { id: column.id, expected_version: column.version } : after ? { after } : {}), name: d.name, type: live ? 'LINKED' : d.type, settings: live ? {} : settings, ...extra });
-      await onSaved(r.message || 'Saved');
+      await onSaved(r.message || uiText("Saved"));
     } catch (e) {
       const err = e as GroupError, code = err.details?.code;
       if (code === 'labels_in_use') { setReplacements({ labels: err.details!.labels, choice: {} }); setError(''); }
       else if (code === 'type_change') {
-        if (await confirm({ title: `Change the type and clear ${err.details!.count} ${plural(err.details!.count, 'value')}?`, description: err.message, confirmLabel: 'Change type and clear', tone: 'danger' })) { setBusy(false); return send({ ...extra, confirm_clear: true }); }
+        if (await confirm({ title: uiText("Change the type and clear {p0} {p1}?", { p0: err.details!.count, p1: plural(err.details!.count, 'value') }), description: err.message, confirmLabel: uiText("Change type and clear"), tone: 'danger' })) { setBusy(false); return send({ ...extra, confirm_clear: true }); }
         setError(err.message);
       } else setError(err.message);
     } finally { setBusy(false); }
   };
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!d.name.trim()) { setError('Enter a column name.'); return; }
+    if (!d.name.trim()) { setError(uiText("Enter a column name.")); return; }
     if (nameError) { setError(nameError); return; }
-    if (d.type === 'STATUS' && d.labels.some((l: Row) => !String(l.name || '').trim())) { setError('Give every label a name, or remove it.'); return; }
+    if (d.type === 'STATUS' && d.labels.some((l: Row) => !String(l.name || '').trim())) { setError(uiText("Give every label a name, or remove it.")); return; }
     void send();
   };
   const applyReplacements = () => {
     if (!replacements) return;
     const map: Record<string, string | null> = {};
-    for (const l of replacements.labels) { const c = replacements.choice[l.id]; if (c === undefined || c === '') { setError(`Choose what happens to the rows labelled “${l.name}”.`); return; } map[l.id] = c === '__clear' ? null : c; }
+    for (const l of replacements.labels) { const c = replacements.choice[l.id]; if (c === undefined || c === '') { setError(uiText("Choose what happens to the rows labelled “{p0}”.", { p0: l.name })); return; } map[l.id] = c === '__clear' ? null : c; }
     setReplacements(null); void send({ label_replacements: map });
   };
   const formulaColumns = columns.filter(c => c.id !== column?.id && (c.type === 'NUMBER' || c.type === 'FORMULA'));
   return (
     <Dialog open onOpenChange={o => { if (!o) void close(); }}>
       <DialogContent className="dialog-lg" onInteractOutside={e => e.preventDefault()}>
-        <DialogHeader><DialogTitle>{isNew ? 'Add a column' : `Column “${column!.name}”`}</DialogTitle><DialogDescription>{isNew ? `Added ${after ? `after “${columns.find(c => c.id === after)?.name}”` : 'at the end'}. Every row gets this column.` : 'Renaming or moving a column keeps its values and formulas.'}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{isNew ? uiText("Add a column") : uiText("Column “{p0}”", { p0: column!.name })}</DialogTitle><DialogDescription>{isNew ? uiText("Added {p0}. Every row gets this column.", { p0: after ? `after “${columns.find(c => c.id === after)?.name}”` : 'at the end' }) : uiText("Renaming or moving a column keeps its values and formulas.")}</DialogDescription></DialogHeader>
         <form className="dialog-form" onSubmit={submit} noValidate>
           <fieldset disabled={busy}>
             <div className="dialog-body">
-              {error && <Alert tone="danger" title="This could not be saved" live>{error}</Alert>}
-              {replacements && <Alert tone="warning" title="Some labels are still used">
-                <p>Choose a replacement for each removed label, or clear those cells.</p>
+              {error && <Alert tone="danger" title={uiText("This could not be saved")} live>{error}</Alert>}
+              {replacements && <Alert tone="warning" title={uiText("Some labels are still used")}>
+                <p>{uiText("Choose a replacement for each removed label, or clear those cells.")}</p>
                 <ul className="replace-list">{replacements.labels.map((l: Row) => <li key={l.id}><span>“{l.name}” · {l.count} {plural(l.count, 'row')}</span>
-                  <Picker label={`Replace “${l.name}” with`} hideLabel value={replacements.choice[l.id] || ''} none="Choose…" options={[...d.labels.filter((x: Row) => x.id).map((x: Row) => [x.id, `Use “${x.name}”`] as [string, string]), ['__clear', 'Clear these cells']]} onChange={v => setReplacements(r => r && ({ ...r, choice: { ...r.choice, [l.id]: v } }))} /></li>)}</ul>
-                <div className="row mt-2"><Button type="button" size="sm" onClick={applyReplacements}>Save with these choices</Button><Button type="button" size="sm" variant="ghost" onClick={() => setReplacements(null)}>Back</Button></div>
+                  <Picker label={uiText("Replace “{p0}” with", { p0: l.name })} hideLabel value={replacements.choice[l.id] || ''} none={uiText("Choose…")} options={[...d.labels.filter((x: Row) => x.id).map((x: Row) => [x.id, `Use “${x.name}”`] as [string, string]), ['__clear', uiText("Clear these cells")]]} onChange={v => setReplacements(r => r && ({ ...r, choice: { ...r.choice, [l.id]: v } }))} /></li>)}</ul>
+                <div className="row mt-2"><Button type="button" size="sm" onClick={applyReplacements}>{uiText("Save with these choices")}</Button><Button type="button" size="sm" variant="ghost" onClick={() => setReplacements(null)}>{uiText("Back")}</Button></div>
               </Alert>}
-              <FormSection title="Column">
-                <Field label="Column name" required value={d.name} onChange={v => set('name', v)} error={nameError || undefined} maxLength={GROUP_LIMITS.name} hint="Unique in this group. Formulas refer to it as {Name}." wide />
+              <FormSection title={uiText("Column")}>
+                <Field label={uiText("Column name")} required value={d.name} onChange={v => set('name', v)} error={nameError || undefined} maxLength={GROUP_LIMITS.name} hint={uiText("Unique in this group. Formulas refer to it as {Name}.")} wide />
               </FormSection>
-              {live && <Alert tone="info" icon={Link2} title={live.state === 'ok' ? `Live Data from ${live.source_group_name}` : 'Live Data'}>{live.state === 'ok' ? `Shows “${live.source_name}”, matched by ${live.source_key_name}. ${live.permission === 'EDIT' ? 'You can edit it (Can edit); changes are saved in the source group.' : 'View only (Viewer).'} Its values are never copied into this group.` : 'The source is not available to you, so its values are not shown.'} Only its name can be changed here.</Alert>}
+              {live && <Alert tone="info" icon={Link2} title={live.state === 'ok' ? uiText("Live Data from {p0}", { p0: live.source_group_name }) : uiText("Live Data")}>{live.state === 'ok' ? uiText("Shows “{p0}”, matched by {p1}. {p2} Its values are never copied into this group.", { p0: live.source_name, p1: live.source_key_name, p2: live.permission === 'EDIT' ? 'You can edit it (Can edit); changes are saved in the source group.' : 'View only (Viewer).' }) : uiText("The source is not available to you, so its values are not shown.")} {uiText("Only its name can be changed here.")}</Alert>}
               {!live && <fieldset className="type-cards" aria-describedby={`${typeId}-hint`}>
-                <legend className="field-label">Type</legend>
+                <legend className="field-label">{uiText("Type")}</legend>
                 {TYPE_ORDER.map(t => { const Icon = TYPE_ICON[t]; return (
-                  <label key={t} className={`type-card${d.type === t ? ' is-checked' : ''}`}>
+                  <label key={t} className={`type-card${d.type === t ? " is-checked" : ''}`}>
                     <input type="radio" name={`${typeId}-type`} value={t} checked={d.type === t} onChange={() => set('type', t)} />
                     <Icon aria-hidden="true" /><span className="cell-stack"><span className="cell-title">{COLUMN_TYPES[t]}</span><small>{COLUMN_HINTS[t]}</small></span>
                   </label>
                 ); })}
-                <p className="field-hint" id={`${typeId}-hint`}>{typeChanged ? `Changing ${COLUMN_TYPES[column!.type as ColumnType]} to ${COLUMN_TYPES[d.type as ColumnType]}: values that fit are converted; you are asked before any value is cleared.` : 'You can change the type later; values are checked first.'}</p>
+                <p className="field-hint" id={`${typeId}-hint`}>{typeChanged ? uiText("Changing {p0} to {p1}: values that fit are converted; you are asked before any value is cleared.", { p0: COLUMN_TYPES[column!.type as ColumnType], p1: COLUMN_TYPES[d.type as ColumnType] }) : uiText("You can change the type later; values are checked first.")}</p>
               </fieldset>}
-              {typeChanged && dependents.length > 0 && !['NUMBER', 'FORMULA'].includes(d.type) && <Alert tone="warning" title="Used by formulas">{dependents.join(', ')} {dependents.length === 1 ? 'uses' : 'use'} this column. Change {dependents.length === 1 ? 'that formula' : 'those formulas'} before changing its type.</Alert>}
-              {!live && (d.type === 'NUMBER' || d.type === 'FORMULA') && <FormSection columns={2}><Picker label="Decimal places shown" value={d.decimals === '' || d.decimals === null || d.decimals === undefined ? 'auto' : String(d.decimals)} allowNone={false} options={DECIMAL_OPTIONS} onChange={v => set('decimals', v === 'auto' ? '' : v)} hint="Only changes how numbers are shown; stored values keep their full precision." /></FormSection>}
-              {!live && ['NUMBER', 'FORMULA'].includes(d.type) && <FormSection columns={2}><Picker label="Display format" value={d.format} allowNone={false} options={[["GENERAL", "General number"], ["USD", "USD ($)"], ["KHR", "Cambodian Riel (៛)"], ["PERCENT", "Percentage (%)"], ["CUSTOM", "Custom prefix / suffix"]]} onChange={v => set('format', v)} /><CheckboxField label="Thousands separators" checked={d.grouping} onChange={v => set('grouping', v)} />{d.format === 'CUSTOM' && <><Field label="Prefix" value={d.prefix} onChange={v => set('prefix', v)} maxLength={12} /><Field label="Suffix" value={d.suffix} onChange={v => set('suffix', v)} maxLength={12} /></>}<p className="field-hint">Example: {formatColumnNumber(d.format === 'PERCENT' ? 25 : 1500, { ...d, decimals: d.decimals === '' ? null : Number(d.decimals) })}. Percentage adds a % symbol; 25 stays 25.</p></FormSection>}
+              {typeChanged && dependents.length > 0 && !['NUMBER', 'FORMULA'].includes(d.type) && <Alert tone="warning" title={uiText("Used by formulas")}>{dependents.join(', ')} {dependents.length === 1 ? 'uses' : 'use'} {uiText("this column. Change ")}{dependents.length === 1 ? uiText("that formula") : uiText("those formulas")} {uiText("before changing its type.")}</Alert>}
+              {!live && (d.type === 'NUMBER' || d.type === 'FORMULA') && <FormSection columns={2}><Picker label={uiText("Decimal places shown")} value={d.decimals === '' || d.decimals === null || d.decimals === undefined ? 'auto' : String(d.decimals)} allowNone={false} options={DECIMAL_OPTIONS} onChange={v => set('decimals', v === 'auto' ? '' : v)} hint={uiText("Only changes how numbers are shown; stored values keep their full precision.")} /></FormSection>}
+              {!live && ['NUMBER', 'FORMULA'].includes(d.type) && <FormSection columns={2}><Picker label={uiText("Display format")} value={d.format} allowNone={false} options={[["GENERAL", uiText("General number")], ["USD", uiText("USD ($)")], ["KHR", uiText("Cambodian Riel (៛)")], ["PERCENT", uiText("Percentage (%)")], ["CUSTOM", uiText("Custom prefix / suffix")]]} onChange={v => set('format', v)} /><CheckboxField label={uiText("Thousands separators")} checked={d.grouping} onChange={v => set('grouping', v)} />{d.format === 'CUSTOM' && <><Field label={uiText("Prefix")} value={d.prefix} onChange={v => set('prefix', v)} maxLength={12} /><Field label={uiText("Suffix")} value={d.suffix} onChange={v => set('suffix', v)} maxLength={12} /></>}<p className="field-hint">{uiText("Example: ")}{formatColumnNumber(d.format === 'PERCENT' ? 25 : 1500, { ...d, decimals: d.decimals === '' ? null : Number(d.decimals) })}{uiText(". Percentage adds a % symbol; 25 stays 25.")}</p></FormSection>}
               {!live && d.type === 'STATUS' && <StatusLabelsEditor labels={d.labels} onChange={v => set('labels', v)} used={column?.type === 'STATUS' ? Object.fromEntries(statusLabels(column).map((l: Row) => [l.id, rows.filter(r => r.values?.[column.id] === l.id).length])) : {}} />}
-              {d.type === 'FORMULA' && <FormulaEditor columns={columns} selfId={column?.id || null} name={d.name || 'this column'} ownName={d.name || ''} value={d.expression} onChange={v => set('expression', v)} rows={rows} formulaColumns={formulaColumns} />}
+              {d.type === 'FORMULA' && <FormulaEditor columns={columns} selfId={column?.id || null} name={d.name || uiText("this column")} ownName={d.name || ''} value={d.expression} onChange={v => set('expression', v)} rows={rows} formulaColumns={formulaColumns} />}
             </div>
             <div className="dialog-footer">
-              <Button type="button" variant="outline" onClick={() => void close()}>Cancel</Button>
-              <Button type="submit" loading={busy} disabled={!!replacements}>{busy ? 'Saving…' : isNew ? 'Add column' : 'Save column'}</Button>
+              <Button type="button" variant="outline" onClick={() => void close()}>{uiText("Cancel")}</Button>
+              <Button type="submit" loading={busy} disabled={!!replacements}>{busy ? uiText("Saving…") : isNew ? uiText("Add column") : uiText("Save column")}</Button>
             </div>
           </fieldset>
         </form>
@@ -1764,32 +1786,34 @@ function ColumnDialog({ w, group, columns, rows, column, after, onClose, onSaved
 }
 
 function StatusLabelsEditor({ labels, onChange, used }: { labels: Row[]; onChange: (v: Row[]) => void; used: Record<string, number> }) {
+  useLanguage();
   const move = (i: number, by: number) => { const next = [...labels]; const [x] = next.splice(i, 1); next.splice(i + by, 0, x); onChange(next); };
   return (
     <fieldset className="labels-editor">
-      <legend className="field-label">Labels</legend>
+      <legend className="field-label">{uiText("Labels")}</legend>
       <ol className="labels-list">
         {labels.map((l, i) => (
           <li key={l.id || `new-${i}`}>
             <span className={`status-swatch ${colorClass(l.color)}`} aria-hidden="true" />
-            <label className="sr-only" htmlFor={`label-name-${i}`}>Label {i + 1} name</label>
-            <input id={`label-name-${i}`} className="label-name-input" value={l.name} maxLength={GROUP_LIMITS.label} onChange={e => onChange(labels.map((x, n) => (n === i ? { ...x, name: e.target.value } : x)))} placeholder="Label name" />
-            <Picker label={`Label ${i + 1} color`} hideLabel value={l.color} allowNone={false} options={Object.entries(STATUS_COLORS) as [string, string][]} onChange={v => onChange(labels.map((x, n) => (n === i ? { ...x, color: v } : x)))} className="label-color" />
-            <span className="muted text-xs num">{l.id && used[l.id] ? `${used[l.id]} ${plural(used[l.id], 'row')}` : ''}</span>
-            <IconButton label={`Move “${l.name}” up`} icon={ArrowUp} disabled={i === 0} onClick={() => move(i, -1)} />
-            <IconButton label={`Move “${l.name}” down`} icon={ArrowDown} disabled={i === labels.length - 1} onClick={() => move(i, 1)} />
-            <IconButton label={`Remove “${l.name}”`} icon={Trash2} disabled={labels.length === 1} onClick={() => onChange(labels.filter((_, n) => n !== i))} />
+            <label className="sr-only" htmlFor={`label-name-${i}`}>{uiText("Label ")}{i + 1} name</label>
+            <input id={`label-name-${i}`} className="label-name-input" value={l.name} maxLength={GROUP_LIMITS.label} onChange={e => onChange(labels.map((x, n) => (n === i ? { ...x, name: e.target.value } : x)))} placeholder={uiText("Label name")} />
+            <Picker label={uiText("Label {p0} color", { p0: i + 1 })} hideLabel value={l.color} allowNone={false} options={translatedEntries(STATUS_COLORS) as [string, string][]} onChange={v => onChange(labels.map((x, n) => (n === i ? { ...x, color: v } : x)))} className="label-color" />
+            <span className="muted text-xs num">{l.id && used[l.id] ? uiText("{p0} {p1}", { p0: used[l.id], p1: plural(used[l.id], 'row') }) : ''}</span>
+            <IconButton label={uiText("Move “{p0}” up", { p0: l.name })} icon={ArrowUp} disabled={i === 0} onClick={() => move(i, -1)} />
+            <IconButton label={uiText("Move “{p0}” down", { p0: l.name })} icon={ArrowDown} disabled={i === labels.length - 1} onClick={() => move(i, 1)} />
+            <IconButton label={uiText("Remove “{p0}”", { p0: l.name })} icon={Trash2} disabled={labels.length === 1} onClick={() => onChange(labels.filter((_, n) => n !== i))} />
           </li>
         ))}
       </ol>
-      <Button type="button" size="sm" variant="outline" disabled={labels.length >= GROUP_LIMITS.labels} onClick={() => onChange([...labels, { name: '', color: 'GRAY' }])}><Plus />Add label</Button>
-      <p className="field-hint">Renaming a label keeps it on every row that uses it. Removing a label that rows use asks for a replacement first.</p>
+      <Button type="button" size="sm" variant="outline" disabled={labels.length >= GROUP_LIMITS.labels} onClick={() => onChange([...labels, { name: '', color: 'GRAY' }])}><Plus />{uiText("Add label")}</Button>
+      <p className="field-hint">{uiText("Renaming a label keeps it on every row that uses it. Removing a label that rows use asks for a replacement first.")}</p>
     </fieldset>
   );
 }
 
 /** Formula editor: insert columns and functions, examples, live checking with the server's rules, and a preview. */
 function FormulaEditor({ columns, selfId, name, ownName, value, onChange, rows, formulaColumns }: { columns: Row[]; selfId: string | null; name: string; ownName: string; value: string; onChange: (v: string) => void; rows: Row[]; formulaColumns: Row[] }) {
+  useLanguage();
   const ref = useRef<HTMLTextAreaElement>(null), id = useId();
   const [sample, setSample] = useState(rows[0]?.id || ''), [custom, setCustom] = useState<Row>({});
   const insert = (text: string) => {
@@ -1804,42 +1828,42 @@ function FormulaEditor({ columns, selfId, name, ownName, value, onChange, rows, 
   // The column being edited takes part with the name typed above, so the preview gives the same answer as the server
   // (for example “a formula can’t use its own column”), also for a column that doesn't exist yet.
   const selfKey = selfId || '__draft__', current = columns.find(c => c.id === selfKey);
-  const draftCols = [...columns.filter(c => c.id !== selfKey), { ...(current || {}), id: selfKey, name: ownName.trim() || current?.name || '(new column)', type: 'FORMULA', settings: { ...(current?.settings || {}) } }];
+  const draftCols = [...columns.filter(c => c.id !== selfKey), { ...(current || {}), id: selfKey, name: ownName.trim() || current?.name || uiText("(new column)"), type: 'FORMULA', settings: { ...(current?.settings || {}) } }];
   const row = rows.find(r => r.id === sample);
   const values = sample === '__custom' ? Object.fromEntries(Object.entries(custom).map(([k, v]) => [k, v === '' ? null : Number(v)])) : row?.values;
   const result: Row | null = value.trim() ? previewFormula(value, draftCols, selfKey, values || {}) : null;
   const shownResult = result && result.ok ? (result.value === undefined ? '' : result.value === null ? 'empty' : formatResult(result.value, null)) : '';
   return (
     <section className="formula-editor" aria-labelledby={`${id}-title`}>
-      <h3 className="text-section" id={`${id}-title`}><Calculator aria-hidden="true" className="inline-icon" />Formula</h3>
-      <p className="muted small">Calculated for each row from values in the <strong>same row</strong>. Put column names in braces; the = at the start is optional. Other rows, other groups and cell addresses (like A1) can’t be used.</p>
+      <h3 className="text-section" id={`${id}-title`}><Calculator aria-hidden="true" className="inline-icon" />{uiText("Formula")}</h3>
+      <p className="muted small">{uiText("Calculated for each row from values in the ")}<strong>{uiText("same row")}</strong>{uiText(". Put column names in braces; the = at the start is optional. Other rows, other groups and cell addresses (like A1) can’t be used.")}</p>
       <div className="field">
-        <label className="field-label" htmlFor={`${id}-input`}>Formula for {name}<span className="field-required" aria-hidden="true">*</span></label>
-        <Textarea ref={ref} id={`${id}-input`} className="formula-input" rows={3} value={value} onChange={e => onChange(e.target.value)} placeholder="={Quantity} * {Unit Price}" spellCheck={false} aria-describedby={`${id}-check`} maxLength={GROUP_LIMITS.formula} />
+        <label className="field-label" htmlFor={`${id}-input`}>{uiText("Formula for ")}{name}<span className="field-required" aria-hidden="true">*</span></label>
+        <Textarea ref={ref} id={`${id}-input`} className="formula-input" rows={3} value={value} onChange={e => onChange(e.target.value)} placeholder={uiText("={Quantity} * {Unit Price}")} spellCheck={false} aria-describedby={`${id}-check`} maxLength={GROUP_LIMITS.formula} />
         <p id={`${id}-check`} className={result ? (result.ok ? 'formula-ok' : 'formula-error') : 'field-hint'} role="status">
-          {!result ? 'Enter a formula, or start from an example below.' : result.ok ? <><Check aria-hidden="true" className="inline-icon" />Valid formula{shownResult ? <> · preview: <strong className="num">{shownResult}</strong>{result.value && typeof result.value === 'object' ? ` (${FORMULA_ERRORS[(result.value as Row).error as keyof typeof FORMULA_ERRORS]})` : ''}</> : ''}</> : <><CircleAlert aria-hidden="true" className="inline-icon" />{result.error}</>}
+          {!result ? uiText("Enter a formula, or start from an example below.") : result.ok ? <><Check aria-hidden="true" className="inline-icon" />{uiText("Valid formula")}{shownResult ? <> {uiText("· preview: ")}<strong className="num">{shownResult}</strong>{result.value && typeof result.value === 'object' ? uiText(" ({p0})", { p0: FORMULA_ERRORS[(result.value as Row).error as keyof typeof FORMULA_ERRORS] }) : ''}</> : ''}</> : <><CircleAlert aria-hidden="true" className="inline-icon" />{result.error}</>}
         </p>
       </div>
       <div className="formula-pickers">
-        <div><p className="text-label">Insert a column</p>
-          <div className="chip-row">{formulaColumns.length ? formulaColumns.map(c => <button type="button" key={c.id} className="formula-chip" onMouseDown={keepFocus} onClick={() => insert(`{${c.name}}`)}>{`{${c.name}}`}</button>) : <span className="muted small">Add a Number column first; formulas use Number and Formula columns.</span>}</div></div>
-        <div><p className="text-label">Insert a function</p>
-          <div className="chip-row">{Object.entries(FORMULA_FUNCTIONS).map(([fn, f]) => <button type="button" key={fn} className="formula-chip" title={`${f.usage} — ${f.about}`} onMouseDown={keepFocus} onClick={() => insert(`${fn}()`)}>{fn}</button>)}
-            {['+', '-', '*', '/', '(', ')', '>', '<', '=', '<>', ','].map(op => <button type="button" key={op} className="formula-chip op" aria-label={`Insert ${op}`} onMouseDown={keepFocus} onClick={() => insert(` ${op} `.replace(' , ', ', ').replace(' ( ', '(').replace(' ) ', ')'))}>{op}</button>)}</div></div>
+        <div><p className="text-label">{uiText("Insert a column")}</p>
+          <div className="chip-row">{formulaColumns.length ? formulaColumns.map(c => <button type="button" key={c.id} className="formula-chip" onMouseDown={keepFocus} onClick={() => insert(`{${c.name}}`)}>{uiText("{{p0}}", { p0: c.name })}</button>) : <span className="muted small">{uiText("Add a Number column first; formulas use Number and Formula columns.")}</span>}</div></div>
+        <div><p className="text-label">{uiText("Insert a function")}</p>
+          <div className="chip-row">{Object.entries(FORMULA_FUNCTIONS).map(([fn, f]) => <button type="button" key={fn} className="formula-chip" title={uiText("{p0} — {p1}", { p0: f.usage, p1: f.about })} onMouseDown={keepFocus} onClick={() => insert(`${fn}()`)}>{fn}</button>)}
+            {['+', '-', '*', '/', '(', ')', '>', '<', '=', '<>', ','].map(op => <button type="button" key={op} className="formula-chip op" aria-label={uiText("Insert {p0}", { p0: op })} onMouseDown={keepFocus} onClick={() => insert(` ${op} `.replace(' , ', ', ').replace(' ( ', '(').replace(' ) ', ')'))}>{op}</button>)}</div></div>
       </div>
       <div className="formula-preview">
-        <Picker label="Preview with" value={sample} allowNone={false} options={[...rows.slice(0, 30).map((r, i) => [r.id, `Row ${i + 1}${r.values?.[columns[0]?.id] ? ` · ${String(r.values[columns[0].id]).slice(0, 30)}` : ''}`] as [string, string]), ['__custom', 'Sample values I type']]} onChange={setSample} hint={!rows.length ? 'No rows yet: type sample values instead.' : undefined} />
+        <Picker label={uiText("Preview with")} value={sample} allowNone={false} options={[...rows.slice(0, 30).map((r, i) => [r.id, `Row ${i + 1}${r.values?.[columns[0]?.id] ? ` · ${String(r.values[columns[0].id]).slice(0, 30)}` : ''}`] as [string, string]), ['__custom', uiText("Sample values I type")]]} onChange={setSample} hint={!rows.length ? uiText("No rows yet: type sample values instead.") : undefined} />
         {sample === '__custom' && <div className="grid-3">{columns.filter(c => c.type === 'NUMBER').map(c => <Field key={c.id} label={c.name} value={custom[c.id] ?? ''} inputMode="decimal" onChange={v => setCustom(s => ({ ...s, [c.id]: v }))} />)}</div>}
       </div>
       <details className="disclosure">
-        <summary>Functions, examples and rules</summary>
+        <summary>{uiText("Functions, examples and rules")}</summary>
         <div className="disclosure-body stack">
-          <ul className="formula-help">{Object.entries(FORMULA_FUNCTIONS).map(([fn, f]) => <li key={fn}><code>{f.usage}</code> — {f.about} <button type="button" className="text-link" onClick={() => onChange(f.example)}>Use example <code>{f.example}</code></button></li>)}</ul>
-          <p className="text-label">Operators</p>
-          <p className="small">+ − * / and brackets, with the usual order (* and / before + and −). Comparisons = &lt;&gt; &gt; &gt;= &lt; &lt;= give TRUE or FALSE, for use in IF.</p>
-          <p className="text-label">Rules</p>
+          <ul className="formula-help">{Object.entries(FORMULA_FUNCTIONS).map(([fn, f]) => <li key={fn}><code>{f.usage}</code> — {f.about} <button type="button" className="text-link" onClick={() => onChange(f.example)}>{uiText("Use example ")}<code>{f.example}</code></button></li>)}</ul>
+          <p className="text-label">{uiText("Operators")}</p>
+          <p className="small">{uiText("+ − * / and brackets, with the usual order (* and / before + and −). Comparisons = &lt;&gt; &gt; &gt;= &lt; &lt;= give TRUE or FALSE, for use in IF.")}</p>
+          <p className="text-label">{uiText("Rules")}</p>
           <ul className="formula-help">{FORMULA_RULES.map(r => <li key={r}>{r}</li>)}</ul>
-          <p className="text-label">Error codes</p>
+          <p className="text-label">{uiText("Error codes")}</p>
           <ul className="formula-help">{Object.entries(FORMULA_ERRORS).map(([k, v]) => <li key={k}><code>{k}</code> — {v}</li>)}</ul>
         </div>
       </details>

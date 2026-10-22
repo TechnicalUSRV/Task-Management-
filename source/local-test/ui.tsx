@@ -1,3 +1,4 @@
+import { uiText, useLanguage, translatedEntries } from "./i18n";
 import { CalendarDays, Clock3, FolderKanban, Inbox, ListTodo, Network, Table2 } from 'lucide-react';
 import {Identity} from './identity-ui';
 import { apiFetch, apiPath, openCompany } from './api-client';
@@ -51,11 +52,12 @@ export type Workspace = {
 async function read(url: string): Promise<any> {
   const r = await apiFetch(url);
   const d = await r.json() as Row;
-  if (!r.ok) { if (r.status === 401) window.dispatchEvent(new Event('session-expired')); throw new Error(d.error || 'Unable to load records.'); }
+  if (!r.ok) { if (r.status === 401) window.dispatchEvent(new Event('session-expired')); throw new Error(d.error || uiText("Unable to load records.")); }
   return d;
 }
 
 export function LocalERP() {
+  useLanguage();
   return <ConfirmProvider><AuthGate>{(user, signOut) => <ERPWorkspace user={user} signOut={signOut} />}</AuthGate></ConfirmProvider>;
 }
 
@@ -64,6 +66,7 @@ type NavItem = { id: string; label: string; icon: LucideIcon; href: string; visi
 const TASK_NAV_ICONS: Record<string, LucideIcon> = { workspace: FolderKanban, users: UsersRound, organization: Network, tasks: ListTodo, requests: Inbox, groups: Table2, calendar: CalendarDays, timesheets: Clock3, reports: ChartNoAxesCombined };
 
 function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<void> }) {
+  useLanguage();
   const [data, setData] = useState<Data | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(true), [refreshing, setRefreshing] = useState(false);
   const [loadedAt, setLoadedAt] = useState<string>(''), [announcement, setAnnouncement] = useState('');
   const [model, setModel] = useState<Model | null>(null);
@@ -85,7 +88,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
       const next = await read('/api/state'), at = new Date().toISOString();
       setDisplayZone(next.my_timezone);
       setData(next); setLoadedAt(at); setError(''); lastLoad.current = Date.now(); seenChange.current = next.change_seq ?? null;
-      if (announce) setAnnouncement(`Data updated at ${formatTime(at)}`);
+      if (announce) setAnnouncement(uiText("Data updated at {p0}", { p0: formatTime(at) }));
     }
     catch (e) { setError((e as Error).message); }
     finally { setLoading(false); if (!quiet) setRefreshing(false); }
@@ -170,9 +173,9 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
   const perform = async (action: string, row: Row, options: { quiet?: boolean } = {}) => {
     const res = await apiFetch('/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, data: row }) });
     const answer = await res.json() as Row;
-    if (!res.ok) { if (res.status === 401) window.dispatchEvent(new Event('session-expired')); throw new Error(answer.error || 'Unable to save. Your entries are still in the form.'); }
+    if (!res.ok) { if (res.status === 401) window.dispatchEvent(new Event('session-expired')); throw new Error(answer.error || uiText("Unable to save. Your entries are still in the form.")); }
     await refresh();
-    if (!options.quiet) toast.success(answer.result.message || 'Saved');
+    if (!options.quiet) toast.success(answer.result.message || uiText("Saved"));
     return answer.result;
   };
   const edit = (kind: string, row: Row = {}) => { if (!data) return; if (kind === 'activity' && openLinkedActivity(row)) return; setModel(initialModel(kind, data, actor, row)); };
@@ -181,23 +184,23 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
   const nav = useMemo(() => {
     if (!data) return [] as { label?: string; items: NavItem[] }[];
     const prefix = (p: string) => Object.keys(data.auth.permissions).some(k => k.startsWith(p) && can(k));
-    const taskTabs = Object.entries(TASK_SECTIONS).filter(([key]) => taskSectionVisible(key, can));
+    const taskTabs = translatedEntries(TASK_SECTIONS).filter(([key]) => taskSectionVisible(key, can));
     // Work waiting for this person: tasks to accept or reject (in charge, supporting or reviewing), work to review, changes,
     // requests and due dates to decide, and (V5.6.8) organization requests they approve. The bell counts the same.
     const waiting = data.tm_tasks ? decisionsFor(data, actor, can).total : orgPending(data).count;
     const alerts = data.ops_notifications.filter((n: Row) => n.actor_id === actor && !n.resolved_at).length;
     const groups: { label?: string; items: NavItem[] }[] = [
-      { items: [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '#/dashboard', visible: can('dashboard') }] },
-      { label: 'Customers', items: [{ id: 'crm', label: 'CRM', icon: UsersRound, href: '#/crm', visible: prefix('crm.'), children: [{ id: 'workflow', label: 'Overview', href: '#/crm' }, ...CRM_TYPES.filter(([t]) => can('crm.' + TABLES[t])).map(([t, label, slug]) => ({ id: slug, label, href: `#/crm/${slug}`, count: data[TABLES[t]].length }))] }] },
-      { label: 'Work', items: [{ id: 'tasks', label: 'Task Management', icon: ClipboardCheck, href: `#/tasks/${taskTabs[0]?.[0] || 'workspace'}`, visible: taskTabs.length > 0, badge: waiting || undefined, alert: waiting > 0, children: taskTabs.map(([key, label]) => ({ id: key, label, href: `#/tasks/${key}`, icon: TASK_NAV_ICONS[key] })) }] },
-      { label: 'Operations', items: [
-        { id: 'operations', label: 'Operations', icon: Truck, href: '#/operations', visible: prefix('ops.'), badge: alerts || undefined, alert: alerts > 0 },
-        { id: 'finance', label: 'Finance', icon: Landmark, href: '#/finance', visible: can('ops.finance') },
+      { items: [{ id: 'dashboard', label: uiText("Dashboard"), icon: LayoutDashboard, href: '#/dashboard', visible: can('dashboard') }] },
+      { label: uiText("Customers"), items: [{ id: 'crm', label: 'CRM', icon: UsersRound, href: '#/crm', visible: prefix('crm.'), children: [{ id: 'workflow', label: uiText("Overview"), href: '#/crm' }, ...CRM_TYPES.filter(([t]) => can('crm.' + TABLES[t])).map(([t, label, slug]) => ({ id: slug, label, href: `#/crm/${slug}`, count: data[TABLES[t]].length }))] }] },
+      { label: uiText("Work"), items: [{ id: 'tasks', label: uiText("Task Management"), icon: ClipboardCheck, href: `#/tasks/${taskTabs[0]?.[0] || 'workspace'}`, visible: taskTabs.length > 0, badge: waiting || undefined, alert: waiting > 0, children: taskTabs.map(([key, label]) => ({ id: key, label, href: `#/tasks/${key}`, icon: TASK_NAV_ICONS[key] })) }] },
+      { label: uiText("Operations"), items: [
+        { id: 'operations', label: uiText("Operations"), icon: Truck, href: '#/operations', visible: prefix('ops.'), badge: alerts || undefined, alert: alerts > 0 },
+        { id: 'finance', label: uiText("Finance"), icon: Landmark, href: '#/finance', visible: can('ops.finance') },
       ] },
-      { label: 'Insights', items: [{ id: 'reports', label: 'Reports', icon: ChartNoAxesCombined, href: '#/reports', visible: prefix('reports.') }] },
-      { label: 'Administration', items: [
-        { id: 'admin', label: 'Administration', icon: ShieldCheck, href: '#/admin', visible: prefix('admin.') },
-        { id: 'settings', label: 'Company settings', icon: Settings2, href: '#/settings', visible: can('settings') },
+      { label: uiText("Insights"), items: [{ id: 'reports', label: uiText("Reports"), icon: ChartNoAxesCombined, href: '#/reports', visible: prefix('reports.') }] },
+      { label: uiText("Administration"), items: [
+        { id: 'admin', label: uiText("Administration"), icon: ShieldCheck, href: '#/admin', visible: prefix('admin.') },
+        { id: 'settings', label: uiText("Company settings"), icon: Settings2, href: '#/settings', visible: can('settings') },
       ] },
     ];
     return groups.map(g => ({ ...g, items: g.items.filter(i => i.visible) })).filter(g => g.items.length);
@@ -240,7 +243,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
     document.title = [detail && decodeURIComponent(detail), label, 'Task Controlling Management'].filter(Boolean).join(' · ');
   }, [route, nav, section, data, taskSection]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return <Boot message="Opening your workspace…" />;
+  if (loading) return <Boot message={uiText("Opening your workspace…")} />;
   if (!data) return <Boot error={error} onRetry={() => void refresh()} onSignOut={() => void signOut()} />;
 
   const lookup = (id: string) => data.lookups.find((r: Row) => r.id === id)?.name || id || '—';
@@ -249,7 +252,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
   const alerts = data.ops_notifications.filter((n: Row) => n.actor_id === actor && !n.resolved_at);
 
   let content: ReactNode;
-  if (!visibleIds.length) content = <><PageHeader title="No modules available" /><NoAccess title="Your account has no module permissions" description="Ask an administrator to assign a role or individual function settings." /></>;
+  if (!visibleIds.length) content = <><PageHeader title={uiText("No modules available")} /><NoAccess title={uiText("Your account has no module permissions")} description={uiText("Ask an administrator to assign a role or individual function settings.")} /></>;
   else if (!moduleOk) content = null;
   else if (section === 'dashboard') content = route.parts[1] === 'records' ? <SourceExplorer key={data.task_scope?.revision} {...w} filters={parseFilters(route.query.get('f'))} onBack={() => navigate('/dashboard')} /> : <ERPDashboard key={data.task_scope?.revision} {...w} drill={f => navigate(`/dashboard/records?f=${encodeURIComponent(JSON.stringify(f))}`)} />;
   else if (section === 'crm') {
@@ -259,7 +262,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
     else if (!can('crm.' + TABLES[type])) content = <NoAccess />;
     else if (id) {
       const row = data[TABLES[type]]?.find((r: Row) => r.id === id);
-      content = row ? <Detail key={`${type}:${id}`} {...w} type={type} row={row} /> : <NotFound w={w} label={`${id} was not found, or you don’t have access to it.`} back={`/crm/${slug}`} />;
+      content = row ? <Detail key={`${type}:${id}`} {...w} type={type} row={row} /> : <NotFound w={w} label={uiText("{p0} was not found, or you don’t have access to it.", { p0: id })} back={`/crm/${slug}`} />;
     } else content = <RecordList key={type} {...w} type={type} />;
   } else if (section === 'tasks') {
     // V5.5: Meetings live in the Calendar; earlier addresses still work (they are replaced by the current one).
@@ -270,7 +273,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
       content = row ? <Detail key={`order:${row.id}`} {...w} type="order" row={row} /> : <NotFound w={w} back="/operations" />;
     } else if (route.parts[1]) {
       const exists = data.ops_requests.some((r: Row) => r.id === route.parts[1]);
-      content = exists ? <OperationsWorkspace {...w} initialId={route.parts[1]} /> : <NotFound w={w} label={`${route.parts[1]} was not found, or you don’t have access to it.`} back="/operations" />;
+      content = exists ? <OperationsWorkspace {...w} initialId={route.parts[1]} /> : <NotFound w={w} label={uiText("{p0} was not found, or you don’t have access to it.", { p0: route.parts[1] })} back="/operations" />;
     } else content = <OperationsWorkspace {...w} />;
   } else if (section === 'finance') content = <FinancePage {...w} />;
   else if (section === 'reports') content = <CentralReports key={data.task_scope?.revision} {...w} tab={route.parts[1] || ''} crm={<CRMReports {...w} />} operations={<OperationsReports {...w} />} />;
@@ -280,30 +283,30 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
   return (
     <AvatarPhotoProvider photo={photoOf}>
     <SidebarProvider className="app-shell" defaultOpen={!/(?:^|;\s*)sidebar_state=false/.test(document.cookie)}>
-      <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>Skip to content</a>
+      <a className="skip-link" href="#main-content" onClick={e => { e.preventDefault(); mainRef.current?.focus(); }}>{uiText("Skip to content")}</a>
       <AppSidebar nav={nav} active={section} activeChild={section === 'crm' ? route.parts[1] || 'workflow' : section === 'tasks' ? route.parts[1] : undefined} company={data.company.name} />
       <SidebarInset>
         <header className="app-header">
           <div className="app-header-start">
             <SidebarTrigger />
             <span className="header-divider" aria-hidden="true" />
-            <label className="company-switch" title="Switch company">
+            <label className="company-switch" title={uiText("Switch company")}>
               <Building2 aria-hidden="true" />
-              <span className="sr-only">Current company</span>
+              <span className="sr-only">{uiText("Current company")}</span>
               <select value={data.company_context?.id || 'default'} onChange={e => openCompany(e.target.value)}>
-                {(data.companies || []).map((c: Row) => <option key={c.id} value={c.id}>{c.name.trim().toLowerCase() === LOGO_ALT.toLowerCase() ? 'Default company' : c.name}</option>)}
+                {(data.companies || []).map((c: Row) => <option key={c.id} value={c.id}>{c.name.trim().toLowerCase() === LOGO_ALT.toLowerCase() ? uiText("Default company") : c.name}</option>)}
               </select>
             </label>
-            {data.sharing?.url && <a className="header-shared" href="#/admin/telegram" aria-label="Shared access: open the Telegram page" title={`Anyone with ${data.sharing.url} can reach the sign-in page while the sharing window is open.`}><Globe aria-hidden="true" /><span className="header-shared-text">Shared access</span></a>}
+            {data.sharing?.url && <a className="header-shared" href="#/admin/telegram" aria-label={uiText("Shared access: open the Telegram page")} title={uiText("Anyone with {p0} can reach the sign-in page while the sharing window is open.", { p0: data.sharing.url })}><Globe aria-hidden="true" /><span className="header-shared-text">{uiText("Shared access")}</span></a>}
           </div>
           <div className="app-header-end">
-            {loadedAt && <span className="header-updated">{refreshing ? 'Updating…' : `Updated ${formatTime(loadedAt)}`}</span>}
+            {loadedAt && <span className="header-updated">{refreshing ? uiText("Updating…") : uiText("Updated {p0}", { p0: formatTime(loadedAt) })}</span>}
             <span className="sr-only" aria-live="polite">{announcement}</span>
-            <IconButton label="Refresh data" icon={refreshing ? Loader2 : RefreshCw} className={refreshing ? 'is-spinning' : undefined} disabled={refreshing} onClick={() => void refresh({ announce: true })} />
+            <IconButton label={uiText("Refresh data")} icon={refreshing ? Loader2 : RefreshCw} className={refreshing ? 'is-spinning' : undefined} disabled={refreshing} onClick={() => void refresh({ announce: true })} />
             {can('tasks.tasks') ? <NotificationsMenu w={w} opsAlerts={prefix(data, can, 'ops.') ? alerts.length : 0} onOps={() => navigate('/operations?view=approvals')} />
               : prefix(data, can, 'ops.') ? (
                 <span className="header-icon-button">
-                  <IconButton label={alerts.length ? `${alerts.length} approval alert${alerts.length === 1 ? '' : 's'}` : 'Approval alerts'} icon={Bell} onClick={() => navigate('/operations?view=approvals')} />
+                  <IconButton label={alerts.length ? uiText("{p0} approval alert{p1}", { p0: alerts.length, p1: alerts.length === 1 ? '' : 's' }) : uiText("Approval alerts")} icon={Bell} onClick={() => navigate('/operations?view=approvals')} />
                   {alerts.length > 0 && <span className="count-pill" aria-hidden="true">{alerts.length > 9 ? '9+' : alerts.length}</span>}
                 </span>
               ) : null}
@@ -313,7 +316,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
         </header>
         <main id="main-content" ref={mainRef} tabIndex={-1} className="app-main">
           <div className="page">
-            {error && <div className="app-error"><ErrorState compact title="The latest data could not be loaded" message={`${error} What you see may be out of date.`} onRetry={() => void refresh()} /></div>}
+            {error && <div className="app-error"><ErrorState compact title={uiText("The latest data could not be loaded")} message={uiText("{p0} What you see may be out of date.", { p0: error })} onRetry={() => void refresh()} /></div>}
             {content}
           </div>
         </main>
@@ -340,19 +343,20 @@ const prefix = (data: Data, can: (r: string, a?: string) => boolean, p: string) 
 function parseFilters(raw: string | null): Row { try { const f = JSON.parse(raw || '{}'); return f && typeof f === 'object' && !Array.isArray(f) ? f : {}; } catch { return {}; } }
 
 function AppSidebar({ nav, active, activeChild, company }: { nav: { label?: string; items: NavItem[] }[]; active: string; activeChild?: string; company: string }) {
+  useLanguage();
   const { isMobile, setOpenMobile } = useSidebar();
   const closeOnMobile = () => { if (isMobile) setOpenMobile(false); };
   const showCompanyName = company.trim().toLowerCase() !== LOGO_ALT.toLowerCase();
   return (
     <Sidebar collapsible="icon" className="app-sidebar">
       <SidebarHeader>
-        <a className="sidebar-brand" href="#/dashboard" onClick={closeOnMobile} aria-label={`${LOGO_ALT}${showCompanyName ? ` · ${company}` : ''} · go to dashboard`}>
+        <a className="sidebar-brand" href="#/dashboard" onClick={closeOnMobile} aria-label={uiText("{p0}{p1} · go to dashboard", { p0: LOGO_ALT, p1: showCompanyName ? ` · ${company}` : '' })}>
           <span className="brand-mark" aria-hidden="true"><LogoIcon size={32} alt="" /></span>
           <span className="brand-text"><span className="brand-name"><BrandTitle /></span>{showCompanyName && <span className="brand-company">{company}</span>}</span>
         </a>
       </SidebarHeader>
       <SidebarContent>
-        <nav aria-label="Main">
+        <nav aria-label={uiText("Main")}>
           {nav.map((group, gi) => (
             <SidebarGroup key={gi}>
               {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
@@ -366,7 +370,7 @@ function AppSidebar({ nav, active, activeChild, company }: { nav: { label?: stri
                           <a href={item.href} aria-current={isActive && !activeChild ? 'page' : undefined} onClick={closeOnMobile}>
                             <item.icon aria-hidden="true" />
                             <span>{item.label}</span>
-                            {item.badge ? <span className={item.alert ? 'nav-badge is-alert' : 'nav-badge'} aria-label={`${item.badge} pending`}>{item.badge}</span> : null}
+                            {item.badge ? <span className={item.alert ? "nav-badge is-alert" : 'nav-badge'} aria-label={uiText("{p0} pending", { p0: item.badge })}>{item.badge}</span> : null}
                           </a>
                         </SidebarMenuButton>
                         {isActive && item.children && item.children.length > 1 && (
@@ -397,21 +401,23 @@ function AppSidebar({ nav, active, activeChild, company }: { nav: { label?: stri
 }
 
 function SidebarWidthHandle() {
+  useLanguage();
   const { width, setWidth, state, isMobile } = useSidebar();
   const drag = useRef<{ x: number; width: number } | null>(null);
   if (isMobile || state === 'collapsed') return null;
   const finish = () => { drag.current = null; document.documentElement.classList.remove('resizing-sidebar'); };
-  return <div role="separator" aria-label="Sidebar width" aria-orientation="vertical" aria-valuemin={224} aria-valuemax={384} aria-valuenow={width} tabIndex={0} className="sidebar-resize-handle" title="Drag to resize. Double-click to reset."
+  return <div role="separator" aria-label={uiText("Sidebar width")} aria-orientation="vertical" aria-valuemin={224} aria-valuemax={384} aria-valuenow={width} tabIndex={0} className="sidebar-resize-handle" title={uiText("Drag to resize. Double-click to reset.")}
     onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, width }; document.documentElement.classList.add('resizing-sidebar'); }}
     onPointerMove={e => { if (drag.current) setWidth(drag.current.width + e.clientX - drag.current.x); }} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish}
-    onDoubleClick={() => setWidth(248)} onKeyDown={e => { if (['ArrowLeft', 'ArrowRight', 'Home'].includes(e.key)) { e.preventDefault(); setWidth(e.key === 'Home' ? 248 : width + (e.key === 'ArrowRight' ? 8 : -8)); } }} />;
+    onDoubleClick={() => setWidth(248)} onKeyDown={e => { if (['ArrowLeft', 'ArrowRight', "Home"].includes(e.key)) { e.preventDefault(); setWidth(e.key === 'Home' ? 248 : width + (e.key === 'ArrowRight' ? 8 : -8)); } }} />;
 }
 
 function UserMenu({ name, role, email, onProfile, telegram, onTelegram, onSignOut }: { name: string; role: string; email: string; onProfile?: () => void; telegram?: 'connected' | 'available'; onTelegram: () => void; onSignOut: () => void }) {
+  useLanguage();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="user-trigger" aria-label={`Account: ${name}, ${role}`}>
+        <button type="button" className="user-trigger" aria-label={uiText("Account: {p0}, {p1}", { p0: name, p1: role })}>
           <Avatar name={name} size="md" />
           <span className="user-trigger-text"><strong><Identity name={name}/></strong><span>{role}</span></span>
           <ChevronDown aria-hidden="true" />
@@ -420,25 +426,27 @@ function UserMenu({ name, role, email, onProfile, telegram, onTelegram, onSignOu
       <DropdownMenuContent className="user-menu">
         <div className="user-menu-head"><Avatar name={name} /><div><strong><Identity name={name}/></strong><span>{email}</span><span>{role}</span></div></div>
         <DropdownMenuSeparator />
-        {onProfile && <DropdownMenuItem onSelect={onProfile}><UserRound />My profile</DropdownMenuItem>}
-        {telegram && <DropdownMenuItem onSelect={onTelegram}><Send />{telegram === 'connected' ? 'Telegram · connected' : 'Connect Telegram'}</DropdownMenuItem>}
-        <DropdownMenuItem onSelect={onSignOut}><LogOut />Sign out</DropdownMenuItem>
+        {onProfile && <DropdownMenuItem onSelect={onProfile}><UserRound />{uiText("My profile")}</DropdownMenuItem>}
+        {telegram && <DropdownMenuItem onSelect={onTelegram}><Send />{telegram === 'connected' ? uiText("Telegram · connected") : uiText("Connect Telegram")}</DropdownMenuItem>}
+        <DropdownMenuItem onSelect={onSignOut}><LogOut />{uiText("Sign out")}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 function Boot({ message, error, onRetry, onSignOut }: { message?: string; error?: string; onRetry?: () => void; onSignOut?: () => void }) {
+  useLanguage();
   return (
     <main className="boot">
       <div className="boot-card" role={error ? 'alert' : 'status'}>
         <LogoIcon size={88} className="boot-logo" />
-        {error ? <><h1>The local database could not be opened</h1><p>{error}</p><div className="row"><Button onClick={onRetry}><RefreshCw />Try again</Button><Button variant="outline" onClick={onSignOut}>Sign out</Button></div></> : <><Loader2 className="boot-spinner" aria-hidden="true" /><h1>{message}</h1><p>Loading your company records.</p></>}
+        {error ? <><h1>{uiText("The local database could not be opened")}</h1><p>{error}</p><div className="row"><Button onClick={onRetry}><RefreshCw />{uiText("Try again")}</Button><Button variant="outline" onClick={onSignOut}>{uiText("Sign out")}</Button></div></> : <><Loader2 className="boot-spinner" aria-hidden="true" /><h1>{message}</h1><p>{uiText("Loading your company records.")}</p></>}
       </div>
     </main>
   );
 }
 
 function NotFound({ w, label = 'This page does not exist.', back = '/dashboard' }: { w: Workspace; label?: string; back?: string }) {
-  return <><PageHeader title="Not found" /><EmptyState icon={SearchX} title="We couldn’t find that record" description={label} action={<Button variant="outline" onClick={() => w.navigate(back)}>Go back</Button>} /></>;
+  useLanguage();
+  return <><PageHeader title={uiText("Not found")} /><EmptyState icon={SearchX} title={uiText("We couldn’t find that record")} description={label} action={<Button variant="outline" onClick={() => w.navigate(back)}>{uiText("Go back")}</Button>} /></>;
 }

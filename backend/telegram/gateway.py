@@ -5,6 +5,7 @@ Telegram's signed launch data (initData, checked with the company's bot token) a
 same permissions, same workflow, same database. Photos and files use a short signed media token instead, because
 <img> tags and links cannot carry the launch data.
 """
+from core.i18n import msg as _message
 import base64
 import hashlib
 import hmac
@@ -15,6 +16,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qsl
 
+from core.i18n import activate, render, msg
 from django.conf import settings as conf
 from django.core.exceptions import RequestDataTooBig
 from django.db import transaction
@@ -35,11 +37,10 @@ MINI_APP_ACTIONS = re.compile(
     r'return|close|cancel|reopen|note|handover|remind|reminders|members\.save|delivery\.(create|confirm|cancel|retry))|change\.(decide|withdraw)|request\.(save|withdraw|forward|decide)|'
     r'due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)|notification\.read|meeting\.(save|follow|decide|withdraw)|'
     r'time\.(save|delete)|calnote\.(save|delete)|group\.(row\.update|view\.save|file\.(add|remove)|delivery\.(create|confirm|cancel|retry)))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
-CSP = ("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; "
-       "connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'")
+CSP = (_message("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'"))
 MEDIA_HOURS = 12
 INIT_MAX_AGE = 8 * 3600
-GENERIC = 'Unable to complete this operation. Nothing was changed.'
+GENERIC = _message('Unable to complete this operation. Nothing was changed.')
 
 
 class GatewayError(Exception):
@@ -156,6 +157,7 @@ def _blocked(key, maximum):
 
 # ---------------------------------------------------------------- responses
 def send(status, body, content_type='application/json; charset=utf-8', cache='no-store', extra=None):
+    body = render(body)
     payload = body if isinstance(body, (bytes, str)) else json.dumps(body, ensure_ascii=False, separators=(',', ':'))
     response = HttpResponse(payload, status=status, content_type=content_type)
     response['Cache-Control'] = cache
@@ -174,18 +176,18 @@ def frontend_dir():
 def page(request):
     """GET /c/<company>/tg/ — the Mini App page."""
     if not getattr(request, 'company_scoped', False):
-        return send(404, {'error': 'Not found.'})
+        return send(404, {'error': _message('Not found.')})
     try:
         body = (frontend_dir() / 'tg.html').read_bytes()
     except OSError:
-        return send(503, {'error': 'The Mini App has not been built. Run npm run build.'})
+        return send(503, {'error': _message('The Mini App has not been built. Run npm run build.')})
     return send(200, body, 'text/html; charset=utf-8')
 
 
 def to_page(request):
     from django.http import HttpResponsePermanentRedirect
     if not getattr(request, 'company_scoped', False):
-        return send(404, {'error': 'Not found.'})
+        return send(404, {'error': _message('Not found.')})
     query = request.META.get('QUERY_STRING')
     response = HttpResponsePermanentRedirect(f'/c/{request.company_id}/tg/' + (f'?{query}' if query else ''))
     response.status_code = 308
@@ -194,17 +196,17 @@ def to_page(request):
 
 def _body(request):
     if not str(request.headers.get('Content-Type', '')).startswith('application/json'):
-        raise GatewayError(415, 'JSON is required.')
+        raise GatewayError(415, _message('JSON is required.'))
     try:
         raw = request.body
     except RequestDataTooBig:
-        raise GatewayError(413, 'Request too large.')
+        raise GatewayError(413, _message('Request too large.'))
     try:
         body = json.loads(raw.decode('utf-8'))
     except (ValueError, UnicodeDecodeError):
-        raise GatewayError(400, 'Invalid JSON.')
+        raise GatewayError(400, _message('Invalid JSON.'))
     if not isinstance(body, dict):
-        raise GatewayError(400, 'Invalid request.')
+        raise GatewayError(400, _message('Invalid request.'))
     return body
 
 
@@ -218,33 +220,33 @@ def api(request, rest):
         return send(e.status, {'error': e.message})
     except Exception:   # noqa: BLE001 — never show internal errors to the Telegram app
         import logging
-        logging.getLogger(__name__).exception('Mini App request failed')
+        logging.getLogger(__name__).exception(_message('Mini App request failed'))
         return send(500, {'error': GENERIC})
 
 
 def _api(request, rest):
     if not getattr(request, 'company_scoped', False):
-        raise GatewayError(404, 'Not found.')
+        raise GatewayError(404, _message('Not found.'))
     company = request.company_id
     s = telegram.settings()
     if not s['enabled'] or not s['bot_token']:
-        raise GatewayError(503, 'Telegram is turned off for this company.', 'off')
+        raise GatewayError(503, _message('Telegram is turned off for this company.'), 'off')
     if request.method == 'GET' and rest in ('/api/photo', '/api/file', '/api/file-preview', '/api/group-file', '/api/group-file-preview'):
         return _media(request, rest, company, s)
-    raw = re.sub(r'^tma ', '', str(request.headers.get('Authorization', '')))
+    raw = re.sub(r'^tma ', '', str(request.headers.get(_message('Authorization'), '')))
     init = validate_init_data(raw, s['bot_token'], max_age=INIT_MAX_AGE)
     if not init:
         if validate_init_data(raw, s['bot_token']):
-            raise GatewayError(401, 'This session has expired. Close the app and open it again from the bot.', 'expired')
-        raise GatewayError(401, 'Open this app from the company bot in Telegram.', 'auth')
+            raise GatewayError(401, _message('This session has expired. Close the app and open it again from the bot.'), 'expired')
+        raise GatewayError(401, _message('Open this app from the company bot in Telegram.'), 'auth')
     tg_user = init['user']
     if hits.limited(f"{company}:{tg_user['id']}", 180, 60000):
-        raise GatewayError(429, 'Too many requests. Wait a moment and try again.')
+        raise GatewayError(429, _message('Too many requests. Wait a moment and try again.'))
     private_chat = tg_user['id'] if init['chatType'] in ('sender', '') else None
     if rest == '/api/link' and request.method == 'POST':
         key = f"{company}:{tg_user['id']}"
         if _blocked(key, 5):
-            raise GatewayError(429, 'Too many incorrect codes. Wait 15 minutes and create a new code in the Task Controlling Management.')
+            raise GatewayError(429, _message('Too many incorrect codes. Wait 15 minutes and create a new code in the Task Controlling Management.'))
         body = _body(request)
         result = telegram.redeem(body.get('code'), tg_user, private_chat)
         if result.get('error'):
@@ -255,7 +257,7 @@ def _api(request, rest):
     if rest == '/api/login' and request.method == 'POST':
         key = f"{company}:{tg_user['id']}:login"
         if _blocked(key, 10):
-            raise GatewayError(429, 'Too many unsuccessful sign-ins. Wait 15 minutes and try again.')
+            raise GatewayError(429, _message('Too many unsuccessful sign-ins. Wait 15 minutes and try again.'))
         body = _body(request)
         try:
             signed = access.login_or_fail(body.get('username'), body.get('password'), f"telegram:{tg_user['id']}")
@@ -270,12 +272,19 @@ def _api(request, rest):
         return send(200, {'ok': True, 'name': result['name']})
     link = telegram.link_for(tg_user['id'])
     if not link:
-        raise GatewayError(403, 'Connect your Telegram account to the Task Controlling Management first.', 'not_linked')
+        raise GatewayError(403, _message('Connect your Telegram account to the Task Controlling Management first.'), 'not_linked')
     user = access.account_for(link['staff_id'])
     if not user:
-        raise GatewayError(403, 'Your Task Controlling Management account is disabled. Ask an administrator for help.', 'disabled')
+        raise GatewayError(403, _message('Your Task Controlling Management account is disabled. Ask an administrator for help.'), 'disabled')
+    activate(user.language)
+    request.language_account = True
+    if rest == '/api/language' and request.method in ('GET', 'POST'):
+        if request.method == 'POST':
+            from accounts.language import save_language
+            return send(200, save_language(user, _body(request)))
+        return send(200, {'language': user.language})
     if not access.can(user, 'tasks.tasks'):
-        raise GatewayError(403, 'Your Task Controlling Management role does not include Task Management.', 'no_access')
+        raise GatewayError(403, _message('Your Task Controlling Management role does not include Task Management.'), 'no_access')
     if rest == '/api/task-delivery' and request.method == 'GET':
         access.require_permission(user, 'tasks.tasks')
         from groups.delivery import task_status
@@ -303,13 +312,13 @@ def _api(request, rest):
     if rest == '/api/command' and request.method == 'POST':
         body = _body(request)
         if not isinstance(body.get('action'), str) or not MINI_APP_ACTIONS.match(body['action']):
-            raise GatewayError(403, 'This action is not available in the Telegram app.')
+            raise GatewayError(403, _message('This action is not available in the Telegram app.'))
         result = commands.run(user, body['action'], body['data'] if 'data' in body else {}, 'MINIAPP')
         return send(200, {'ok': True, 'result': result})
     if rest == '/api/report' and request.method == 'GET':
         report, scope = request.GET.get('report') or 'monthly', request.GET.get('scope') or 'me'
         if report not in reports.MONTHLY_REPORTS:
-            raise GatewayError(400, 'Unknown report.')
+            raise GatewayError(400, _message('Unknown report.'))
         f = {'report': report}
         if request.GET.get('month'):
             f['month'] = request.GET['month']
@@ -317,15 +326,15 @@ def _api(request, rest):
             f['user'] = user.staff_id
         elif scope == 'all':
             if not access.can(user, 'tasks.reports'):
-                raise GatewayError(403, 'Your role cannot view company-wide task reports.')
+                raise GatewayError(403, _message('Your role cannot view company-wide task reports.'))
             for k in ('workspace', 'department'):
                 if request.GET.get(k):
                     f[k] = str(request.GET[k])[:200]
         else:
-            raise GatewayError(400, 'Unknown report scope.')
+            raise GatewayError(400, _message('Unknown report scope.'))
         from compat.state import scoped_state
         return send(200, reports.build_task_report(scoped_state(user), f))
-    raise GatewayError(404, 'Not found.')
+    raise GatewayError(404, _message('Not found.'))
 
 
 def _media(request, rest, company, s):
@@ -336,13 +345,13 @@ def _media(request, rest, company, s):
     link = telegram.link_for(tg_user) if tg_user else None
     user = access.account_for(link['staff_id']) if link else None
     if not user or not access.can(user, 'tasks.tasks'):
-        raise GatewayError(403, 'This link has expired. Open the task again in the app.', 'media')
+        raise GatewayError(403, _message('This link has expired. Open the task again in the app.'), 'media')
     headers = {'Content-Security-Policy': "default-src 'none'; sandbox"}
     if rest == '/api/photo':
         from organization.models import StaffPhoto
         photo = StaffPhoto.objects.filter(staff_id=str(request.GET.get('staff') or '')[:60], size__gt=0).first()
         if not photo:
-            raise GatewayError(404, 'Photo not found.')
+            raise GatewayError(404, _message('Photo not found.'))
         cache = 'private, max-age=86400' if request.GET.get('v') == str(photo.version) else 'no-store'
         return send(200, bytes(photo.content), photo.mime, cache, headers)
     if rest in ('/api/group-file', '/api/group-file-preview'):

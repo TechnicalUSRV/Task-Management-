@@ -1,0 +1,801 @@
+Language	ភាសា	语言
+Language saved.	បានរក្សាទុកភាសា។	语言已保存。
+Choose English, ភាសាខ្មែរ or 简体中文.	សូមជ្រើស English, ភាសាខ្មែរ ឬ 简体中文។	请选择 English、ភាសាខ្មែរ 或简体中文。
+Applies to the website, Telegram Mini App and your notifications.	អនុវត្តលើគេហទំព័រ កម្មវិធីតូច Telegram និងការជូនដំណឹងរបស់អ្នក។	适用于网站、Telegram 小程序和你的通知。
+Language could not be saved. Please try again.	មិនអាចរក្សាទុកភាសា។ សូមព្យាយាមម្តងទៀត។	无法保存语言，请重试。
+New Task	បង្កើតកិច្ចការថ្មី	新建任务
+Save	រក្សាទុក	保存
+Edit	កែប្រែ	编辑
+Delete	លុប	删除
+Approve	អនុម័ត	批准
+Reject	បដិសេធ	拒绝
+Search	ស្វែងរក	搜索
+Settings	ការកំណត់	设置
+Task	កិច្ចការ	任务
+Tasks	កិច្ចការ	任务
+Workspace	កន្លែងការងារ	工作区
+Workspaces	កន្លែងការងារ	工作区
+Group	ក្រុម	组
+Groups	ក្រុម	组
+Meeting	កិច្ចប្រជុំ	会议
+Meetings	កិច្ចប្រជុំ	会议
+Calendar	ប្រតិទិន	日历
+Timesheet	តារាងម៉ោងការងារ	工时表
+Timesheets	តារាងម៉ោងការងារ	工时表
+Report	របាយការណ៍	报告
+Reports	របាយការណ៍	报告
+Notification	ការជូនដំណឹង	通知
+Notifications	ការជូនដំណឹង	通知
+Reminder	ការរំលឹក	提醒
+Reminders	ការរំលឹក	提醒
+Organizational Structure	រចនាសម្ព័ន្ធអង្គការ	组织架构
+Organization	អង្គការ	组织
+User	អ្នកប្រើ	用户
+Users	អ្នកប្រើ	用户
+Employee	បុគ្គលិក	员工
+Employees	បុគ្គលិក	员工
+Manager	អ្នកគ្រប់គ្រង	主管
+Managers	អ្នកគ្រប់គ្រង	主管
+Permission	សិទ្ធិ	权限
+Permissions	សិទ្ធិ	权限
+Profile	ប្រវត្តិរូប	个人资料
+My profile	ប្រវត្តិរូបរបស់ខ្ញុំ	我的资料
+Profile and settings	ប្រវត្តិរូបនិងការកំណត់	个人资料与设置
+Dashboard	ផ្ទាំងសង្ខេប	仪表盘
+Home	ទំព័រដើម	首页
+My Tasks	កិច្ចការរបស់ខ្ញុំ	我的任务
+Company	ក្រុមហ៊ុន	公司
+New Task	បង្កើតកិច្ចការថ្មី	新建任务
+Request Task	ស្នើសុំកិច្ចការ	申请任务
+Task request	សំណើកិច្ចការ	任务申请
+Task requests	សំណើកិច្ចការ	任务申请
+Request	សំណើ	申请
+Requests	សំណើ	申请
+Approval	ការអនុម័ត	审批
+Approvals	ការអនុម័ត	审批
+Step	ជំហាន	步骤
+Steps	ជំហាន	步骤
+Step of work	ជំហានការងារ	工作步骤
+Name	ឈ្មោះ	名称
+Title	ចំណងជើង	标题
+Description	សេចក្តីពិពណ៌នា	描述
+Department	នាយកដ្ឋាន	部门
+Departments	នាយកដ្ឋាន	部门
+Position	មុខតំណែង	职位
+Username	ឈ្មោះអ្នកប្រើ	用户名
+Password	ពាក្យសម្ងាត់	密码
+Email	អ៊ីមែល	邮箱
+Phone	ទូរស័ព្ទ	电话
+Role	តួនាទី	角色
+Roles	តួនាទី	角色
+Member	សមាជិក	成员
+Members	សមាជិក	成员
+Membership	សមាជិកភាព	成员资格
+Owner	ម្ចាស់	所有者
+Reviewer	អ្នកពិនិត្យ	审核人
+Supporter	អ្នកគាំទ្រ	协助人
+Supporters	អ្នកគាំទ្រ	协助人
+Supporting people	អ្នកចូលរួមគាំទ្រ	协助人员
+Person in charge	អ្នកទទួលបន្ទុក	负责人
+Person	មនុស្ស	人员
+People	មនុស្ស	人员
+Team	ក្រុមការងារ	团队
+Team member	សមាជិកក្រុមការងារ	团队成员
+Team members	សមាជិកក្រុមការងារ	团队成员
+Team list	បញ្ជីក្រុមការងារ	团队列表
+Level	កម្រិត	层级
+Levels	កម្រិត	层级
+Branch	សាខា	分支
+Branches	សាខា	分支
+Reporting line	ខ្សែរាយការណ៍	汇报关系
+Reporting lines	ខ្សែរាយការណ៍	汇报关系
+Reporting manager	អ្នកគ្រប់គ្រងដែលត្រូវរាយការណ៍ទៅ	汇报主管
+Reporting managers	អ្នកគ្រប់គ្រងដែលត្រូវរាយការណ៍ទៅ	汇报主管
+Reports to	រាយការណ៍ទៅ	汇报给
+Direct reports	បុគ្គលិកក្រោមបង្គាប់ផ្ទាល់	直属下属
+Direct reports only	តែបុគ្គលិកក្រោមបង្គាប់ផ្ទាល់	仅直属下属
+Management	ការគ្រប់គ្រង	管理
+Under My Management	ក្រោមការគ្រប់គ្រងរបស់ខ្ញុំ	我管理的人员
+Scope	វិសាលភាព	范围
+Management scope	វិសាលភាពគ្រប់គ្រង	管理范围
+Visibility	ភាពមើលឃើញ	可见性
+Sharing	ការចែករំលែក	共享
+Share	ចែករំលែក	共享
+Shares	ការចែករំលែក	共享
+Access	សិទ្ធិចូលប្រើ	访问权限
+Viewer	អ្នកមើល	查看者
+Contributor	អ្នករួមចំណែក	协作者
+Personal	ផ្ទាល់ខ្លួន	个人
+Public	សាធារណៈ	公开
+Private	ឯកជន	私密
+Independent	ឯករាជ្យ	独立
+Involved	ពាក់ព័ន្ធ	参与
+In charge	ទទួលបន្ទុក	负责
+Assigned by me	កិច្ចការដែលខ្ញុំប្រគល់	我分配的任务
+Assigned to me	កិច្ចការដែលប្រគល់ឱ្យខ្ញុំ	分配给我的任务
+Status	ស្ថានភាព	状态
+Priority	អាទិភាព	优先级
+Progress	វឌ្ឍនភាព	进度
+High	ខ្ពស់	高
+Medium	មធ្យម	中
+Low	ទាប	低
+Open	បើក	打开
+Closed	បានបិទ	已关闭
+New	ថ្មី	新建
+Pending	កំពុងរង់ចាំ	待处理
+Approved	បានអនុម័ត	已批准
+Rejected	បានបដិសេធ	已拒绝
+Declined	បានបដិសេធ	已婉拒
+Withdrawn	បានដកសំណើ	已撤回
+Cancelled	បានបោះបង់	已取消
+Completed	បានបញ្ចប់	已完成
+Not started	មិនទាន់ចាប់ផ្តើម	未开始
+In progress	កំពុងដំណើរការ	进行中
+In review	កំពុងពិនិត្យ	审核中
+Awaiting acceptance	រង់ចាំទទួលយក	待接受
+Stuck	ជាប់គាំង	受阻
+Overdue	ហួសកំណត់	逾期
+Draft	សេចក្តីព្រាង	草稿
+Scheduled	បានកំណត់ពេល	已安排
+Submitted	បានដាក់ស្នើ	已提交
+Returned	បានបញ្ជូនត្រឡប់	已退回
+Expired	ផុតកំណត់	已过期
+Inactive	អសកម្ម	未启用
+Disabled	បានបិទ	已停用
+Enabled	បានបើក	已启用
+Required	តម្រូវឱ្យបំពេញ	必填
+Optional	មិនចាំបាច់	选填
+Due	ដល់កំណត់	到期
+Due date	ថ្ងៃកំណត់	截止日期
+Start date	ថ្ងៃចាប់ផ្តើម	开始日期
+End date	ថ្ងៃបញ្ចប់	结束日期
+Start time	ពេលចាប់ផ្តើម	开始时间
+End time	ពេលបញ្ចប់	结束时间
+Date	កាលបរិច្ឆេទ	日期
+Dates	កាលបរិច្ឆេទ	日期
+Time	ពេលវេលា	时间
+Day	ថ្ងៃ	天
+Days	ថ្ងៃ	天
+Week	សប្តាហ៍	周
+Month	ខែ	月
+Year	ឆ្នាំ	年
+Today	ថ្ងៃនេះ	今天
+Tomorrow	ថ្ងៃស្អែក	明天
+Yesterday	ម្សិលមិញ	昨天
+This week	សប្តាហ៍នេះ	本周
+This month	ខែនេះ	本月
+Last week	សប្តាហ៍មុន	上周
+Last month	ខែមុន	上月
+Next week	សប្តាហ៍ក្រោយ	下周
+Next month	ខែក្រោយ	下月
+Date range	ចន្លោះថ្ងៃ	日期范围
+Custom range	ចន្លោះផ្ទាល់ខ្លួន	自定义范围
+Duration	រយៈពេល	时长
+Minutes	នាទី	分钟
+Hours	ម៉ោង	小时
+Effort	ពេលវេលាការងារ	工作量
+Estimated effort	ពេលវេលាការងារប៉ាន់ស្មាន	预计工时
+Time entry	កំណត់ត្រាម៉ោងការងារ	工时记录
+Time entries	កំណត់ត្រាម៉ោងការងារ	工时记录
+Log time	កត់ត្រាម៉ោងការងារ	记录工时
+Daily total	សរុបប្រចាំថ្ងៃ	每日合计
+Total	សរុប	合计
+Totals	សរុប	合计
+Summary	សង្ខេប	摘要
+Details	ព័ត៌មានលម្អិត	详情
+Detail	ព័ត៌មានលម្អិត	详情
+View	មើល	查看
+Preview	មើលជាមុន	预览
+History	ប្រវត្តិ	历史
+Audit	កំណត់ហេតុត្រួតពិនិត្យ	审计记录
+Comment	មតិយោបល់	评论
+Comments	មតិយោបល់	评论
+Note	កំណត់ចំណាំ	备注
+Notes	កំណត់ចំណាំ	备注
+Reason	មូលហេតុ	原因
+Message	សារ	消息
+Messages	សារ	消息
+Checklist	បញ្ជីត្រួតពិនិត្យ	检查清单
+Attachment	ឯកសារភ្ជាប់	附件
+Attachments	ឯកសារភ្ជាប់	附件
+File	ឯកសារ	文件
+Files	ឯកសារ	文件
+Document	ឯកសារ	文档
+Documents	ឯកសារ	文档
+Photo	រូបថត	照片
+Photos	រូបថត	照片
+Camera	កាមេរ៉ា	相机
+Camera attachments	ឯកសារភ្ជាប់ពីកាមេរ៉ា	相机附件
+Capture photo	ថតរូប	拍照
+Retake	ថតឡើងវិញ	重拍
+Retake photo	ថតរូបឡើងវិញ	重新拍照
+File picker	ជ្រើសឯកសារ	文件选择器
+Combined PDF	PDF រួមបញ្ចូល	合并 PDF
+Merged PDF	PDF រួមបញ្ចូល	合并 PDF
+File name	ឈ្មោះឯកសារ	文件名
+File size	ទំហំឯកសារ	文件大小
+Document name	ឈ្មោះឯកសារ	文档名称
+Delivery	ការផ្ញើ	发送
+Delivery progress	វឌ្ឍនភាពការផ្ញើ	发送进度
+Queued	បានដាក់ក្នុងជួររង់ចាំ	已排队
+Sending	កំពុងផ្ញើ	正在发送
+Sent	បានផ្ញើ	已发送
+Failed	បរាជ័យ	失败
+Partial	បានផ្ញើមួយផ្នែក	部分完成
+Unknown	មិនដឹងលទ្ធផល	结果未知
+Retry	ព្យាយាមម្តងទៀត	重试
+Retry failed parts	ផ្ញើឡើងវិញផ្នែកដែលបរាជ័យ	重试失败部分
+Order	លំដាប់	顺序
+Row	ជួរ	行
+Rows	ជួរ	行
+Column	ជួរឈរ	列
+Columns	ជួរឈរ	列
+Cell	ក្រឡា	单元格
+Cells	ក្រឡា	单元格
+Cell colors	ពណ៌ក្រឡា	单元格颜色
+Cell formatting	ទ្រង់ទ្រាយក្រឡា	单元格格式
+Color	ពណ៌	颜色
+Colors	ពណ៌	颜色
+Text color	ពណ៌អក្សរ	文字颜色
+Background color	ពណ៌ផ្ទៃខាងក្រោយ	背景颜色
+Formatting	ទ្រង់ទ្រាយ	格式
+Format	ទ្រង់ទ្រាយ	格式
+Default	លំនាំដើម	默认
+Default layout	ប្លង់លំនាំដើម	默认布局
+Layout	ប្លង់	布局
+Board	តារាងក្រុម	看板
+Table	តារាង	表格
+List	បញ្ជី	列表
+Cards	កាត	卡片
+Filter	តម្រង	筛选
+Filters	តម្រង	筛选
+Selection	ការជ្រើសរើស	选择
+Selected	បានជ្រើសរើស	已选择
+Sorting	ការតម្រៀប	排序
+Sort	តម្រៀប	排序
+Ascending	ពីតូចទៅធំ	升序
+Descending	ពីធំទៅតូច	降序
+Number	លេខ	数字
+Text	អក្សរ	文本
+Checkbox	ប្រអប់ធីក	复选框
+Dropdown	បញ្ជីជម្រើស	下拉列表
+Formula	រូបមន្ត	公式
+Formula column	ជួរឈររូបមន្ត	公式列
+Link	តំណ	链接
+Links	តំណ	链接
+Live Data	ទិន្នន័យផ្ទាល់	实时数据
+Live Data column	ជួរឈរទិន្នន័យផ្ទាល់	实时数据列
+Data	ទិន្នន័យ	数据
+Data source	ប្រភពទិន្នន័យ	数据源
+Data sources	ប្រភពទិន្នន័យ	数据源
+Source	ប្រភព	来源
+Source columns	ជួរឈរប្រភព	来源列
+Source rows	ជួរប្រភព	来源行
+Record	កំណត់ត្រា	记录
+Records	កំណត់ត្រា	记录
+Shared records	កំណត់ត្រាចែករំលែក	共享记录
+Import	នាំចូល	导入
+Export	នាំចេញ	导出
+Sync	ធ្វើសមកាលកម្ម	同步
+Spreadsheet	សៀវភៅបញ្ជី	电子表格
+Worksheet	សន្លឹកការងារ	工作表
+Sheet	សន្លឹក	工作表
+Sheets	សន្លឹក	工作表
+Connection	ការតភ្ជាប់	连接
+Connections	ការតភ្ជាប់	连接
+Connected	បានភ្ជាប់	已连接
+Disconnected	បានផ្តាច់	已断开
+Bot	បូត	机器人
+Company bot	បូតក្រុមហ៊ុន	公司机器人
+Telegram Mini App	កម្មវិធីតូច Telegram	Telegram 小程序
+Telegram account	គណនី Telegram	Telegram 账号
+Telegram settings	ការកំណត់ Telegram	Telegram 设置
+Telegram connection	ការតភ្ជាប់ Telegram	Telegram 连接
+Sign in	ចូលប្រើ	登录
+Sign out	ចាកចេញ	退出登录
+Sign in to continue.	សូមចូលប្រើដើម្បីបន្ត។	请登录后继续。
+Sign out everywhere	ចាកចេញពីគ្រប់ឧបករណ៍	退出所有设备
+Sign out of all devices	ចាកចេញពីគ្រប់ឧបករណ៍	退出所有设备
+Done	រួចរាល់	完成
+Cancel	បោះបង់	取消
+Close	បិទ	关闭
+Back	ត្រឡប់ក្រោយ	返回
+Next	បន្ទាប់	下一步
+Previous	មុន	上一步
+Continue	បន្ត	继续
+Confirm	បញ្ជាក់	确认
+Yes	បាទ/ចាស	是
+No	ទេ	否
+OK	យល់ព្រម	确定
+None	គ្មាន	无
+Empty	ទទេ	空
+Loading	កំពុងផ្ទុក	正在加载
+Saving	កំពុងរក្សាទុក	正在保存
+Saved	បានរក្សាទុក	已保存
+Updated	បានធ្វើបច្ចុប្បន្នភាព	已更新
+Created	បានបង្កើត	已创建
+Deleted	បានលុប	已删除
+Removed	បានដកចេញ	已移除
+Changed	បានផ្លាស់ប្តូរ	已更改
+Copied	បានចម្លង	已复制
+Error	កំហុស	错误
+Warning	ការព្រមាន	警告
+Success	ជោគជ័យ	成功
+Information	ព័ត៌មាន	信息
+Help	ជំនួយ	帮助
+More	បន្ថែម	更多
+Less	តិច	收起
+Refresh	ផ្ទុកឡើងវិញ	刷新
+Reload	ផ្ទុកឡើងវិញ	重新加载
+Reset	កំណត់ឡើងវិញ	重置
+Clear	សម្អាត	清除
+Copy	ចម្លង	复制
+Paste	បិទភ្ជាប់	粘贴
+Cut	កាត់	剪切
+Undo	មិនធ្វើវិញ	撤销
+Redo	ធ្វើឡើងវិញ	重做
+Duplicate	ចម្លងជាថ្មី	复制副本
+Download	ទាញយក	下载
+Upload	ផ្ទុកឡើង	上传
+Send	ផ្ញើ	发送
+Submit	ដាក់ស្នើ	提交
+Return	បញ្ជូនត្រឡប់	退回
+Withdraw	ដកសំណើ	撤回
+Decline	បដិសេធ	婉拒
+Reopen	បើកឡើងវិញ	重新打开
+Archive	ទុកក្នុងបណ្ណសារ	归档
+Restore	ស្ដារឡើងវិញ	恢复
+Enable	បើក	启用
+Disable	បិទ	停用
+Hide	លាក់	隐藏
+Show	បង្ហាញ	显示
+Expand	ពង្រីក	展开
+Collapse	បង្រួម	收起
+Connect	ភ្ជាប់	连接
+Disconnect	ផ្តាច់	断开
+Unlink	ផ្តាច់តំណ	取消关联
+Merge	បញ្ចូលគ្នា	合并
+Split	បំបែក	拆分
+Choose	ជ្រើសរើស	选择
+Select	ជ្រើសរើស	选择
+View only	អាចមើលតែប៉ុណ្ណោះ	仅查看
+Read only	អាចអានតែប៉ុណ្ណោះ	只读
+Can view	អាចមើល	可查看
+Can edit	អាចកែប្រែ	可编辑
+Can manage	អាចគ្រប់គ្រង	可管理
+Can sign in	អាចចូលប្រើ	可登录
+Appearance	រូបរាង	外观
+Sidebar	របារចំហៀង	侧边栏
+Sidebar colour	ពណ៌របារចំហៀង	侧边栏颜色
+Sidebar width	ទទឹងរបារចំហៀង	侧边栏宽度
+Drag to resize	អូសដើម្បីប្តូរទំហំ	拖动调整大小
+Blue	ខៀវ	蓝色
+Deep blue	ខៀវចាស់	深蓝色
+Deep teal	ខៀវបៃតងចាស់	深青色
+Brand red	ក្រហមម៉ាក	品牌红
+Graphite	ប្រផេះចាស់	石墨灰
+Light	ភ្លឺ	浅色
+Standard	ស្តង់ដារ	标准
+Nickname	ឈ្មោះហៅក្រៅ	昵称
+Profile photo	រូបថតប្រវត្តិរូប	头像
+Time zone	តំបន់ពេលវេលា	时区
+Company time zone	តំបន់ពេលវេលាក្រុមហ៊ុន	公司时区
+My time zone	តំបន់ពេលវេលារបស់ខ្ញុំ	我的时区
+Contact	ទំនាក់ទំនង	联系人
+Contacts	ទំនាក់ទំនង	联系人
+Contact email	អ៊ីមែលទំនាក់ទំនង	联系邮箱
+Address	អាសយដ្ឋាន	地址
+Client	អតិថិជន	客户
+Customer	អតិថិជន	客户
+Customers	អតិថិជន	客户
+Business Account	គណនីអាជីវកម្ម	业务客户
+Business Accounts	គណនីអាជីវកម្ម	业务客户
+Opportunity	ឱកាសអាជីវកម្ម	商机
+Opportunities	ឱកាសអាជីវកម្ម	商机
+Lead	អតិថិជនសក្តានុពល	销售线索
+Leads	អតិថិជនសក្តានុពល	销售线索
+Campaign	យុទ្ធនាការ	营销活动
+Campaigns	យុទ្ធនាការ	营销活动
+Quotation	សម្រង់តម្លៃ	报价
+Quotations	សម្រង់តម្លៃ	报价
+Sales quotation	សម្រង់តម្លៃលក់	销售报价
+Sales order	បញ្ជាទិញលក់	销售订单
+Purchase order	បញ្ជាទិញទំនិញ	采购订单
+Invoice	វិក្កយបត្រ	发票
+Invoices	វិក្កយបត្រ	发票
+Payment	ការទូទាត់	付款
+Payments	ការទូទាត់	付款
+Payment request	សំណើទូទាត់	付款申请
+Amount	ចំនួនទឹកប្រាក់	金额
+Balance	សមតុល្យ	余额
+Budget	ថវិកា	预算
+Currency	រូបិយប័ណ្ណ	币种
+Cost	ថ្លៃដើម	成本
+Costing	ការគណនាថ្លៃដើម	成本核算
+Cost center	មជ្ឈមណ្ឌលចំណាយ	成本中心
+Charge	ថ្លៃសេវា	费用
+Charges	ថ្លៃសេវា	费用
+Discount	បញ្ចុះតម្លៃ	折扣
+Discounts	បញ្ចុះតម្លៃ	折扣
+Commission	កម្រៃជើងសារ	佣金
+Receipt	បង្កាន់ដៃ	收据
+Receipts	បង្កាន់ដៃ	收据
+Bank	ធនាគារ	银行
+Bank name	ឈ្មោះធនាគារ	银行名称
+Bank account number	លេខគណនីធនាគារ	银行账号
+Debit note	ប័ណ្ណឥណពន្ធ	借记通知单
+Job file	សំណុំឯកសារការងារ	业务档案
+Job	ការងារ	业务
+Jobs	ការងារ	业务
+Service	សេវា	服务
+Services	សេវា	服务
+Product	ផលិតផល	产品
+Products	ផលិតផល	产品
+Quantity	បរិមាណ	数量
+Unit	ឯកតា	单位
+Unit price	តម្លៃឯកតា	单价
+Tax	ពន្ធ	税
+Rate	អត្រា	费率
+Reference	លេខយោង	参考编号
+Category	ប្រភេទ	类别
+Categories	ប្រភេទ	类别
+Class	ថ្នាក់	分类
+Classification	ការចាត់ថ្នាក់	分类
+Type	ប្រភេទ	类型
+Mode	របៀប	模式
+Value	តម្លៃ	值
+Code	កូដ	代码
+Key	សោ	键
+Label	ស្លាក	标签
+Labels	ស្លាក	标签
+Template	គំរូ	模板
+Templates	គំរូ	模板
+Capability	សមត្ថភាពអនុញ្ញាត	授权能力
+Capabilities	សមត្ថភាពអនុញ្ញាត	授权能力
+Authority	អំណាចអនុញ្ញាត	授权
+Delegation	ការផ្ទេរសិទ្ធិ	授权委派
+Grant	ផ្តល់សិទ្ធិ	授权
+Rules	លក្ខខណ្ឌ	规则
+Rule	លក្ខខណ្ឌ	规则
+Condition	លក្ខខណ្ឌ	条件
+Conditions	លក្ខខណ្ឌ	条件
+Conflict	ការប៉ះទង្គិច	冲突
+Conflicts	ការប៉ះទង្គិច	冲突
+Outcome	លទ្ធផល	结果
+Result	លទ្ធផល	结果
+Results	លទ្ធផល	结果
+Reason required	ត្រូវបំពេញមូលហេតុ	必须填写原因
+Mon	ចន្ទ	周一
+Tue	អង្គារ	周二
+Wed	ពុធ	周三
+Thu	ព្រហស្បតិ៍	周四
+Fri	សុក្រ	周五
+Sat	សៅរ៍	周六
+Sun	អាទិត្យ	周日
+Monday	ថ្ងៃចន្ទ	星期一
+Tuesday	ថ្ងៃអង្គារ	星期二
+Wednesday	ថ្ងៃពុធ	星期三
+Thursday	ថ្ងៃព្រហស្បតិ៍	星期四
+Friday	ថ្ងៃសុក្រ	星期五
+Saturday	ថ្ងៃសៅរ៍	星期六
+Sunday	ថ្ងៃអាទិត្យ	星期日
+Jan	មករា	1月
+Feb	កុម្ភៈ	2月
+Mar	មីនា	3月
+Apr	មេសា	4月
+May	ឧសភា	5月
+Jun	មិថុនា	6月
+Jul	កក្កដា	7月
+Aug	សីហា	8月
+Sep	កញ្ញា	9月
+Oct	តុលា	10月
+Nov	វិច្ឆិកា	11月
+Dec	ធ្នូ	12月
+January	មករា	一月
+February	កុម្ភៈ	二月
+March	មីនា	三月
+April	មេសា	四月
+June	មិថុនា	六月
+July	កក្កដា	七月
+August	សីហា	八月
+September	កញ្ញា	九月
+October	តុលា	十月
+November	វិច្ឆិកា	十一月
+December	ធ្នូ	十二月
+English	English	English
+ភាសាខ្មែរ	ភាសាខ្មែរ	ភាសាខ្មែរ
+简体中文	简体中文	简体中文
+Create	បង្កើត	创建
+Change	ផ្លាស់ប្តូរ	更改
+Check	ពិនិត្យ	检查
+Configure	កំណត់	配置
+Enter	បញ្ចូល	输入
+Update	ធ្វើបច្ចុប្បន្នភាព	更新
+Manage	គ្រប់គ្រង	管理
+Review	ពិនិត្យ	审核
+Set	កំណត់	设置
+Log	កត់ត្រា	记录
+Assign	ប្រគល់	分配
+Attach	ភ្ជាប់	添加附件
+Apply	អនុវត្ត	应用
+Ask	ស្នើសុំ	请求
+Answer	ចម្លើយ	答复
+Answered	បានឆ្លើយ	已答复
+Approver	អ្នកអនុម័ត	审批人
+Assigner	អ្នកប្រគល់កិច្ចការ	分配人
+Recipient	អ្នកទទួល	收件人
+Recipients	អ្នកទទួល	收件人
+Staff member	បុគ្គលិក	员工
+Staff	បុគ្គលិក	员工
+User account	គណនីអ្នកប្រើ	用户账号
+User accounts	គណនីអ្នកប្រើ	用户账号
+New link	តំណថ្មី	新链接
+Archived	បានទុកក្នុងបណ្ណសារ	已归档
+Revision	កំណែ	修订版
+Revisions	កំណែ	修订版
+Module	ម៉ូឌុល	模块
+Modules	ម៉ូឌុល	模块
+Option	ជម្រើស	选项
+Options	ជម្រើស	选项
+Dialog	ប្រអប់សន្ទនា	对话框
+Entry	ធាតុ	条目
+Entries	ធាតុ	条目
+Due date request	សំណើប្តូរថ្ងៃកំណត់	截止日期变更申请
+Due date requests	សំណើប្តូរថ្ងៃកំណត់	截止日期变更申请
+Change request	សំណើផ្លាស់ប្តូរ	变更申请
+Change requests	សំណើផ្លាស់ប្តូរ	变更申请
+Change	ការផ្លាស់ប្តូរ	更改
+Changes	ការផ្លាស់ប្តូរ	更改
+Completion	ការបញ្ចប់	完成
+Assignment	ការប្រគល់កិច្ចការ	任务分配
+Assignments	ការប្រគល់កិច្ចការ	任务分配
+Photo or PDF	រូបថតឬ PDF	照片或 PDF
+File or PDF	ឯកសារឬ PDF	文件或 PDF
+Deadline	ថ្ងៃកំណត់	截止日期
+Deadlines	ថ្ងៃកំណត់	截止日期
+Chain	លំដាប់	链路
+Approval chain	លំដាប់អនុម័ត	审批链
+Approval log	ប្រវត្តិអនុម័ត	审批日志
+Data share	ការចែករំលែកទិន្នន័យ	数据共享
+Settings saved.	បានរក្សាទុកការកំណត់។	设置已保存。
+Again	ម្តងទៀត	再次
+Here	នៅទីនេះ	此处
+Current	បច្ចុប្បន្ន	当前
+Custom	ផ្ទាល់ខ្លួន	自定义
+Any	ណាមួយ	任意
+Anyone	អ្នកណាក៏បាន	任何人
+Any status	ស្ថានភាពណាមួយ	任意状态
+Before	មុន	之前
+After	ក្រោយ	之后
+From	ពី	从
+To	ទៅ	至
+By	ដោយ	由
+And	និង	和
+Or	ឬ	或
+With	ជាមួយ	与
+Without	ដោយគ្មាន	不含
+Of	នៃ	的
+For	សម្រាប់	用于
+On	បើក	开
+Off	បិទ	关
+Only	តែប៉ុណ្ណោះ	仅
+At least	យ៉ាងតិច	至少
+At most	យ៉ាងច្រើន	至多
+At the start	នៅពេលចាប់ផ្តើម	开始时
+At the time	នៅពេលនោះ	当时
+Attempts	ចំនួនការព្យាយាម	尝试次数
+Attendees	អ្នកចូលរួម	参会者
+Audience	អ្នកអាចមើល	可见人员
+Authorization	ការអនុញ្ញាត	授权
+Authorized access	សិទ្ធិចូលប្រើដែលបានអនុញ្ញាត	已授权访问
+Automatic	ស្វ័យប្រវត្តិ	自动
+Awaiting approval	រង់ចាំការអនុម័ត	待审批
+A→Z, 1→9	A→Z, 1→9	A→Z，1→9
+Z→A, 9→1	Z→A, 9→1	Z→A，9→1
+Bill of Lading (B/L)	ប័ណ្ណដឹកជញ្ជូន (B/L)	提单（B/L）
+Billing	ការចេញវិក្កយបត្រ	开票
+Blocker	បញ្ហារារាំង	阻碍因素
+Booking and service	ការកក់និងសេវា	预订与服务
+Bot token	សោសម្ងាត់បូត	机器人令牌
+Both ways	ទាំងពីរទិស	双向
+Breadcrumb	ផ្លូវទំព័រ	导航路径
+Breakdown	ការបែងចែកលម្អិត	明细
+Bulk actions	សកម្មភាពជាក្រុម	批量操作
+Business group	ក្រុមអាជីវកម្ម	业务组
+Follow-up	ការតាមដាន	跟进
+Follow-ups	ការតាមដាន	跟进
+Sections	ផ្នែក	模块
+Section	ផ្នែក	模块
+Calendar view	ទិដ្ឋភាពប្រតិទិន	日历视图
+Cambodian Riel (៛)	ប្រាក់រៀល (៛)	柬埔寨瑞尔（៛）
+Response	ចម្លើយតប	响应
+Responses	ចម្លើយតប	响应
+Can be assigned	អាចប្រគល់ការងារឱ្យ	可分配任务
+Can edit records	អាចកែប្រែកំណត់ត្រា	可编辑记录
+Cancellation reason	មូលហេតុបោះបង់	取消原因
+Cannot be in the future.	មិនអាចជាពេលអនាគត។	不能选择未来时间。
+Can’t be chosen now	មិនអាចជ្រើសពេលនេះ	目前无法选择
+Can’t be synced.	មិនអាចធ្វើសមកាលកម្ម។	无法同步。
+Can’t import	មិនអាចនាំចូល	无法导入
+Capture mode	របៀបថត	拍摄模式
+Cash disbursement	ការបញ្ចេញសាច់ប្រាក់	现金支出
+Channel	ឆានែល	渠道
+Remark	សេចក្តីសម្គាល់	说明
+Chat	ការជជែក	聊天
+Commodity	ទំនិញ	货物
+Consignee	អ្នកទទួលទំនិញ	收货人
+Contact owner	អ្នកទទួលខុសត្រូវទំនាក់ទំនង	联系人负责人
+Contact person	អ្នកទំនាក់ទំនង	联系人
+Container numbers	លេខកុងតឺន័រ	集装箱号
+Container size	ទំហំកុងតឺន័រ	集装箱尺寸
+Contains	មាន	包含
+Converted	បានបម្លែង	已转换
+Closing date	ថ្ងៃបិទ	关闭日期
+Closing note	កំណត់ចំណាំបិទ	关闭说明
+Confirmation date	ថ្ងៃបញ្ជាក់	确认日期
+Order lines	ជួរបញ្ជាទិញ	订单明细
+Client secret	សោសម្ងាត់អតិថិជនកម្មវិធី	客户端密钥
+Campaign leads	អតិថិជនសក្តានុពលពីយុទ្ធនាការ	活动线索
+Creating	កំពុងបង្កើត	正在创建
+Connecting	កំពុងភ្ជាប់	正在连接
+Customer journey	ដំណើរការអតិថិជន	客户流程
+Date presets	ជម្រើសថ្ងៃរហ័ស	预设日期
+Day of month	ថ្ងៃក្នុងខែ	每月几号
+Days overdue	ចំនួនថ្ងៃហួសកំណត់	逾期天数
+Range	ចន្លោះ	范围
+Percent	ភាគរយ	百分比
+Percentage	ភាគរយ	百分比
+Currency symbol	និមិត្តសញ្ញារូបិយប័ណ្ណ	货币符号
+Decimals	ខ្ទង់ទសភាគ	小数位
+Decimal places	ខ្ទង់ទសភាគ	小数位数
+Font	ពុម្ពអក្សរ	字体
+Bold	ដិត	加粗
+Italic	ទ្រេត	斜体
+Underline	គូសបន្ទាត់ក្រោម	下划线
+Alignment	ការតម្រឹម	对齐
+Left	ឆ្វេង	左
+Center	កណ្តាល	居中
+Right	ស្តាំ	右
+Top	លើ	顶部
+Bottom	ក្រោម	底部
+Width	ទទឹង	宽度
+Height	កម្ពស់	高度
+Size	ទំហំ	大小
+Version	កំណែ	版本
+Item	ធាតុ	项目
+Items	ធាតុ	项目
+Page	ទំព័រ	页
+Pages	ទំព័រ	页
+Picture	រូបភាព	图片
+Image	រូបភាព	图片
+Images	រូបភាព	图片
+Browser	កម្មវិធីរុករក	浏览器
+Device	ឧបករណ៍	设备
+Devices	ឧបករណ៍	设备
+Session	វគ្គចូលប្រើ	会话
+Sessions	វគ្គចូលប្រើ	会话
+Activity log	ប្រវត្តិសកម្មភាព	活动日志
+Action log	ប្រវត្តិសកម្មភាព	操作日志
+Search results	លទ្ធផលស្វែងរក	搜索结果
+Recipients	អ្នកទទួល	接收人
+Recipient	អ្នកទទួល	接收人
+Source group	ក្រុមប្រភព	来源组
+Source workspace	កន្លែងការងារប្រភព	来源工作区
+Target group	ក្រុមគោលដៅ	目标组
+Target workspace	កន្លែងការងារគោលដៅ	目标工作区
+Shared data	ទិន្នន័យចែករំលែក	共享数据
+Approval needed	ត្រូវការអនុម័ត	需要审批
+Approval steps	ជំហានអនុម័ត	审批步骤
+Approve completion	អនុម័តការបញ្ចប់	批准完成
+Assign level	កំណត់កម្រិត	设置层级
+Assigned by	ប្រគល់ដោយ	分配人
+Assigned to	ប្រគល់ទៅ	分配给
+Assigned tasks	កិច្ចការដែលបានប្រគល់	已分配任务
+Created by	បង្កើតដោយ	创建人
+Changed by	កែប្រែដោយ	修改人
+Deleted by	លុបដោយ	删除人
+Requested by	ស្នើសុំដោយ	申请人
+Approved by	អនុម័តដោយ	批准人
+Rejected by	បដិសេធដោយ	拒绝人
+Reviewed by	ពិនិត្យដោយ	审核人
+Declined by	បដិសេធដោយ	婉拒人
+Closed by	បិទដោយ	关闭人
+Sent by	ផ្ញើដោយ	发送人
+Received by	ទទួលដោយ	接收人
+Seen by	បានមើលដោយ	已读人员
+Last changed	កែប្រែចុងក្រោយ	最后修改
+Last updated	ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ	最后更新
+Last sync	ធ្វើសមកាលកម្មចុងក្រោយ	上次同步
+Print	បោះពុម្ព	打印
+Print / Save as PDF	បោះពុម្ព / រក្សាទុកជា PDF	打印／另存为 PDF
+New record	កំណត់ត្រាថ្មី	新记录
+Something went wrong. Please try again.	មានបញ្ហាកើតឡើង។ សូមព្យាយាមម្តងទៀត។	出现问题，请重试。
+Unable to complete this operation. Your saved data has been preserved.	មិនអាចបញ្ចប់សកម្មភាពនេះ។ ទិន្នន័យដែលបានរក្សាទុកនៅតែមាន។	无法完成此操作，已保存的数据未丢失。
+New task: {p0}	កិច្ចការថ្មី៖ {p0}	新任务：{p0}
+Approval needed: {p0}	ត្រូវការអនុម័ត៖ {p0}	需要审批：{p0}
+Support request: {p0}	សំណើសុំជួយ៖ {p0}	协助请求：{p0}
+Review request: {p0}	សំណើពិនិត្យ៖ {p0}	审核请求：{p0}
+New due date: {p0}	ថ្ងៃកំណត់ថ្មី៖ {p0}	新截止日期：{p0}
+New due date requested: {p0}	បានស្នើថ្ងៃកំណត់ថ្មី៖ {p0}	申请新截止日期：{p0}
+New due date not applied: {p0}	មិនបានអនុវត្តថ្ងៃកំណត់ថ្មី៖ {p0}	新截止日期未生效：{p0}
+New due date agreed: {p0}	បានយល់ព្រមថ្ងៃកំណត់ថ្មី៖ {p0}	已同意新截止日期：{p0}
+Due date moved: {p0}	បានប្តូរថ្ងៃកំណត់៖ {p0}	截止日期已调整：{p0}
+Due date request withdrawn: {p0}	បានដកសំណើប្តូរថ្ងៃកំណត់៖ {p0}	截止日期变更申请已撤回：{p0}
+Due date request declined: {p0}	បានបដិសេធសំណើប្តូរថ្ងៃកំណត់៖ {p0}	截止日期变更申请已婉拒：{p0}
+Request approved: {p0}	បានអនុម័តសំណើ៖ {p0}	申请已批准：{p0}
+Request rejected: {p0}	បានបដិសេធសំណើ៖ {p0}	申请已拒绝：{p0}
+Request accepted: {p0}	បានទទួលយកសំណើ៖ {p0}	申请已接受：{p0}
+Request declined: {p0}	បានបដិសេធសំណើ៖ {p0}	申请已婉拒：{p0}
+Request withdrawn: {p0}	បានដកសំណើ៖ {p0}	申请已撤回：{p0}
+Request closed: {p0}	បានបិទសំណើ៖ {p0}	申请已关闭：{p0}
+Request passed on: {p0}	បានបញ្ជូនសំណើបន្ត៖ {p0}	申请已转交：{p0}
+Task request: {p0}	សំណើកិច្ចការ៖ {p0}	任务申请：{p0}
+Change closed: {p0}	បានបិទការផ្លាស់ប្តូរ៖ {p0}	变更已关闭：{p0}
+Step completed: {p0}	បានបញ្ចប់ជំហាន៖ {p0}	步骤已完成：{p0}
+File added: {p0}	បានបន្ថែមឯកសារ៖ {p0}	文件已添加：{p0}
+Handed over to you: {p0}	បានប្រគល់បន្តឱ្យអ្នក៖ {p0}	已转交给你：{p0}
+Handed over: {p0}	បានប្រគល់បន្ត៖ {p0}	已转交：{p0}
+Next up: {p0}	កិច្ចការបន្ទាប់៖ {p0}	下一项：{p0}
+Reminder: {p0}	ការរំលឹក៖ {p0}	提醒：{p0}
+Reassigned: {p0}	បានប្រគល់ឡើងវិញ៖ {p0}	已重新分配：{p0}
+{p0} is required.	ត្រូវបំពេញ {p0}។	必须填写 {p0}。
+{p0} must be text.	{p0} ត្រូវតែជាអក្សរ។	{p0} 必须为文本。
+{p0} must be at most {p1} characters.	{p0} អាចមានយ៉ាងច្រើន {p1} តួអក្សរ។	{p0} 最多为 {p1} 个字符。
+Choose a valid {p0}.	សូមជ្រើស {p0} ត្រឹមត្រូវ។	请选择有效的 {p0}。
+Invalid {p0}.	{p0} មិនត្រឹមត្រូវ។	{p0} 无效。
+Enter a valid {p0}.	សូមបញ្ចូល {p0} ត្រឹមត្រូវ។	请输入有效的 {p0}。
+{p0} withdrew the request	{p0} បានដកសំណើ	{p0} 撤回了申请
+{p0} is now the person in charge	ឥឡូវ {p0} ជាអ្នកទទួលបន្ទុក	现由 {p0} 负责
+Choose Approve or Reject.	សូមជ្រើស អនុម័ត ឬ បដិសេធ។	请选择批准或拒绝。
+Choose Member or Viewer.	សូមជ្រើស សមាជិក ឬ អ្នកមើល។	请选择成员或查看者。
+Choose one person.	សូមជ្រើសមនុស្សម្នាក់។	请选择一人。
+Choose people or roles.	សូមជ្រើសមនុស្សឬតួនាទី។	请选择人员或角色。
+Choose who should take charge.	សូមជ្រើសអ្នកទទួលបន្ទុក។	请选择负责人。
+Choose who you are asking	ជ្រើសអ្នកដែលអ្នកស្នើសុំ	选择申请对象
+Choose someone from the list.	សូមជ្រើសមនុស្សពីបញ្ជី។	请从列表选择人员。
+Choose the people to share with.	សូមជ្រើសអ្នកដែលត្រូវចែករំលែកជាមួយ។	请选择共享对象。
+Choose up to 100 members.	អាចជ្រើសសមាជិកយ៉ាងច្រើន 100 នាក់។	最多选择 100 名成员。
+Choose up to 30 days.	អាចជ្រើសយ៉ាងច្រើន 30 ថ្ងៃ។	最多选择 30 天。
+Choose up to 50 Task members.	អាចជ្រើសសមាជិកកិច្ចការយ៉ាងច្រើន 50 នាក់។	最多选择 50 名任务成员。
+Choose up to five reminders.	អាចជ្រើសការរំលឹកយ៉ាងច្រើនប្រាំ។	最多选择五个提醒。
+Choose a valid month (YYYY-MM).	សូមជ្រើសខែត្រឹមត្រូវ (YYYY-MM)។	请选择有效月份（YYYY-MM）。
+Choose a valid workspace color.	សូមជ្រើសពណ៌កន្លែងការងារត្រឹមត្រូវ។	请选择有效的工作区颜色。
+Choose a value from the list.	សូមជ្រើសតម្លៃពីបញ្ជី។	请从列表选择一个值。
+Choose at least one column.	សូមជ្រើសជួរឈរយ៉ាងតិចមួយ។	请至少选择一列。
+Choose columns to share.	សូមជ្រើសជួរឈរដែលត្រូវចែករំលែក។	请选择要共享的列。
+Choose each worksheet once.	សូមជ្រើសសន្លឹកនីមួយៗតែម្តង។	每个工作表只能选择一次。
+Choose how to send the files.	សូមជ្រើសរបៀបផ្ញើឯកសារ។	请选择文件发送方式。
+Choose one data source.	សូមជ្រើសប្រភពទិន្នន័យមួយ។	请选择一个数据源。
+Choose a different source group.	សូមជ្រើសក្រុមប្រភពផ្សេង។	请选择其他来源组。
+Choose a due date for this task.	សូមជ្រើសថ្ងៃកំណត់សម្រាប់កិច្ចការនេះ។	请为此任务选择截止日期。
+At least 10 characters.	យ៉ាងតិច 10 តួអក្សរ។	至少 10 个字符。
+The passwords do not match.	ពាក្យសម្ងាត់មិនដូចគ្នា។	两次密码不一致。
+Enter the password again.	សូមបញ្ចូលពាក្យសម្ងាត់ម្តងទៀត។	请再次输入密码。
+Enter a valid contact email.	សូមបញ្ចូលអ៊ីមែលទំនាក់ទំនងត្រឹមត្រូវ។	请输入有效的联系邮箱。
+Enter a valid email address.	សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ។	请输入有效的邮箱地址。
+The system is busy with other changes. Please try again in a moment.	ប្រព័ន្ធកំពុងដំណើរការការផ្លាស់ប្តូរផ្សេង។ សូមព្យាយាមបន្តិចទៀត។	系统正在处理其他更改，请稍后重试。
+This ID or linked record already exists.	លេខសម្គាល់ឬកំណត់ត្រាភ្ជាប់នេះមានរួចហើយ។	此编号或关联记录已存在。
+Your account cannot view this.	គណនីរបស់អ្នកមិនអាចមើលនេះបានទេ។	你的账号无权查看此内容。
+Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.	គណនីរបស់អ្នកមិនទាន់បានកំណត់ក្នុងរចនាសម្ព័ន្ធអង្គការ។ សូមស្នើអ្នកគ្រប់គ្រងប្រព័ន្ធកំណត់កម្រិតឱ្យអ្នក។	你的账号尚未关联组织架构，请联系管理员设置层级。
+This action is not available in the Telegram app.	សកម្មភាពនេះមិនមានក្នុងកម្មវិធី Telegram ទេ។	此操作在 Telegram 小程序中不可用。
+This action is not available.	សកម្មភាពនេះមិនអាចប្រើបាន។	此操作不可用。
+This session has expired. Close the app and open it again from the bot.	វគ្គចូលប្រើផុតកំណត់។ សូមបិទកម្មវិធី ហើយបើកឡើងវិញពីបូត។	会话已过期，请关闭小程序并从机器人重新打开。
+Open this app from the company bot in Telegram.	សូមបើកកម្មវិធីនេះពីបូតក្រុមហ៊ុនក្នុង Telegram។	请从 Telegram 公司机器人打开此小程序。
+Telegram is turned off for this company.	Telegram ត្រូវបានបិទសម្រាប់ក្រុមហ៊ុននេះ។	此公司已关闭 Telegram 功能。
+Too many requests. Wait a moment and try again.	សំណើច្រើនពេក។ សូមរង់ចាំបន្តិចហើយព្យាយាមម្តងទៀត។	请求过多，请稍后重试。
+Too many changes in a short time. Wait a moment and try again.	ការផ្លាស់ប្តូរច្រើនពេកក្នុងពេលខ្លី។ សូមរង់ចាំបន្តិចហើយព្យាយាមម្តងទៀត។	短时间内更改过多，请稍后重试。
+Connect your Telegram account to the Task Controlling Management first.	សូមភ្ជាប់គណនី Telegram ទៅ Task Controlling Management ជាមុនសិន។	请先将 Telegram 账号关联到 Task Controlling Management。
+Your Task Controlling Management account is disabled. Ask an administrator for help.	គណនី Task Controlling Management របស់អ្នកត្រូវបានបិទ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រព័ន្ធ។	你的 Task Controlling Management 账号已停用，请联系管理员。
+Your Task Controlling Management role does not include Task Management.	តួនាទីរបស់អ្នកមិនមានសិទ្ធិគ្រប់គ្រងកិច្ចការ។	你的角色没有任务管理权限。
+For Task privacy, open a private chat with me or use the Mini App.	ដើម្បីរក្សាឯកជនភាពកិច្ចការ សូមបើកជជែកឯកជនជាមួយបូត ឬប្រើកម្មវិធីតូច។	为保护任务隐私，请私聊机器人或使用小程序。
+This message is too old. Send /menu to start again.	សារនេះចាស់ពេក។ ផ្ញើ /menu ដើម្បីចាប់ផ្តើមឡើងវិញ។	此消息已失效，请发送 /menu 重新开始。
+JSON is required.	ត្រូវការទិន្នន័យ JSON។	需要 JSON 数据。
+Invalid JSON.	JSON មិនត្រឹមត្រូវ។	JSON 无效。
+Invalid request.	សំណើមិនត្រឹមត្រូវ។	请求无效。
+Route not found.	រកមិនឃើញផ្លូវសំណើ។	请求路径不存在。
+Page not found.	រកមិនឃើញទំព័រ។	页面不存在。
+Method not allowed.	វិធីសាស្ត្រនេះមិនត្រូវបានអនុញ្ញាត។	不允许此请求方法。
+Unknown action.	មិនស្គាល់សកម្មភាព។	未知操作。
+Unknown report.	មិនស្គាល់របាយការណ៍។	未知报告。
+Unknown report scope.	មិនស្គាល់វិសាលភាពរបាយការណ៍។	未知报告范围。
+Not found.	រកមិនឃើញ។	未找到。

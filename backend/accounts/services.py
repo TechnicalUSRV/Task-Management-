@@ -10,6 +10,7 @@ Rules kept exactly:
   * Failed sign-ins are limited per address+username (10), per username (20) and per address (50) in 15 minutes.
   * Sessions last 8 hours; changing role/username/email/password/permissions or disabling an account ends them.
 """
+from core.i18n import msg as _message
 import hashlib
 import json
 import re
@@ -64,7 +65,7 @@ def public_user(user):
     return {'id': user.id, 'staff_id': user.staff_id, 'email': user.email, 'username': user.username,
             'role_id': user.role_id, 'active': 1 if user.active else 0, 'version': user.version,
             'created_at': iso(user.created_at), 'updated_at': iso(user.updated_at),
-            'name': user.staff.name, 'role_name': user.role.name}
+            'name': user.staff.name, 'role_name': user.role.name, 'language': user.language}
 
 
 # ---------------------------------------------------------------- setup of a new database
@@ -76,8 +77,8 @@ def ensure_defaults():
         if not Role.objects.exists():
             now = timezone.now()
             for key, name, kind in BUILT_IN_ROLES:
-                description = ('Full system access. At least one active administrator is required.' if kind == 'ADMIN'
-                               else f'Starting {name.lower()} permissions; customize as needed.')
+                description = (_message('Full system access. At least one active administrator is required.') if kind == 'ADMIN'
+                               else _message('Starting {p0} permissions; customize as needed.', p0=name.lower()))
                 role = Role.objects.create(id=key, name=name, description=description, protected=kind == 'ADMIN',
                                            created_at=now, updated_at=now)
                 RolePermission.objects.bulk_create(
@@ -234,14 +235,14 @@ def can_staff(staff_id, resource, action='view'):
 
 def require_permission(user, resource, action='view'):
     if user is None:
-        fail('Sign in to continue.', 401)
+        fail(_message('Sign in to continue.'), 401)
     if resource.startswith(('tasks.', 'crm.', 'ops.', 'finance.')):
         from organization.governance import Governance
         gov = Governance()
         if resource != 'tasks.organization' or not gov.can_manage_structure(user.staff_id):
             gov.require_operational(user.staff_id)
     if not can(user, resource, action):
-        fail(f'Your account does not allow {action} for {LABELS.get(resource, resource)}.', 403)
+        fail(_message('Your account does not allow {p0} for {p1}.', p0=action, p1=LABELS.get(resource, resource)), 403)
 
 
 def profile_manager(user):
@@ -254,14 +255,14 @@ def profile_manager(user):
 # ---------------------------------------------------------------- validation
 def check_password_policy(value):
     if not isinstance(value, str) or len(value) < 10 or len(value) > 200:
-        fail('Use a password between 10 and 200 characters.')
+        fail(_message('Use a password between 10 and 200 characters.'))
     return value
 
 
 def email_address(value):
     email = text(value, 'Contact email', 200).lower()
     if email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
-        fail('Enter a valid email address.')
+        fail(_message('Enter a valid email address.'))
     return email
 
 
@@ -269,14 +270,14 @@ def normalize_settings(value):
     if value is None:
         return None
     if not isinstance(value, dict):
-        fail('Provide valid Function Settings.')
+        fail(_message('Provide valid Function Settings.'))
     out = {}
     for resource, settings in value.items():
         if resource not in CATALOG or not isinstance(settings, dict):
-            fail('Unknown function in user settings.')
+            fail(_message('Unknown function in user settings.'))
         for action, effect in settings.items():
             if action not in CATALOG[resource] or effect not in ('ALLOW', 'DENY', 'INHERIT'):
-                fail('Invalid function setting.')
+                fail(_message('Invalid function setting.'))
             if effect != 'INHERIT':
                 out.setdefault(resource, {})[action] = effect
     return out
@@ -284,14 +285,14 @@ def normalize_settings(value):
 
 def check_version(record, expected):
     if expected != record.version:
-        fail('This record changed. Refresh it before saving again.', 409)
+        fail(_message('This record changed. Refresh it before saving again.'), 409)
 
 
 def _keep_last_admin(old, next_role, next_active):
     if old.role_id == ADMIN_ROLE and old.active and (not next_active or next_role != ADMIN_ROLE):
         others = (User.objects.select_for_update().filter(role_id=ADMIN_ROLE, active=True).exclude(id=old.id))
         if not others.exists():
-            fail('Keep at least one active Administrator account.', 409)
+            fail(_message('Keep at least one active Administrator account.'), 409)
 
 
 def _end_sessions(user):
@@ -307,7 +308,7 @@ def _unlink_telegram(staff_id, actor, why):
 def _get_role(key):
     role = Role.objects.filter(id=text(key, 'Role', 60, True)).first()
     if not role:
-        fail('Role not found.', 404)
+        fail(_message('Role not found.'), 404)
     return role
 
 
@@ -317,18 +318,18 @@ def save_user(d, actor):
     if d.get('id'):
         old = User.objects.select_for_update().select_related('staff').filter(id=d['id']).first()
         if not old:
-            fail('User not found.', 404)
+            fail(_message('User not found.'), 404)
         check_version(old, d.get('expected_version'))
     role = _get_role(d.get('role_id'))
     email = email_address(d.get('email'))
     active = not (d.get('active') is False or d.get('active') == 0)
     function_settings = normalize_settings(d.get('function_settings'))
     if role.id == ADMIN_ROLE and function_settings:
-        fail('Administrator access is protected. Use another role for individual overrides.')
+        fail(_message('Administrator access is protected. Use another role for individual overrides.'))
     if old:
         _keep_last_admin(old, role.id, active)
     if email and User.objects.filter(email=email).exclude(id=old.id if old else '').exists():
-        fail('An account with this email already exists.', 409)
+        fail(_message('An account with this email already exists.'), 409)
     raw_name = d.get('username', d.get('name', old.username if old else None))
     name = text(clean_username(raw_name) if raw_name is not None else None, 'Username', 200, True)
     key_name = username_key(name)
@@ -339,13 +340,13 @@ def save_user(d, actor):
     else:
         staff_id = next_id('staff', 'STAFF')
     if not old and User.objects.filter(staff_id=staff_id).exists():
-        fail('This staff member already has a login account.', 409)
+        fail(_message('This staff member already has a login account.'), 409)
     if Staff.objects.filter(name=name).exclude(id=staff_id).exists():
-        fail('Another staff member already uses this name. Add a detail, such as the department, to tell them apart.', 409)
+        fail(_message('Another staff member already uses this name. Add a detail, such as the department, to tell them apart.'), 409)
     if old and staff_id == actor and name != old.username:
-        fail('Ask another administrator to change your username.', 403)
+        fail(_message('Ask another administrator to change your username.'), 403)
     if User.objects.filter(username_key=key_name).exclude(id=old.id if old else '').exists():
-        fail('This username is already in use. Choose a unique username.', 409)
+        fail(_message('This username is already in use. Choose a unique username.'), 409)
     password = d.get('password')
     if password:
         password_hash = make_password(check_password_policy(password))
@@ -394,9 +395,9 @@ def save_user(d, actor):
                 or password or not active or function_settings is not None):
         _end_sessions(user)
     if old and (password or not active):
-        _unlink_telegram(staff_id, actor, 'password changed' if password else 'account disabled')
-    settings_note = f' · Function Settings: {json.dumps(function_settings, separators=(",", ":"))}' if function_settings is not None else ''
-    audit(actor, 'User account updated' if old else 'User account created', user.id,
+        _unlink_telegram(staff_id, actor, _message('password changed') if password else _message('account disabled'))
+    settings_note = _message(' · Function Settings: {p0}', p0=json.dumps(function_settings, separators=(",", ":"))) if function_settings is not None else ''
+    audit(actor, _message('User account updated') if old else _message('User account created'), user.id,
           f"{name} · {email} · {role.name} · {'active' if active else 'disabled'}{settings_note}")
     return {'id': user.id, 'type': 'admin_user'}
 
@@ -404,15 +405,15 @@ def save_user(d, actor):
 def disable_user(d, actor):
     old = User.objects.select_for_update().filter(id=d.get('id')).first()
     if not old:
-        fail('User not found.', 404)
+        fail(_message('User not found.'), 404)
     check_version(old, d.get('expected_version'))
     _keep_last_admin(old, old.role_id, False)
     reason = text(d.get('reason'), 'Reason', 1000, True)
     User.objects.filter(id=old.id).update(active=False, version=old.version + 1, updated_at=timezone.now())
     _end_sessions(old)
-    _unlink_telegram(old.staff_id, actor, 'account disabled')
-    audit(actor, 'User account disabled', old.id, reason)
-    return {'message': 'Account disabled. Staff records and history are preserved.'}
+    _unlink_telegram(old.staff_id, actor, _message('account disabled'))
+    audit(actor, _message('User account disabled'), old.id, reason)
+    return {'message': _message('Account disabled. Staff records and history are preserved.')}
 
 
 # ---------------------------------------------------------------- roles and modules
@@ -421,28 +422,28 @@ def save_role(d, actor):
     if d.get('id'):
         old = Role.objects.select_for_update().filter(id=d['id']).first()
         if not old:
-            fail('Role not found.', 404)
+            fail(_message('Role not found.'), 404)
         check_version(old, d.get('expected_version'))
         if old.protected:
-            fail('The Administrator role is protected. Create a custom role to change its permissions.')
+            fail(_message('The Administrator role is protected. Create a custom role to change its permissions.'))
     name = text(d.get('name'), 'Role name', 150, True)
     description = text(d.get('description'), 'Description', 2000)
     key = old.id if old else next_id('access-role', 'ROLE')
     if any(r.lower() == name.lower() for r in Role.objects.exclude(id=key).values_list('name', flat=True)):
-        fail('A role with this name already exists. Choose a different name.', 409)
+        fail(_message('A role with this name already exists. Choose a different name.'), 409)
     matrix = d.get('permissions')
     if not isinstance(matrix, dict):
-        fail('Provide a permission matrix.')
+        fail(_message('Provide a permission matrix.'))
     rows = []
     for resource, actions in matrix.items():
         if resource not in CATALOG or not isinstance(actions, list):
-            fail('Invalid permission row.')
+            fail(_message('Invalid permission row.'))
         unique = list(dict.fromkeys(actions))
         if unique and 'view' not in unique:
-            fail('View permission is required before granting actions in a row.')
+            fail(_message('View permission is required before granting actions in a row.'))
         for action in unique:
             if action not in CATALOG[resource]:
-                fail('This permission is not supported for the selected function.')
+                fail(_message('This permission is not supported for the selected function.'))
             rows.append((resource, action))
     now = timezone.now()
     if old:
@@ -451,7 +452,7 @@ def save_role(d, actor):
         Role.objects.create(id=key, name=name, description=description, protected=False, created_at=now, updated_at=now)
     RolePermission.objects.filter(role_id=key).delete()
     RolePermission.objects.bulk_create(RolePermission(role_id=key, resource=r, action=a) for r, a in rows)
-    audit(actor, 'Role and permissions updated' if old else 'Role created', key,
+    audit(actor, _message('Role and permissions updated') if old else _message('Role created'), key,
           json.dumps({'name': name, 'permissions': matrix}, separators=(',', ':'), ensure_ascii=False))
     return {'id': key, 'type': 'admin_role'}
 
@@ -460,12 +461,12 @@ def delete_role(d, actor):
     old = _get_role(d.get('id'))
     check_version(old, d.get('expected_version'))
     if old.protected:
-        fail('The Administrator role cannot be deleted.')
+        fail(_message('The Administrator role cannot be deleted.'))
     if User.objects.filter(role=old).exists():
-        fail('Reassign every account using this role before deleting it.')
+        fail(_message('Reassign every account using this role before deleting it.'))
     old.delete()
-    audit(actor, 'Role deleted', old.id, old.name)
-    return {'message': 'Role deleted.'}
+    audit(actor, _message('Role deleted'), old.id, old.name)
+    return {'message': _message('Role deleted.')}
 
 
 def save_modules(d, actor):
@@ -474,24 +475,24 @@ def save_modules(d, actor):
         fail('Select company modules.')
     known = {m[0] for m in MODULES}
     if any(key not in known for key in chosen):
-        fail('Unknown Task Controlling Management module.')
+        fail(_message('Unknown Task Controlling Management module.'))
     versions = d.get('versions') or {}
     for module_id, label, required, dependencies in MODULES:
         value = chosen.get(module_id)
         if not isinstance(value, bool):
-            fail('Set every module to enabled or disabled.')
+            fail(_message('Set every module to enabled or disabled.'))
         if required and not value:
-            fail(f'{label} must stay enabled.')
+            fail(_message('{p0} must stay enabled.', p0=label))
         if value and any(not chosen.get(dep) for dep in dependencies):
-            fail(f'Enable dependencies before enabling {label}: {", ".join(dependencies)}.')
+            fail(_message('Enable dependencies before enabling {p0}: {p1}.', p0=label, p1=", ".join(dependencies)))
         row = ModuleSetting.objects.select_for_update().get(module_id=module_id)
         if versions.get(module_id) != row.version:
-            fail('This record changed. Refresh it before saving again.', 409)
+            fail(_message('This record changed. Refresh it before saving again.'), 409)
     for module_id, *_ in MODULES:
         row = ModuleSetting.objects.get(module_id=module_id)
         ModuleSetting.objects.filter(module_id=module_id).update(enabled=chosen[module_id], version=row.version + 1)
-    audit(actor, 'Company modules configured', 'MODULES', json.dumps(chosen, separators=(',', ':')))
-    return {'message': 'Company modules updated. Existing data and saved permissions are preserved.'}
+    audit(actor, _message('Company modules configured'), 'MODULES', json.dumps(chosen, separators=(',', ':')))
+    return {'message': _message('Company modules updated. Existing data and saved permissions are preserved.')}
 
 
 # ---------------------------------------------------------------- first administrator, sign-in and sessions
@@ -500,17 +501,17 @@ def bootstrap(d):
     with transaction.atomic():
         ensure_defaults()
         if User.objects.select_for_update().exists():
-            fail('An administrator already exists. Sign in instead.', 409)
+            fail(_message('An administrator already exists. Sign in instead.'), 409)
         if d.get('staff_id'):
             staff_id = active_staff(d['staff_id']).id
         else:
             if Staff.objects.exists():
-                fail('Choose the staff identity for the first administrator.')
+                fail(_message('Choose the staff identity for the first administrator.'))
             staff_id = next_id('staff', 'STAFF')
             raw = d.get('username', d.get('name'))
             Staff.objects.create(id=staff_id, name=text(clean_username(raw) if raw is not None else None, 'Username', 200, True))
         if not Company.objects.filter(id=1).exists():
-            Company.objects.create(id=1, name=text(d.get('company_name'), 'Company name', 200) or 'Task Controlling Management')
+            Company.objects.create(id=1, name=text(d.get('company_name'), 'Company name', 200) or _message('Task Controlling Management'))
         result = save_user({**d, 'staff_id': staff_id, 'role_id': ADMIN_ROLE, 'active': 1}, staff_id)
         return public_user(User.objects.select_related('staff', 'role').get(id=result['id']))
 
@@ -527,7 +528,7 @@ def login(username, password, ip):
         for name, maximum in LIMITS:
             attempt = LoginAttempt.objects.filter(key=keys[name]).first()
             if _attempt_open(attempt, now) and attempt.failures >= maximum:
-                fail('Too many unsuccessful attempts. Try again in 15 minutes.', 429)
+                fail(_message('Too many unsuccessful attempts. Try again in 15 minutes.'), 429)
         user = User.objects.select_related('staff', 'role').filter(username_key=normalized).first()
         supplied = password if isinstance(password, str) and len(password) <= 200 else ''
         verified = check_password(supplied, user.password if user else _DUMMY_HASH,
@@ -544,14 +545,14 @@ def login(username, password, ip):
             # Returning (not raising) commits the failure counters; login_or_fail then refuses the request.
             return None
         LoginAttempt.objects.filter(key__in=[keys['pair'], keys['account']]).delete()
-        audit(user.staff_id, 'Signed in', user.id)
+        audit(user.staff_id, _message('Signed in'), user.id)
         return public_user(user)
 
 
 def login_or_fail(username, password, ip):
     user = login(username, password, ip)
     if user is None:
-        fail('Username or password is incorrect, or the account is disabled.', 401)
+        fail(_message('Username or password is incorrect, or the account is disabled.'), 401)
     return user
 
 
@@ -597,8 +598,8 @@ def logout(request):
 def sign_out_everywhere(user, telegram=False):
     count = _end_sessions(user)
     if telegram:
-        _unlink_telegram(user.staff_id, user.staff_id, 'signed out everywhere')
-    audit(user.staff_id, 'Signed out of all devices', user.id, 'including Telegram' if telegram else '')
+        _unlink_telegram(user.staff_id, user.staff_id, _message('signed out everywhere'))
+    audit(user.staff_id, _message('Signed out of all devices'), user.id, _message('including Telegram') if telegram else '')
     return count
 
 
@@ -610,6 +611,6 @@ def status(request):
         'setup_required': setup,
         'company_setup_required': setup and company is None,
         'user': public_user(user) if user else None,
-        'company_name': company.name if company else 'Task Controlling Management',
+        'company_name': company.name if company else _message('Task Controlling Management'),
         'staff': list(Staff.objects.filter(active=True).values('id', 'name')) if setup else [],
     }

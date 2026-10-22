@@ -1,3 +1,4 @@
+import { uiText } from "../../local-test/i18n";
 "use client"
 
 import * as React from "react"

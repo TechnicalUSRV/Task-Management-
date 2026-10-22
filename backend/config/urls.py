@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/auth/login', auth.LoginView.as_view()),
     path('api/auth/logout', auth.LogoutView.as_view()),
     path('api/auth/status', auth.StatusView.as_view()),
+    path('api/me/language', auth.LanguageView.as_view()),
     path('api/version', auth.VersionView.as_view()),
     path('api/companies', auth.CompaniesView.as_view()),
     path('api/changes', auth.ChangesView.as_view()),

@@ -4,6 +4,7 @@ This decides which function permission a command needs. Record-level rules (task
 hierarchy, group sharing) are applied afterwards by the domain services. CRM, Operations and Google Sheets commands are
 not available in this deployment (Stage 1 decision A); they are refused here.
 """
+from core.i18n import msg as _message
 import re
 
 from accounts import services as access
@@ -32,9 +33,9 @@ def _crm_links(user, d):
 
 def authorize(user, action, d):
     if user is None:
-        fail('Sign in to continue.', 401)
+        fail(_message('Sign in to continue.'), 401)
     if not isinstance(action, str) or not isinstance(d, dict):
-        fail('Invalid command.')
+        fail(_message('Invalid command.'))
     for k in ID_KEYS:
         if isinstance(d.get(k), str) and d[k] != d[k].strip():
             d[k] = d[k].strip()
@@ -44,9 +45,9 @@ def authorize(user, action, d):
                 continue
             if (k == 'id' or k.endswith('_id')) and not isinstance(v, str) and not (
                     k == 'id' and action == 'tm.notification.read' and isinstance(v, int) and not isinstance(v, bool)):
-                fail('This request names a record in an invalid way.')
+                fail(_message('This request names a record in an invalid way.'))
             if k.endswith('_ids') and (not isinstance(v, list) or any(not isinstance(x, str) for x in v)):
-                fail('This request lists records in an invalid way.')
+                fail(_message('This request lists records in an invalid way.'))
     if action.startswith('org.'):
         access.require_permission(user, 'tasks.organization', 'create')
         if action == 'org.workspace.save':
@@ -103,12 +104,12 @@ def authorize(user, action, d):
     elif action == 'tm.profile.photo':
         resource, verb = 'tasks.users', 'update'
         if d.get('staff_id') != user.staff_id and not access.profile_manager(user):
-            fail('Only managers and administrators can change other people’s photos.', 403)
+            fail(_message('Only managers and administrators can change other people’s photos.'), 403)
     elif action == 'tm.profile.manager':
         resource, verb = 'admin.users', 'update'
     elif re.match(r'^tm\.calnote\.(save|delete)$', action):
         if not access.can(user, 'tasks.tasks') and not access.can(user, 'tasks.meetings'):
-            fail('Your account does not include the calendar (Task Management · Tasks or Meetings).', 403)
+            fail(_message('Your account does not include the calendar (Task Management · Tasks or Meetings).'), 403)
         return
     elif action in ('tm.meeting.decide', 'tm.meeting.withdraw', 'tm.meeting.follow'):
         resource, verb = 'tasks.meetings', 'view'
@@ -130,7 +131,7 @@ def authorize(user, action, d):
     elif re.match(r'^tg\.link\.(code|unlink|notify)$', action):
         resource, verb = 'tasks.tasks', 'view'
     if not resource:
-        fail('This action is not available.', 403)
+        fail(_message('This action is not available.'), 403)
     access.require_permission(user, resource, verb)
     if action in ('admin.user.save', 'admin.user.disable'):
         _no_escalation(user, d)
@@ -146,8 +147,8 @@ def _authorize_profile(user, d):
             access.require_permission(user, 'admin.users', 'update')
     if staff_id != user.staff_id:
         if not access.profile_manager(user):
-            fail('Only managers and administrators can change other people’s team profiles.' if staff_id else
-                 'Only managers and administrators can add team members.', 403)
+            fail(_message('Only managers and administrators can change other people’s team profiles.') if staff_id else
+                 _message('Only managers and administrators can add team members.'), 403)
         if staff_id and isinstance(staff_id, str):
             person = Staff.objects.filter(id=staff_id).first()
             if person:
@@ -155,13 +156,13 @@ def _authorize_profile(user, d):
                 email = profile.email if profile else ''
                 if (str(d.get('name') or '').strip() != person.name or str(d.get('email') or '').strip().lower() != email.lower()) \
                         and not access.can(user, 'admin.users', 'update'):
-                    fail('Only administrators (User accounts “Update”) can change someone’s name or team email.', 403)
+                    fail(_message('Only administrators (User accounts “Update”) can change someone’s name or team email.'), 403)
     if staff_id and staff_id != user.staff_id and d.get('active') is not None:
         wanted = 0 if d['active'] in (False, 0, '0') else 1
         profile = Profile.objects.filter(staff_id=str(staff_id)).first()
         current = 1 if (profile is None or profile.active) else 0
         if wanted != current and not access.can(user, 'tasks.tasks', 'approve'):
-            fail('Only managers and administrators (Task Management “Approve”) can make someone inactive or active again.', 403)
+            fail(_message('Only managers and administrators (Task Management “Approve”) can make someone inactive or active again.'), 403)
 
 
 def _no_escalation(user, d):
@@ -180,4 +181,4 @@ def _no_escalation(user, d):
     proposed = access.normalize_settings(d.get('function_settings'))
     proposed = previous if proposed is None else proposed
     if (existing and not manageable(existing['role_id'], previous)) or (d.get('role_id') and not manageable(d['role_id'], proposed)):
-        fail('You cannot manage or assign a role with greater access than your own. Administrator accounts require an Administrator.', 403)
+        fail(_message('You cannot manage or assign a role with greater access than your own. Administrator accounts require an Administrator.'), 403)

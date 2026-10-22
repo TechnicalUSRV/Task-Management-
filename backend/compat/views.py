@@ -1,4 +1,5 @@
 """V5.7.7 endpoints used by the existing React app (paths and response shapes unchanged)."""
+from core.i18n import msg as _message
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,7 +18,7 @@ class CommandView(APIView):
         body = require_json(request)
         user = request.user
         if commands.limiter.limited(f'{request.company_id}:{user.id}'):
-            fail('Too many changes in a short time. Wait a moment and try again.', 429)
+            fail(_message('Too many changes in a short time. Wait a moment and try again.'), 429)
         result = commands.run(user, body.get('action'), body.get('data') if 'data' in body else {})
         return Response({'ok': True, 'result': result})
 
@@ -82,7 +83,7 @@ class PhotoView(APIView):
             Governance().require_operational(request.user.staff_id)
         photo = StaffPhoto.objects.filter(staff_id=staff, size__gt=0).first()
         if not photo:
-            fail('Photo not found.', 404)
+            fail(_message('Photo not found.'), 404)
         cache = 'private, max-age=31536000, immutable' if request.query_params.get('v') == str(photo.version) else 'no-store'
         return binary(photo.content, photo.mime, {'Cache-Control': cache, 'Content-Security-Policy': "default-src 'none'; sandbox"})
 
@@ -95,7 +96,7 @@ def task_file(staff, file_id):
     f = TaskFile.objects.filter(id=str(file_id or '')[:60]).first()
     t = row(Task.objects.filter(id=f.task_id).first()) if f else None
     if not f or not TaskScope(Governance()).can_see(staff, t):
-        fail('File not found.', 404)
+        fail(_message('File not found.'), 404)
     return f
 
 
@@ -155,7 +156,7 @@ class TaskReportView(APIView):
         access.require_permission(user, 'tasks.reports', action)
         report_id = request.query_params.get('report') or 'tasks'
         if report_id not in TASK_REPORT_NEEDS:
-            fail('Unknown task report.', 400)
+            fail(_message('Unknown task report.'), 400)
         for resource in TASK_REPORT_NEEDS[report_id]:
             access.require_permission(user, resource, action)
         report = reports.build_task_report(scoped_state(user), request.query_params.dict())
@@ -171,9 +172,9 @@ def parse_filters(request):
     try:
         filters = json.loads(request.query_params.get('filters') or '{}')
     except ValueError:
-        fail('Invalid filters.')
+        fail(_message('Invalid filters.'))
     if not isinstance(filters, dict):
-        fail('Invalid filters.')
+        fail(_message('Invalid filters.'))
     return filters
 
 
@@ -204,10 +205,10 @@ class ERPReportView(APIView):
         body = require_json(request)
         report = reports.build_erp_report(request.user, body, self.kind != 'json')
         if self.kind == 'csv':
-            columns = [['source_label', 'Data source'], *report['columns']]
+            columns = [['source_label', _message('Data source')], *report['columns']]
             table = {**report, 'columns': [[f'column{i}', label] for i, (_, label) in enumerate(columns)],
                      'rows': [{f'column{i}': reports.display_value(row, key, report['currency']) for i, (key, _) in enumerate(columns)} for row in report['rows']]}
-            return text_response(reports.report_csv(table), 'text/csv; charset=utf-8', 'Sunny-Task Controlling Management-Report.csv')
+            return text_response(reports.report_csv(table), 'text/csv; charset=utf-8', _message('Sunny-Task Controlling Management-Report.csv'))
         return Response(report)
 
 
@@ -215,7 +216,7 @@ class JourneyView(APIView):
     """CRM customer journeys: the CRM module is off in this deployment, so this answers as V5.7.7 does without CRM access."""
     def get(self, request):
         access.require_permission(request.user, 'crm.contacts')
-        fail('Route not found.', 404)
+        fail(_message('Route not found.'), 404)
 
 
 def print_script(request):
@@ -238,20 +239,20 @@ def frontend(request, path=''):
     from django.conf import settings as conf
     from django.http import HttpResponse, JsonResponse
     if request.method not in ('GET', 'HEAD'):
-        return JsonResponse({'error': 'Method not allowed.'}, status=405)
+        return JsonResponse({'error': _message('Method not allowed.')}, status=405)
     root = Path(conf.FRONTEND_DIR).resolve()
     try:
         decoded = unquote(request.path_info, errors='strict')
     except UnicodeDecodeError:
-        return JsonResponse({'error': 'This address is not valid.'}, status=400)
+        return JsonResponse({'error': _message('This address is not valid.')}, status=400)
     # Friendly office entry URL. The existing frontend still calls /c/default/api,
     # preserving its login cookie and company scope without a redirect or rebuild.
     entry_page = decoded in ('/', '/TaskManagement', '/TaskManagement/')
     target = (root / ('index.html' if entry_page else '.' + decoded)).resolve()
     if root not in target.parents:
-        return JsonResponse({'error': 'Not found.'}, status=404)
+        return JsonResponse({'error': _message('Not found.')}, status=404)
     if not target.is_file():
-        return JsonResponse({'error': 'Page not found. Build or extract the local app first.'}, status=404)
+        return JsonResponse({'error': _message('Page not found. Build or extract the local app first.')}, status=404)
     hashed = decoded.startswith('/assets/') and re.search(r'-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$', decoded)
     response = HttpResponse(target.read_bytes(), content_type=STATIC_TYPES.get(target.suffix.lower(), 'application/octet-stream'))
     response['Cache-Control'] = 'public, max-age=31536000, immutable' if hashed else 'no-store'

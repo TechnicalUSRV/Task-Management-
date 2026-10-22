@@ -5,6 +5,7 @@ has one company (settings.COMPANY_ID, normally 'default'). Company-scoped API an
 the retired /c/<companyId>/ homepage returns 404. The office page is /TaskManagement.
 Any other company ID is answered as "Company not found.", exactly as before.
 """
+from core.i18n import msg as _message
 import re
 
 from django.conf import settings
@@ -22,9 +23,9 @@ class CompanyScopeMiddleware:
         if match:
             company_id, rest = match.groups()
             if company_id != settings.COMPANY_ID:
-                return JsonResponse({'error': 'Company not found.'}, status=404)
+                return JsonResponse({'error': _message('Company not found.')}, status=404)
             if rest == '/':
-                return JsonResponse({'error': 'Page not found.'}, status=404)
+                return JsonResponse({'error': _message('Page not found.')}, status=404)
             request.company_id = company_id
             request.company_scoped = True
             request.path_info = rest
@@ -67,18 +68,18 @@ class TrustedOriginCorsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        origin = request.headers.get('Origin', '')
+        origin = request.headers.get(_message('Origin'), '')
         trusted = origin and origin in settings.TRUSTED_ORIGINS and origin != f'{request.scheme}://{request.get_host()}'
         if trusted and request.method == 'OPTIONS' and request.headers.get('Access-Control-Request-Method'):
             response = HttpResponse(status=204)
             response['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-App-Language'
             response['Access-Control-Max-Age'] = '600'
         else:
             response = self.get_response(request)
         if trusted:
             response['Access-Control-Allow-Origin'] = origin
             response['Access-Control-Allow-Credentials'] = 'true'
-            response['Access-Control-Expose-Headers'] = 'Content-Disposition'
-            response['Vary'] = ', '.join(x for x in (response.get('Vary'), 'Origin') if x)
+            response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Language, X-Account-Language'
+            response[_message('Vary')] = ', '.join(x for x in (response.get(_message('Vary')), _message('Origin')) if x)
         return response

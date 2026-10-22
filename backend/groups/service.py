@@ -7,6 +7,7 @@ workflows. A group someone may not open is answered as "not found", so its exist
 Commands arrive through compat.commands.run (one transaction under the write lock, as V5.7.7's BEGIN IMMEDIATE); reads
 (GET /api/tasks/group…) never change anything except the activity entry an Excel export writes, as in V5.7.7.
 """
+from core.i18n import msg as _message
 import base64
 import hashlib
 import re
@@ -195,10 +196,10 @@ class GroupService:
     def open_board(self, key, staff):
         b = self.board_row(text(key, 'Group', 60, True))
         if not b:
-            fail('Group not found.', 404)
+            fail(_message('Group not found.'), 404)
         caps = self.caps_for(b, staff)
         if not caps['view']:
-            fail('Group not found.', 404)
+            fail(_message('Group not found.'), 404)
         return b, caps
 
     @staticmethod
@@ -241,9 +242,9 @@ class GroupService:
 
     def archived_check(self, b):
         if b['status'] == 'ARCHIVED':
-            fail('This group is archived. Restore it before changing it.', 409)
+            fail(_message('This group is archived. Restore it before changing it.'), 409)
         if not self.ws_active(b):
-            fail('This group’s workspace is archived. Restore the workspace before changing its groups.', 409)
+            fail(_message('This group’s workspace is archived. Restore the workspace before changing its groups.'), 409)
 
     def workspace_access(self, w, staff):
         """Workspaces where someone may create groups: the ones they belong to or own (governed workspaces follow the
@@ -282,22 +283,22 @@ class GroupService:
         if value is None:
             return []
         if not isinstance(value, list) or len(value) > L['shared']:
-            fail(f"Share with up to {L['shared']} people.")
+            fail(_message('Share with up to {p0} people.', p0=L['shared']))
         out = {}
         for x in value:
             staff = x if isinstance(x, str) else x.get('staff_id') if isinstance(x, dict) else None
             level = 'EDIT' if isinstance(x, str) else ((x.get('level') if isinstance(x, dict) else None) or 'EDIT')
             if not isinstance(staff, str) or not staff:
-                fail('Choose the people to share with.')
-            choice(level, ['VIEW', 'EDIT', 'MANAGE'], 'access level')
+                fail(_message('Choose the people to share with.'))
+            choice(level, ['VIEW', 'EDIT', 'MANAGE'], _message('access level'))
             if staff == owner:
                 continue
             p = sql("SELECT l.id,l.name FROM staff l LEFT JOIN tm_profiles p ON p.staff_id=l.id LEFT JOIN access_users u ON u.staff_id=l.id "
                     "WHERE l.id=%s AND l.active=%s AND COALESCE(p.active,%s)=%s AND (u.id IS NULL OR u.active=%s)", staff, True, True, True, True)
             if not p:
-                fail('Share only with active team members.')
+                fail(_message('Share only with active team members.'))
             if not self.is_member(w['id'], staff):
-                fail(f"{p[0]['name']} isn’t a member of this workspace. Add them to the workspace first.")
+                fail(_message('{p0} isn’t a member of this workspace. Add them to the workspace first.', p0=p[0]['name']))
             out[staff] = level
         return [{'staff_id': s, 'level': lv} for s, lv in out.items()]
 
@@ -312,14 +313,14 @@ class GroupService:
         b0 = old[0] if old else None
         w = self.tasks.workspace(b0['workspace_id'] if b0 else d.get('workspace_id'))
         if w['status'] != 'ACTIVE':
-            fail('Restore the workspace before changing its groups.')
+            fail(_message('Restore the workspace before changing its groups.'))
         if not old:
             if not self.can(actor, 'create'):
-                fail('Your role can’t create groups.', 403)
+                fail(_message('Your role can’t create groups.'), 403)
             if not self.workspace_access(w, actor):
-                fail('Join this workspace before creating a group in it.', 403)
+                fail(_message('Join this workspace before creating a group in it.'), 403)
             if Board.objects.filter(workspace_id=w['id']).count() >= L['groups']:
-                fail(f"This workspace already has {L['groups']} groups, the most it can hold. Delete archived groups that are no longer needed.", 409)
+                fail(_message('This workspace already has {p0} groups, the most it can hold. Delete archived groups that are no longer needed.', p0=L['groups']), 409)
         else:
             self.archived_check(b0)
 
@@ -328,8 +329,8 @@ class GroupService:
         name = text(given('name', b0['name'] if b0 else None), 'Group name', L['name'], True)
         description = text(given('description', b0['description'] if b0 else ''), 'Description', L['description'])
         visibility = choice(given('visibility', b0['visibility'] if b0 else 'PERSONAL'), ['PERSONAL', 'TEAM'], 'visibility')
-        audience = choice(given('audience', b0['audience'] if b0 else 'SELECTED'), ['WORKSPACE', 'SELECTED'], 'sharing option') if visibility == 'TEAM' else 'SELECTED'
-        workspace_level = choice(given('workspace_level', b0['workspace_level'] if b0 else 'EDIT'), ['VIEW', 'EDIT'], 'workspace access level')
+        audience = choice(given('audience', b0['audience'] if b0 else 'SELECTED'), ['WORKSPACE', 'SELECTED'], _message('sharing option')) if visibility == 'TEAM' else 'SELECTED'
+        workspace_level = choice(given('workspace_level', b0['workspace_level'] if b0 else 'EDIT'), ['VIEW', 'EDIT'], _message('workspace access level'))
         owner = b0['owner_id'] if b0 else actor
         if visibility == 'TEAM':
             shared = ([{'staff_id': s, 'level': lv} for s, lv in BoardAccess.objects.filter(board_id=b0['id']).order_by('id').values_list('staff_id', 'level')]
@@ -343,13 +344,13 @@ class GroupService:
             sharing = (audience != b0['audience'] or workspace_level != b0['workspace_level']
                        or not js.same(before, sorted(shared, key=lambda x: x['staff_id'])))
             if renamed:
-                self.need(caps, 'rename', 'You can’t rename this group. Ask its owner for “Can manage” access.')
+                self.need(caps, 'rename', _message('You can’t rename this group. Ask its owner for “Can manage” access.'))
             if visibility != b0['visibility']:
-                self.need(caps, 'visibility', 'Only the group’s owner can change whether it is personal or shared.')
+                self.need(caps, 'visibility', _message('Only the group’s owner can change whether it is personal or shared.'))
             if sharing and visibility == 'TEAM':
-                self.need(caps, 'share', 'You can’t change who can open this group. Ask its owner for “Can manage” access.')
+                self.need(caps, 'share', _message('You can’t change who can open this group. Ask its owner for “Can manage” access.'))
             if not renamed and not sharing and visibility == b0['visibility']:
-                return {'id': b0['id'], 'type': 'tm_group', 'message': 'Nothing was changed.', 'unchanged': True}
+                return {'id': b0['id'], 'type': 'tm_group', 'message': _message('Nothing was changed.'), 'unchanged': True}
             update(Board, b0['id'], {'name': name, 'description': description, 'visibility': visibility, 'audience': audience,
                                      'workspace_level': workspace_level, 'version': b0['version'] + 1, 'updated_at': at})
             BoardAccess.objects.filter(board_id=b0['id']).delete()
@@ -357,16 +358,16 @@ class GroupService:
                 BoardAccess.objects.create(board_id=b0['id'], staff_id=s['staff_id'], level=s['level'])
             nxt = {**b0, 'name': name}
             if renamed:
-                self.record(actor, nxt, 'Group renamed', f"was {b0['name']}" if name != b0['name'] else 'description changed')
+                self.record(actor, nxt, _message('Group renamed'), _message('was {p0}', p0=b0['name']) if name != b0['name'] else _message('description changed'))
             if visibility != b0['visibility'] or sharing:
                 if visibility == 'PERSONAL':
                     how = 'personal'
                 elif audience == 'WORKSPACE':
-                    how = f"whole workspace · {dm.LEVEL_LABELS[workspace_level].lower()}{f' · {len(shared)} named' if shared else ''}"
+                    how = _message('whole workspace · {p0}{p1}', p0=dm.LEVEL_LABELS[workspace_level].lower(), p1=f' · {len(shared)} named' if shared else '')
                 else:
                     how = f"{len(shared)} {plural(len(shared), 'person', 'people')}"
-                self.record(actor, nxt, 'Group sharing changed', how)
-            return {'id': b0['id'], 'type': 'tm_group', 'message': 'Group saved.'}
+                self.record(actor, nxt, _message('Group sharing changed'), how)
+            return {'id': b0['id'], 'type': 'tm_group', 'message': _message('Group saved.')}
         key = next_id('tm-board', 'GRP')
         insert(Board, {'id': key, 'workspace_id': w['id'], 'name': name, 'description': description, 'visibility': visibility, 'audience': audience,
                        'workspace_level': workspace_level, 'owner_id': owner, 'status': 'ACTIVE', 'archived_at': None, 'archived_by': None,
@@ -374,51 +375,51 @@ class GroupService:
         for s in shared:
             BoardAccess.objects.create(board_id=key, staff_id=s['staff_id'], level=s['level'])
         # A new group starts with one text column, “Item”, which can be renamed or removed like any other.
-        insert(BoardColumn, {'id': next_id('tm-board-col', 'COL'), 'board_id': key, 'name': 'Item', 'name_key': dm.name_key('Item'), 'type': 'TEXT',
+        insert(BoardColumn, {'id': next_id('tm-board-col', 'COL'), 'board_id': key, 'name': _message('Item'), 'name_key': dm.name_key(_message('Item')), 'type': 'TEXT',
                              'position': 1, 'settings_json': '{}', 'version': 0, 'created_at': at, 'updated_at': at})
-        self.record(actor, {'id': key, 'workspace_id': w['id'], 'name': name}, 'Group created', 'personal' if visibility == 'PERSONAL' else 'team')
-        return {'id': key, 'type': 'tm_group', 'message': 'Group created.'}
+        self.record(actor, {'id': key, 'workspace_id': w['id'], 'name': name}, _message('Group created'), 'personal' if visibility == 'PERSONAL' else 'team')
+        return {'id': key, 'type': 'tm_group', 'message': _message('Group created.')}
 
     def archive_board(self, d, actor):
         b, caps = self.open_board(d.get('id'), actor)
         self.tasks.check_version(b, d.get('expected_version'))
-        status = choice(d.get('status'), ['ACTIVE', 'ARCHIVED'], 'group status')
+        status = choice(d.get('status'), ['ACTIVE', 'ARCHIVED'], _message('group status'))
         if not self.ws_active(b):
-            fail('This group’s workspace is archived. Restore the workspace before archiving, restoring or deleting its groups.', 409)
-        self.need(caps, 'archive', 'Only the group’s owner (or a group administrator) can archive or restore it.')
+            fail(_message('This group’s workspace is archived. Restore the workspace before archiving, restoring or deleting its groups.'), 409)
+        self.need(caps, 'archive', _message('Only the group’s owner (or a group administrator) can archive or restore it.'))
         if b['status'] == status:
-            return {'id': b['id'], 'type': 'tm_group', 'message': 'Already archived.' if status == 'ARCHIVED' else 'Already active.', 'unchanged': True}
+            return {'id': b['id'], 'type': 'tm_group', 'message': _message('Already archived.') if status == 'ARCHIVED' else _message('Already active.'), 'unchanged': True}
         archived = status == 'ARCHIVED'
         update(Board, b['id'], {'status': status, 'archived_at': self.now() if archived else None, 'archived_by': actor if archived else None,
                                 'version': b['version'] + 1, 'updated_at': self.now()})
-        self.record(actor, b, 'Group archived' if archived else 'Group restored')
+        self.record(actor, b, _message('Group archived') if archived else _message('Group restored'))
         return {'id': b['id'], 'type': 'tm_group',
-                'message': 'Group archived. Its rows and columns are kept; restore it to use it again.' if archived else 'Group restored.'}
+                'message': _message('Group archived. Its rows and columns are kept; restore it to use it again.') if archived else _message('Group restored.')}
 
     def delete_board(self, d, actor):
         b, caps = self.open_board(d.get('id'), actor)
         self.tasks.check_version(b, d.get('expected_version'))
         if not self.ws_active(b):
-            fail('This group’s workspace is archived. Restore the workspace before archiving, restoring or deleting its groups.', 409)
-        self.need(caps, 'archive', 'Only the group’s owner (or a group administrator) can delete it.')
+            fail(_message('This group’s workspace is archived. Restore the workspace before archiving, restoring or deleting its groups.'), 409)
+        self.need(caps, 'archive', _message('Only the group’s owner (or a group administrator) can delete it.'))
         if b['status'] != 'ARCHIVED':
-            fail('Archive the group first. Only archived groups can be deleted permanently.', 409)
+            fail(_message('Archive the group first. Only archived groups can be deleted permanently.'), 409)
         if d.get('confirm') is not True:
-            fail('Confirm that the group, all its columns and all its rows are deleted permanently.', 409)
+            fail(_message('Confirm that the group, all its columns and all its rows are deleted permanently.'), 409)
         rows, cols = BoardRow.objects.filter(board_id=b['id']).count(), BoardColumn.objects.filter(board_id=b['id']).count()
         # Everything that belongs to the group goes with it (rows, columns and, through them, notes, files, access rules,
         # layouts and imports), as V5.7.7's ON DELETE CASCADE does.
         Board.objects.filter(id=b['id']).delete()
-        self.record(actor, b, 'Group deleted permanently', f"{cols} {plural(cols, 'column')} · {rows} {plural(rows, 'row')}")
-        return {'id': b['id'], 'type': 'tm_group', 'message': f"Group deleted with its {cols} {plural(cols, 'column')} and {rows} {plural(rows, 'row')}."}
+        self.record(actor, b, _message('Group deleted permanently'), f"{cols} {plural(cols, 'column')} · {rows} {plural(rows, 'row')}")
+        return {'id': b['id'], 'type': 'tm_group', 'message': _message('Group deleted with its {p0} {p1} and {p2} {p3}.', p0=cols, p1=plural(cols, 'column'), p2=rows, p3=plural(rows, 'row'))}
 
     # ------------------------------------------------------------ columns
     @staticmethod
     def clean_labels(value, old=()):
         if not isinstance(value, list) or not value:
-            fail('Add at least one status label.')
+            fail(_message('Add at least one status label.'))
         if len(value) > L['labels']:
-            fail(f"Use up to {L['labels']} labels.")
+            fail(_message('Use up to {p0} labels.', p0=L['labels']))
         numbers = [int(m.group(1)) for m in (re.match(r'^L([0-9]+)$', str(o.get('id', ''))) for o in old) if m]
         nxt = max([0, *numbers]) + 1
         seen, ids, out = set(), set(), []
@@ -426,16 +427,16 @@ class GroupService:
             item = item if isinstance(item, dict) else {}
             name = dm.clean_name(item.get('name'))
             if not name:
-                fail('Give every label a name.')
+                fail(_message('Give every label a name.'))
             if js.length(name) > L['label']:
-                fail(f"Use at most {L['label']} characters for a label.")
+                fail(_message('Use at most {p0} characters for a label.', p0=L['label']))
             if dm.name_key(name) in seen:
-                fail(f'Two labels are named “{name}”. Use a different name for each.')
+                fail(_message('Two labels are named “{p0}”. Use a different name for each.', p0=name))
             seen.add(dm.name_key(name))
             label_id = item.get('id')
             if isinstance(label_id, str) and label_id:
                 if label_id in ids:
-                    fail('Each label can be listed only once. Reload the group and try again.')
+                    fail(_message('Each label can be listed only once. Reload the group and try again.'))
                 ids.add(label_id)
             keep = isinstance(label_id, str) and bool(label_id) and any(o.get('id') == label_id for o in old)
             color = item.get('color')
@@ -446,32 +447,32 @@ class GroupService:
 
     @staticmethod
     def decimals_input(v):
-        return None if v is None or v == '' else integer(v, 0, 6, 'number of decimal places (0–6)')
+        return None if v is None or v == '' else integer(v, 0, 6, _message('number of decimal places (0–6)'))
 
     def column_save(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'structure', 'You can’t change this group’s columns. Ask its owner for “Can manage” access.')
+        self.need(caps, 'structure', _message('You can’t change this group’s columns. Ask its owner for “Can manage” access.'))
         columns = self.columns_of(b['id'])
         old = next((x for x in columns if x['id'] == d.get('id')), None) if d.get('id') else None
         if d.get('id') and not old:
-            fail('Column not found. Reload the group.', 404)
+            fail(_message('Column not found. Reload the group.'), 404)
         if old:
             self.tasks.check_version(old, d.get('expected_version'))
         if not old and len(columns) >= L['columns']:
-            fail(f"A group can have up to {L['columns']} columns.")
+            fail(_message('A group can have up to {p0} columns.', p0=L['columns']))
         name = dm.clean_name(d['name'] if d.get('name') is not None else (old['name'] if old else None))
         error = dm.column_name_error(name, columns, old['id'] if old else None)
         if error:
             fail(error, 409)
-        col_type = choice(d['type'] if d.get('type') is not None else (old['type'] if old else None), TYPES, 'column type')
+        col_type = choice(d['type'] if d.get('type') is not None else (old['type'] if old else None), TYPES, _message('column type'))
         s = d['settings'] if isinstance(d.get('settings'), dict) else {}
         prev = old['settings'] if old else {}
         key, at, settings = old['id'] if old else next_id('tm-board-col', 'COL'), self.now(), {}
         # Live Data: created from a Live Data share (never converted to or from another type); a column that is shared
         # live, or that a Live Data column matches records by, keeps its type until that connection changes.
         if old and (old['type'] == 'LINKED') != (col_type == 'LINKED'):
-            fail('A Live Data column can’t be converted to another type, and other columns can’t become Live Data. Add a new column instead.', 409)
+            fail(_message('A Live Data column can’t be converted to another type, and other columns can’t become Live Data. Add a new column instead.'), 409)
         if old and old['type'] != col_type:
             why = self.live.column_in_use(b, old)
             if why:
@@ -498,12 +499,12 @@ class GroupService:
                 in_use = [l for l in in_use if l['count']]
                 missing = [l for l in in_use if l['id'] not in given]
                 if missing:
-                    fail_with('; '.join(f"“{l['name']}” is used in {l['count']} {plural(l['count'], 'row')}" for l in missing)
-                              + '. Choose a replacement label, or confirm that those cells are cleared.', 409, {'code': 'labels_in_use', 'labels': missing})
+                    fail_with('; '.join(_message('“{p0}” is used in {p1} {p2}', p0=l['name'], p1=l['count'], p2=plural(l['count'], 'row')) for l in missing)
+                              + _message('. Choose a replacement label, or confirm that those cells are cleared.'), 409, {'code': 'labels_in_use', 'labels': missing})
                 for l in in_use:
                     r = given[l['id']]
                     if r is not None and not any(n['id'] == r for n in settings['labels']):
-                        fail('Choose a replacement from the remaining labels.')
+                        fail(_message('Choose a replacement from the remaining labels.'))
                     replacements[l['id']] = r
         formula = None
         if col_type == 'FORMULA':
@@ -517,8 +518,7 @@ class GroupService:
         if old and old['type'] != col_type and col_type not in ('NUMBER', 'FORMULA'):
             deps = dm.formula_dependents(columns, old['id'])
             if deps:
-                fail_with(f"{', '.join('“' + x['name'] + '”' for x in deps)} {'uses' if len(deps) == 1 else 'use'} this column in "
-                          f"{'its formula' if len(deps) == 1 else 'their formulas'}. Change {'that formula' if len(deps) == 1 else 'those formulas'} first.",
+                fail_with(_message('{p0} {p1} this column in {p2}. Change {p3} first.', p0=', '.join('“' + x['name'] + '”' for x in deps), p1='uses' if len(deps) == 1 else 'use', p2='its formula' if len(deps) == 1 else 'their formulas', p3='that formula' if len(deps) == 1 else 'those formulas'),
                           409, {'code': 'dependents', 'columns': [{'id': x['id'], 'name': x['name']} for x in deps]})
         # Changing the type keeps every value that fits the new type; the rest are cleared only after the person confirms.
         writes = []
@@ -574,8 +574,7 @@ class GroupService:
                     writes.append((r, v['value']))
             if lost and d.get('confirm_clear') is not True:
                 shown = ', '.join('“' + js.to_js_string(x)[:30] + '”' for x in examples)
-                fail_with(f"{lost} {'row has a value that' if lost == 1 else 'rows have values that'} can’t become {dm.COLUMN_TYPES[col_type]} "
-                          f"({shown}{', …' if lost > len(examples) else ''}). Confirm to change the type and clear {'it' if lost == 1 else 'them'}.",
+                fail_with(_message('{p0} {p1} can’t become {p2} ({p3}{p4}). Confirm to change the type and clear {p5}.', p0=lost, p1='row has a value that' if lost == 1 else 'rows have values that', p2=dm.COLUMN_TYPES[col_type], p3=shown, p4=', …' if lost > len(examples) else '', p5='it' if lost == 1 else 'them'),
                           409, {'code': 'type_change', 'count': lost, 'examples': examples})
         values = {'board_id': b['id'], 'name': name, 'name_key': dm.name_key(name), 'type': col_type, 'settings_json': js.dumps(settings), 'updated_at': at}
         if old:
@@ -609,54 +608,54 @@ class GroupService:
                     self.live.record_change(b, r['id'], [{'id': key, 'name': name}], r['values'], nxt, actor)
         self.touch(b)
         if not old:
-            what = f"added {name} ({dm.COLUMN_TYPES[col_type]})"
+            what = _message('added {p0} ({p1})', p0=name, p1=dm.COLUMN_TYPES[col_type])
         else:
-            parts = [old['name'] != name and f"renamed {old['name']} → {name}",
+            parts = [old['name'] != name and _message('renamed {p0} → {p1}', p0=old['name'], p1=name),
                      old['type'] != col_type and f"{name}: {dm.COLUMN_TYPES[old['type']]} → {dm.COLUMN_TYPES[col_type]}",
-                     col_type == 'FORMULA' and prev.get('expression') != settings.get('expression') and f"{name} formula {formula['display']}",
+                     col_type == 'FORMULA' and prev.get('expression') != settings.get('expression') and _message('{p0} formula {p1}', p0=name, p1=formula['display']),
                      col_type == 'STATUS' and old['type'] == 'STATUS' and not js.same(prev.get('labels'), settings.get('labels')) and f'{name} labels',
                      col_type in ('NUMBER', 'FORMULA') and prev.get('decimals') != settings.get('decimals') and old['type'] == col_type and f'{name} decimals']
             what = ' · '.join(p for p in parts if p) or f'{name} settings'
-        self.record(actor, b, 'Column changed' if old else 'Column added', what)
-        return {'id': key, 'type': 'tm_group_column', 'message': 'Column saved.' if old else 'Column added.'}
+        self.record(actor, b, _message('Column changed') if old else _message('Column added'), what)
+        return {'id': key, 'type': 'tm_group_column', 'message': _message('Column saved.') if old else _message('Column added.')}
 
     def column_move(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'structure', 'You can’t reorder this group’s columns. Ask its owner for “Can manage” access.')
+        self.need(caps, 'structure', _message('You can’t reorder this group’s columns. Ask its owner for “Can manage” access.'))
         columns = self.columns_of(b['id'])
         order = d.get('order') if isinstance(d.get('order'), list) else None
         ids = [c['id'] for c in columns]
         if (not order or len(order) != len(columns) or len({js.dumps(x) for x in order}) != len(order) or any(x not in ids for x in order)):
-            fail('The columns changed while you were moving them. Reload the group and try again.', 409)
+            fail(_message('The columns changed while you were moving them. Reload the group and try again.'), 409)
         for i, key in enumerate(order):
             BoardColumn.objects.filter(id=key).update(position=i + 1)
         self.touch(b)
-        self.record(actor, b, 'Columns reordered', ', '.join(next(c['name'] for c in columns if c['id'] == x) for x in order))
-        return {'id': b['id'], 'type': 'tm_group', 'message': 'Columns reordered.'}
+        self.record(actor, b, _message('Columns reordered'), ', '.join(next(c['name'] for c in columns if c['id'] == x) for x in order))
+        return {'id': b['id'], 'type': 'tm_group', 'message': _message('Columns reordered.')}
 
     def column_delete(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'deleteColumns', 'You can’t delete this group’s columns. Deleting a column needs “Can manage” access and the Delete permission for Groups.')
+        self.need(caps, 'deleteColumns', _message('You can’t delete this group’s columns. Deleting a column needs “Can manage” access and the Delete permission for Groups.'))
         columns = self.columns_of(b['id'])
         col = next((x for x in columns if x['id'] == d.get('id')), None)
         if not col:
-            fail('Column not found. Reload the group.', 404)
+            fail(_message('Column not found. Reload the group.'), 404)
         self.tasks.check_version(col, d.get('expected_version'))
         why = self.live.column_in_use(b, col)
         if why:
             fail(why, 409)
         deps = dm.formula_dependents(columns, col['id'])
         if deps:
-            fail_with(f"“{col['name']}” is used by {', '.join('“' + x['name'] + '”' for x in deps)}. Change or delete {'that formula' if len(deps) == 1 else 'those formulas'} first.",
+            fail_with(_message('“{p0}” is used by {p1}. Change or delete {p2} first.', p0=col['name'], p1=', '.join('“' + x['name'] + '”' for x in deps), p2='that formula' if len(deps) == 1 else 'those formulas'),
                       409, {'code': 'dependents', 'columns': [{'id': x['id'], 'name': x['name']} for x in deps]})
         if len(columns) == 1:
-            fail('A group needs at least one column. Add another column before deleting this one.', 409)
+            fail(_message('A group needs at least one column. Add another column before deleting this one.'), 409)
         rows = self.rows_of(b['id'])
         filled = sum(1 for r in rows if not dm.empty_value(r['values'].get(col['id'])))
         if filled and d.get('confirm') is not True:
-            fail_with(f"“{col['name']}” has values in {filled} {plural(filled, 'row')}. Confirm to delete the column and its values.", 409,
+            fail_with(_message('“{p0}” has values in {p1} {p2}. Confirm to delete the column and its values.', p0=col['name'], p1=filled, p2=plural(filled, 'row')), 409,
                       {'code': 'confirm_delete', 'count': filled})
         for r in rows:
             if col['id'] in r['values']:
@@ -665,7 +664,7 @@ class GroupService:
                 update(BoardRow, r['id'], {'values_json': js.dumps(nxt), 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': self.now()})
         BoardColumn.objects.filter(id=col['id']).delete()
         self.touch(b)
-        self.record(actor, b, 'Column deleted', f"{col['name']} ({dm.COLUMN_TYPES[col['type']]})"
+        self.record(actor, b, _message('Column deleted'), f"{col['name']} ({dm.COLUMN_TYPES[col['type']]})"
                     + (f" · {filled} {plural(filled, 'value')} removed" if filled else ''))
         return {'id': b['id'], 'type': 'tm_group', 'message': f"Column “{col['name']}” deleted."}
 
@@ -675,7 +674,7 @@ class GroupService:
         if value is None:
             return {}
         if not isinstance(value, dict):
-            fail('Send the row values by column.')
+            fail(_message('Send the row values by column.'))
         current = current or {}
         people = cache.get('people') if cache is not None else None
         out = {}
@@ -683,7 +682,7 @@ class GroupService:
             # `columns` holds only the columns this person may see, so a hidden column is answered like a missing one.
             col = next((x for x in columns if x['id'] == key), None)
             if not col:
-                fail_with('A column was deleted or changed. Reload the group.', 409, {'code': 'column_missing', 'column': key})
+                fail_with(_message('A column was deleted or changed. Reload the group.'), 409, {'code': 'column_missing', 'column': key})
             if col['type'] in ('IN_CHARGE', 'SUPPORT') and people is None:
                 people = self.eligible_set(b)
                 if cache is not None:
@@ -739,10 +738,10 @@ class GroupService:
         """What a group stores is limited per row and per group (characters of the saved values), checked when rows grow."""
         n = js.length(data)
         if n > L['rowChars']:
-            fail(f"This row is too large: {js.locale(n)} characters, and a row can hold up to {js.locale(L['rowChars'])} in all. Shorten some long texts.", 422)
+            fail(_message('This row is too large: {p0} characters, and a row can hold up to {p1} in all. Shorten some long texts.', p0=js.locale(n), p1=js.locale(L['rowChars'])), 422)
         total = self.stored_size(b['id']) - before + n
         if total > L['groupChars']:
-            fail(f"This group is full: its rows can hold up to {js.locale(L['groupChars'])} characters in all. Shorten long texts, or move old rows to another group.", 422)
+            fail(_message('This group is full: its rows can hold up to {p0} characters in all. Shorten long texts, or move old rows to another group.', p0=js.locale(L['groupChars'])), 422)
 
     @staticmethod
     def note_count(row_id):
@@ -755,14 +754,14 @@ class GroupService:
     def row_add(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'addRows', 'You can’t add records to this group.')
+        self.need(caps, 'addRows', _message('You can’t add records to this group.'))
         if BoardRow.objects.filter(board_id=b['id']).count() >= L['rows']:
-            fail(f"A group can hold up to {js.locale(L['rows'])} rows. Archive old rows into another group first.")
+            fail(_message('A group can hold up to {p0} rows. Archive old rows into another group first.', p0=js.locale(L['rows'])))
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
         linked = {c['id'] for c in s['columns'] if c['type'] == 'LINKED'}
         if isinstance(d.get('values'), dict) and any(k in linked and not dm.empty_value(v) for k, v in d['values'].items()):
-            fail('Add the record first, then change its Live Data cells (they belong to the source group).', 409)
+            fail(_message('Add the record first, then change its Live Data cells (they belong to the source group).'), 409)
         values = {k: v for k, v in self.clean_values(b, s['columns'], {k: v for k, v in (d.get('values') or {}).items() if k not in linked}
                                                     if isinstance(d.get('values'), dict) else d.get('values')).items() if not dm.empty_value(v)}
         after = None
@@ -770,7 +769,7 @@ class GroupService:
             found = BoardRow.objects.filter(id=d['after'], board_id=b['id']).first()
             after = row(found) if found else None
             if not after or not s['rowOk'](after['id']):
-                fail('This row was deleted. Reload the group.', 404)
+                fail(_message('This row was deleted. Reload the group.'), 404)
         position = after['position'] + 1 if after else (BoardRow.objects.filter(board_id=b['id']).aggregate(p=Max('position'))['p'] or 0) + 1
         if after:
             BoardRow.objects.filter(board_id=b['id'], position__gte=position).update(position=F('position') + 1)
@@ -780,27 +779,27 @@ class GroupService:
                           'created_at': at, 'updated_by': actor, 'updated_at': at})
         # The activity names rows by their ID, never by their values (some people may not see every column).
         self.touch(b)
-        self.record(actor, b, 'Row added', key)
+        self.record(actor, b, _message('Row added'), key)
         self.live.record_change(b, key, s['all'], {}, values, actor, 'ADD_ROW')
         r = self.with_links(b, s, [{**self.fresh_row(key), 'values': values}])[0]
-        return {'id': key, 'type': 'tm_group_row', 'message': 'Row added.', 'row': self.row_out(r, s, dm.prepare_formulas(s['all']), {'notes': 0})}
+        return {'id': key, 'type': 'tm_group_row', 'message': _message('Row added.'), 'row': self.row_out(r, s, dm.prepare_formulas(s['all']), {'notes': 0})}
 
     def row_update(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'editRows', 'You can’t change records in this group.')
+        self.need(caps, 'editRows', _message('You can’t change records in this group.'))
         found = BoardRow.objects.filter(id=text(d.get('id'), 'Row', 60, True), board_id=b['id']).first()
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
         if not found or not s['rowOk'](found.id):
-            fail('This row was deleted. Reload the group.', 404)
+            fail(_message('This row was deleted. Reload the group.'), 404)
         r = {**row(found), 'values': js.loads(found.values_json, {})}
         columns = s['columns']
         values = d.get('values') if isinstance(d.get('values'), dict) else {}
         # A column this person can't see is answered like a deleted one (before any value is compared).
         for key in values:
             if key not in s['colIds']:
-                fail_with('A column was deleted or changed. Reload the group.', 409, {'code': 'column_missing', 'column': key})
+                fail_with(_message('A column was deleted or changed. Reload the group.'), 409, {'code': 'column_missing', 'column': key})
         # Live Data cells: the change goes to the source group's row (Can Edit only), checked against the value shown.
         linked = [c for c in columns if c['type'] == 'LINKED' and c['id'] in values]
         if linked:
@@ -808,9 +807,9 @@ class GroupService:
             wrote = False
             for col in linked:
                 if col['id'] not in expected:
-                    fail('Send the values you started from, so changes by others are not overwritten.', 400)
+                    fail(_message('Send the values you started from, so changes by others are not overwritten.'), 400)
                 if s['link_access'].get(col['id']) != 'EDIT':
-                    fail(f"“{col['name']}” is Live Data you can view but not change (Viewer).", 403)
+                    fail(_message('“{p0}” is Live Data you can view but not change (Viewer).', p0=col['name']), 403)
                 _, source_row = self.live.match(col, {**r, 'board_id': b['id']}, actor)
                 wrote = self.live.write(actor, col['settings']['source_group_id'], source_row['id'], col['settings']['source_column_id'],
                                         values[col['id']], expected[col['id']]) or wrote
@@ -820,7 +819,7 @@ class GroupService:
                 self.live._views = {}
                 s = self.sight(b, actor, caps, self.columns_of(b['id']))
                 shown = self.with_links(b, s, [r])[0]
-                return {'id': r['id'], 'type': 'tm_group_row', 'message': 'Saved to the source group.' if wrote else 'No change.', 'unchanged': not wrote,
+                return {'id': r['id'], 'type': 'tm_group_row', 'message': _message('Saved to the source group.') if wrote else _message('No change.'), 'unchanged': not wrote,
                         'row': self.row_out(shown, s, dm.prepare_formulas(s['all']), {'notes': self.note_count(r['id'])})}
         # Conflicts: each changed cell must still hold the value the person saw (or the row its version), so nobody's
         # change is silently overwritten.
@@ -829,17 +828,16 @@ class GroupService:
         else:
             expected = d.get('expected') if isinstance(d.get('expected'), dict) else None
             if expected is None:
-                fail('Send the values you started from, so changes by others are not overwritten.', 400)
+                fail(_message('Send the values you started from, so changes by others are not overwritten.'), 400)
             for key in values:
                 if key not in expected:
-                    fail('Send the values you started from, so changes by others are not overwritten.', 400)
+                    fail(_message('Send the values you started from, so changes by others are not overwritten.'), 400)
                 now_value = r['values'].get(key)
                 was = None if expected[key] == '' else expected[key]
                 if not js.same(now_value, was):
                     col = next((x for x in columns if x['id'] == key), None)
-                    shown = f"“{dm.cell_text(col, now_value, self.name_of) or 'empty'}”" if col else 'another value'
-                    fail_with(f"Someone changed “{(col or {}).get('name') or 'this cell'}” in this row to {shown} while you were editing. "
-                              'Your change was not saved: check the new value and try again.', 409, {'code': 'cell_conflict', 'column': key, 'current': now_value})
+                    shown = f"“{dm.cell_text(col, now_value, self.name_of) or 'empty'}”" if col else _message('another value')
+                    fail_with(_message('Someone changed “{p0}” in this row to {p1} while you were editing. Your change was not saved: check the new value and try again.', p0=(col or {}).get('name') or 'this cell', p1=shown), 409, {'code': 'cell_conflict', 'column': key, 'current': now_value})
         changes = self.clean_values(b, columns, d.get('values'), r['values'])
         nxt = dict(r['values'])
         for key, v in changes.items():
@@ -849,7 +847,7 @@ class GroupService:
                 nxt[key] = v
         notes = self.note_count(r['id'])
         if js.same(nxt, r['values']):
-            return {'id': r['id'], 'type': 'tm_group_row', 'message': 'No change.', 'unchanged': True,
+            return {'id': r['id'], 'type': 'tm_group_row', 'message': _message('No change.'), 'unchanged': True,
                     'row': self.row_out(self.with_links(b, s, [r])[0], s, dm.prepare_formulas(s['all']), {'notes': notes})}
         at, data = self.now(), js.dumps(nxt)
         if js.length(data) > js.length(found.values_json):
@@ -866,7 +864,7 @@ class GroupService:
             for f in (r['values'].get(key) if isinstance(r['values'].get(key), list) else []):
                 if f.get('id') not in kept:
                     BoardFile.objects.filter(id=f.get('id'), board_id=b['id']).delete()
-                    self.record(actor, b, 'File removed', f"{r['id']} · {col['name']} · {f.get('name')}")
+                    self.record(actor, b, _message('File removed'), f"{r['id']} · {col['name']} · {f.get('name')}")
         shown = self.with_links(b, s, [{**r, 'values': nxt, 'version': r['version'] + 1, 'updated_by': actor, 'updated_at': iso(at)}])[0]
         return {'id': r['id'], 'type': 'tm_group_row', 'message': 'Saved.', 'row': self.row_out(shown, s, dm.prepare_formulas(s['all']), {'notes': notes})}
 
@@ -874,17 +872,17 @@ class GroupService:
     def attachment_cell(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'editRows', 'You can’t change records in this group.')
+        self.need(caps, 'editRows', _message('You can’t change records in this group.'))
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
         found = BoardRow.objects.filter(id=text(d.get('row_id'), 'Row', 60, True), board_id=b['id']).first()
         if not found or not s['rowOk'](found.id):
-            fail('This row was deleted. Reload the group.', 404)
+            fail(_message('This row was deleted. Reload the group.'), 404)
         col = next((x for x in s['columns'] if x['id'] == d.get('column_id')), None)
         if not col:
-            fail_with('A column was deleted or changed. Reload the group.', 409, {'code': 'column_missing', 'column': d.get('column_id')})
+            fail_with(_message('A column was deleted or changed. Reload the group.'), 409, {'code': 'column_missing', 'column': d.get('column_id')})
         if col['type'] != 'ATTACHMENT':
-            fail('Files can be added only to Attachment columns.', 409)
+            fail(_message('Files can be added only to Attachment columns.'), 409)
         r = {**row(found), 'values': js.loads(found.values_json, {})}
         current = r['values'].get(col['id'])
         return b, s, all_, col, r, (current if isinstance(current, list) else [])
@@ -900,16 +898,16 @@ class GroupService:
         name = clean_file_name(text(d.get('name'), 'File name', 160, True))
         ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
         if ext not in task_domain.TASK_FILE_TYPES:
-            fail('Attach an image (JPG, PNG, WebP, GIF, HEIC), a PDF, a Word, Excel or PowerPoint document, or a CSV, TXT or ZIP file.')
+            fail(_message('Attach an image (JPG, PNG, WebP, GIF, HEIC), a PDF, a Word, Excel or PowerPoint document, or a CSV, TXT or ZIP file.'))
         maximum = L['fileBytes']
-        content = self.tasks.decode(d.get('base64'), maximum, f'Choose a file between 1 byte and {maximum // 1024 // 1024} MB.')
+        content = self.tasks.decode(d.get('base64'), maximum, _message('Choose a file between 1 byte and {p0} MB.', p0=maximum // 1024 // 1024))
         if not content_matches(ext, content):
-            fail(f'This file is not a real {ext.upper()} file. Choose the original file.')
+            fail(_message('This file is not a real {p0} file. Choose the original file.', p0=ext.upper()))
         if len(files) >= L['files']:
-            fail(f"A cell can hold up to {L['files']} files. Remove one first.", 409)
+            fail(_message('A cell can hold up to {p0} files. Remove one first.', p0=L['files']), 409)
         used = BoardFile.objects.filter(board_id=b['id']).aggregate(n=Sum('size'))['n'] or 0
         if used + len(content) > L['groupFileBytes']:
-            fail(f"This group’s files are full ({L['groupFileBytes'] // 1024 // 1024} MB in all). Remove files that are no longer needed.", 409)
+            fail(_message('This group’s files are full ({p0} MB in all). Remove files that are no longer needed.', p0=L['groupFileBytes'] // 1024 // 1024), 409)
         key, at = next_id('tm-board-file', 'GFILE'), self.now()
         meta = {'id': key, 'name': name, 'size': len(content), 'mime': task_domain.TASK_FILE_TYPES[ext], 'by': actor, 'at': iso(at)}
         insert(BoardFile, {'id': key, 'board_id': b['id'], 'row_id': r['id'], 'column_id': col['id'], 'name': name, 'mime': meta['mime'], 'size': meta['size'],
@@ -917,14 +915,14 @@ class GroupService:
         nxt = {**r['values'], col['id']: [*files, meta]}
         self.size_check(b, js.dumps(nxt), js.length(r['values_json']))
         out = self.saved_row(b, s, all_, r, nxt, actor, at)
-        self.record(actor, b, 'File attached', f"{r['id']} · {col['name']} · {name}")
+        self.record(actor, b, _message('File attached'), f"{r['id']} · {col['name']} · {name}")
         return {'id': key, 'type': 'tm_group_file', 'message': f'{name} attached.', 'row': out}
 
     def file_remove(self, d, actor):
         b, s, all_, col, r, files = self.attachment_cell(d, actor)
         f = next((x for x in files if x.get('id') == d.get('file_id')), None)
         if not f:
-            fail('This file was already removed. Reload the group.', 404)
+            fail(_message('This file was already removed. Reload the group.'), 404)
         BoardFile.objects.filter(id=f['id'], board_id=b['id']).delete()
         rest = [x for x in files if x.get('id') != f['id']]
         nxt = dict(r['values'])
@@ -933,7 +931,7 @@ class GroupService:
         else:
             nxt.pop(col['id'], None)
         out = self.saved_row(b, s, all_, r, nxt, actor, self.now())
-        self.record(actor, b, 'File removed', f"{r['id']} · {col['name']} · {f.get('name')}")
+        self.record(actor, b, _message('File removed'), f"{r['id']} · {col['name']} · {f.get('name')}")
         return {'id': f['id'], 'type': 'tm_group_file', 'message': f"{f.get('name')} removed.", 'row': out}
 
     def file(self, key, staff, file_id, metadata_only=False):
@@ -943,20 +941,20 @@ class GroupService:
         query = BoardFile.objects.filter(id=str(file_id or '')[:60], board_id=b['id'])
         f = (query.defer('content') if metadata_only else query).first()
         if not f or not s['rowOk'](f.row_id) or f.column_id not in s['colIds']:
-            fail('File not found.', 404)
+            fail(_message('File not found.'), 404)
         return f
 
     def row_move(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'editRows', 'You can’t reorder records in this group.')
+        self.need(caps, 'editRows', _message('You can’t reorder records in this group.'))
         # Positions are among the rows this person can see; rows hidden from them keep their place relative to the others.
         s, rows = self.sight(b, actor, caps), self.rows_of(b['id'])
         seen = [x for x in rows if s['rowOk'](x['id'])]
         moving = next((x for x in seen if x['id'] == d.get('id')), None)
         if not moving:
-            fail('This row was deleted. Reload the group.', 404)
-        to = integer(d.get('to'), 0, max(0, len(seen) - 1), 'row position')
+            fail(_message('This row was deleted. Reload the group.'), 404)
+        to = integer(d.get('to'), 0, max(0, len(seen) - 1), _message('row position'))
         order = [x for x in seen if x['id'] != moving['id']]
         order.insert(to, moving)
         anchor = order[to + 1] if to + 1 < len(order) else None
@@ -967,31 +965,29 @@ class GroupService:
             if x['position'] != i + 1:
                 BoardRow.objects.filter(id=x['id']).update(position=i + 1)
         self.touch(b)
-        return {'id': moving['id'], 'type': 'tm_group_row', 'message': 'Row moved.'}
+        return {'id': moving['id'], 'type': 'tm_group_row', 'message': _message('Row moved.')}
 
     def row_delete(self, d, actor):
         """One row, the selected rows, or every row matching a search and filters. Every row is checked first (it still
         exists, this person can see it, and it has not changed since they selected it); if any fails, nothing is deleted."""
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'deleteRows', 'You can’t delete records in this group.')
+        self.need(caps, 'deleteRows', _message('You can’t delete records in this group.'))
         s = self.sight(b, actor, caps)
         if isinstance(d.get('match'), dict):
             items = self.matching_rows(b, actor, caps, s, d['match'])
             expected = d.get('expected_count')
             if not is_int(expected) or expected != len(items):
-                fail_with(f"The rows matching your search and filters changed: {len(items)} match now"
-                          f"{f', {js.num_str(expected)} when you selected them' if is_int(expected) else ''}. Nothing was deleted; check the list and try again.",
+                fail_with(_message('The rows matching your search and filters changed: {p0} match now{p1}. Nothing was deleted; check the list and try again.', p0=len(items), p1=f', {js.num_str(expected)} when you selected them' if is_int(expected) else ''),
                           409, {'code': 'bulk_changed', 'count': len(items)})
             # The same number is not enough: the rows themselves (and their versions) must be the ones the person saw.
             if not isinstance(d.get('match_key'), str) or d['match_key'] != self.match_key(items):
-                fail_with('Some of the rows matching your search and filters were added, changed or deleted since you selected them. '
-                          'Nothing was deleted; check the list and try again.', 409, {'code': 'bulk_changed', 'count': len(items)})
+                fail_with(_message('Some of the rows matching your search and filters were added, changed or deleted since you selected them. Nothing was deleted; check the list and try again.'), 409, {'code': 'bulk_changed', 'count': len(items)})
             targets = [{'id': x['r']['id'], 'version': x['r']['version']} for x in items]
         else:
             ids = d['ids'] if isinstance(d.get('ids'), list) else [d.get('id')]
             if not ids or len(ids) > L['bulk'] or any(not isinstance(x, str) or not x or len(x) > 60 for x in ids):
-                fail(f"Choose 1 to {js.locale(L['bulk'])} rows to delete.")
+                fail(_message('Choose 1 to {p0} rows to delete.', p0=js.locale(L['bulk'])))
             versions = d['expected'] if isinstance(d.get('expected'), dict) else {}
             targets = []
             for key in dict.fromkeys(ids):
@@ -1003,7 +999,7 @@ class GroupService:
                     version = None
                 targets.append({'id': key, 'version': version})
         if not targets:
-            fail('No rows match, so nothing was deleted.', 409)
+            fail(_message('No rows match, so nothing was deleted.'), 409)
         missing, changed, found = [], [], []
         current = dict(BoardRow.objects.filter(board_id=b['id'], id__in=[t['id'] for t in targets]).values_list('id', 'version'))
         for t in targets:
@@ -1015,18 +1011,18 @@ class GroupService:
                 continue
             found.append(t['id'])
         if len(targets) == 1 and missing:
-            fail('This row was already deleted.', 404)
+            fail(_message('This row was already deleted.'), 404)
         if len(targets) == 1 and changed:
-            fail('This row changed. Refresh it before deleting it.', 409)
+            fail(_message('This row changed. Refresh it before deleting it.'), 409)
         if missing or changed:
             parts = []
             if missing:
                 n = len(missing)
-                parts.append(f"{n} of the selected rows {'was' if n == 1 else 'were'} already deleted or {'is' if n == 1 else 'are'} no longer available to you")
+                parts.append(_message('{p0} of the selected rows {p1} already deleted or {p2} no longer available to you', p0=n, p1='was' if n == 1 else 'were', p2='is' if n == 1 else 'are'))
             if changed:
                 n = len(changed)
-                parts.append(f"{n} {'was' if n == 1 else 'were'} changed by someone since you selected {'it' if n == 1 else 'them'}")
-            fail_with(f"{', and '.join(parts)}. Nothing was deleted: reload the group, check the selection and try again.", 409,
+                parts.append(_message('{p0} {p1} changed by someone since you selected {p2}', p0=n, p1='was' if n == 1 else 'were', p2='it' if n == 1 else 'them'))
+            fail_with(_message('{p0}. Nothing was deleted: reload the group, check the selection and try again.', p0=', and '.join(parts)), 409,
                       {'code': 'bulk_conflict', 'missing': missing, 'changed': changed})
         if self.live.shared_columns(b['id']):
             all_cols = s['all']
@@ -1035,33 +1031,33 @@ class GroupService:
         for i in range(0, len(found), 400):
             BoardRow.objects.filter(board_id=b['id'], id__in=found[i:i + 400]).delete()
         self.touch(b)
-        self.record(actor, b, 'Row deleted' if len(found) == 1 else 'Rows deleted', found[0] if len(found) == 1 else f'{len(found)} rows')
-        return {'id': b['id'], 'type': 'tm_group', 'deleted': len(found), 'message': 'Row deleted.' if len(found) == 1 else f'{len(found)} rows deleted.'}
+        self.record(actor, b, _message('Row deleted') if len(found) == 1 else _message('Rows deleted'), found[0] if len(found) == 1 else f'{len(found)} rows')
+        return {'id': b['id'], 'type': 'tm_group', 'deleted': len(found), 'message': _message('Row deleted.') if len(found) == 1 else _message('{p0} rows deleted.', p0=len(found))}
 
     # ------------------------------------------------------------ V5.5 access rules for rows and columns
     def principals_input(self, b, value):
         if value is None:
             return []
         if not isinstance(value, list) or len(value) > L['principals']:
-            fail(f"Choose up to {L['principals']} people or roles.")
+            fail(_message('Choose up to {p0} people or roles.', p0=L['principals']))
         out = {}
         for p in value:
             kind = p.get('type') if isinstance(p, dict) else None
             key = p.get('id') if isinstance(p, dict) else None
             if kind not in ('USER', 'ROLE') or not isinstance(key, str) or not key:
-                fail('Choose people or roles.')
+                fail(_message('Choose people or roles.'))
             if kind == 'ROLE':
                 if not Role.objects.filter(id=key).exists():
-                    fail('A chosen role no longer exists. Reload and try again.', 409)
+                    fail(_message('A chosen role no longer exists. Reload and try again.'), 409)
             # People must be able to open the group: access rules narrow the group's own sharing, they never widen it.
             elif not Staff.objects.filter(id=key, active=True).exists() or self.level_for(b, key) < 1:
-                fail(f'{self.name_of(key)} can’t open this group. Share the group with them first.', 409)
+                fail(_message('{p0} can’t open this group. Share the group with them first.', p0=self.name_of(key)), 409)
             out[f'{kind}:{key}'] = {'type': kind, 'id': key}
         return list(out.values())
 
     def describe(self, people):
         if not people:
-            return 'everyone in the group'
+            return _message('everyone in the group')
         names = []
         for p in people:
             if p['type'] == 'ROLE':
@@ -1073,13 +1069,13 @@ class GroupService:
     def row_access(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'share', 'Only the people who manage this group can decide who sees its rows. Changing a cell does not include that.')
+        self.need(caps, 'share', _message('Only the people who manage this group can decide who sees its rows. Changing a cell does not include that.'))
         ids = list(dict.fromkeys(d['ids'])) if isinstance(d.get('ids'), list) else []
         if not ids or len(ids) > L['bulk']:
-            fail('Choose the rows.')
+            fail(_message('Choose the rows.'))
         for key in ids:
             if not BoardRow.objects.filter(id=key, board_id=b['id']).exists():
-                fail('A chosen row was deleted. Reload the group.', 404)
+                fail(_message('A chosen row was deleted. Reload the group.'), 404)
         people = self.principals_input(b, d.get('principals'))
         for key in ids:
             BoardRowAccess.objects.filter(row_id=key).delete()
@@ -1087,30 +1083,30 @@ class GroupService:
                 BoardRowAccess.objects.create(row_id=key, board_id=b['id'], principal_type=p['type'], principal_id=p['id'])
         self.touch(b)
         n = len(ids)
-        self.record(actor, b, 'Row access changed', f"{n} {plural(n, 'row')} · visible to {self.describe(people)}")
-        subject = 'The row is' if n == 1 else f'{n} rows are'
-        return {'id': b['id'], 'type': 'tm_group', 'message': f'{subject} now visible only to {self.describe(people)} (and the people who manage the group).'
-                if people else f'{subject} visible to everyone in the group again.'}
+        self.record(actor, b, _message('Row access changed'), _message('{p0} {p1} · visible to {p2}', p0=n, p1=plural(n, 'row'), p2=self.describe(people)))
+        subject = _message('The row is') if n == 1 else _message('{p0} rows are', p0=n)
+        return {'id': b['id'], 'type': 'tm_group', 'message': _message('{p0} now visible only to {p1} (and the people who manage the group).', p0=subject, p1=self.describe(people))
+                if people else _message('{p0} visible to everyone in the group again.', p0=subject)}
 
     def column_access(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'share', 'Only the people who manage this group can decide who sees its columns.')
+        self.need(caps, 'share', _message('Only the people who manage this group can decide who sees its columns.'))
         col = BoardColumn.objects.filter(id=js.to_js_string(d.get('id') or ''), board_id=b['id']).first()
         if not col:
-            fail('Column not found. Reload the group.', 404)
+            fail(_message('Column not found. Reload the group.'), 404)
         people = self.principals_input(b, d.get('principals'))
         BoardColumnAccess.objects.filter(column_id=col.id).delete()
         for p in people:
             BoardColumnAccess.objects.create(column_id=col.id, board_id=b['id'], principal_type=p['type'], principal_id=p['id'])
         deps = dm.formula_dependents(self.columns_of(b['id']), col.id)
         self.touch(b)
-        self.record(actor, b, 'Column access changed', f'{col.name} · visible to {self.describe(people)}')
+        self.record(actor, b, _message('Column access changed'), _message('{p0} · visible to {p1}', p0=col.name, p1=self.describe(people)))
         if people:
-            uses = f" Formulas that use it ({', '.join('“' + x['name'] + '”' for x in deps)}) are hidden from everyone else too." if deps else ''
-            message = f'“{col.name}” is now visible only to {self.describe(people)} (and the people who manage the group).{uses}'
+            uses = _message(' Formulas that use it ({p0}) are hidden from everyone else too.', p0=', '.join('“' + x['name'] + '”' for x in deps)) if deps else ''
+            message = _message('“{p0}” is now visible only to {p1} (and the people who manage the group).{p2}', p0=col.name, p1=self.describe(people), p2=uses)
         else:
-            message = f'“{col.name}” is visible to everyone in the group again.'
+            message = _message('“{p0}” is visible to everyone in the group again.', p0=col.name)
         return {'id': col.id, 'type': 'tm_group_column', 'message': message}
 
     # ------------------------------------------------------------ V5.5 layouts: each person's own, and a shared default
@@ -1121,14 +1117,14 @@ class GroupService:
     @staticmethod
     def clean_layout(value, columns, personal):
         if not isinstance(value, dict):
-            fail('Send the layout.')
+            fail(_message('Send the layout.'))
         ids, (lo, hi), out = {c['id'] for c in columns}, L['width'], {}
 
         def width(v, a, z):
             return int(dm._js_round(max(a, min(z, float(js.number(v))))))
         if 'widths' in value:
             if not isinstance(value['widths'], dict):
-                fail('Send the column widths.')
+                fail(_message('Send the column widths.'))
             out['widths'] = {}
             for k, v in value['widths'].items():
                 n = js.number(v)
@@ -1136,22 +1132,22 @@ class GroupService:
                     out['widths'][k] = width(v, lo, hi)
         if 'order' in value:
             if not isinstance(value['order'], list):
-                fail('Send the column order.')
+                fail(_message('Send the column order.'))
             out['order'] = list(dict.fromkeys(x for x in value['order'] if isinstance(x, str) and x in ids))
         # V5.6.9: the width of the row-number column (the first column on the left).
         if 'rownum' in value:
             a, z = L['rownumWidth']
             n = js.number(value['rownum'])
             if not js.is_number(n) or n != n or n in (float('inf'), float('-inf')):
-                fail('Send the column widths.')
+                fail(_message('Send the column widths.'))
             out['rownum'] = width(value['rownum'], a, z)
         if personal and 'hidden_columns' in value:
             if not isinstance(value['hidden_columns'], list):
-                fail('Send the hidden columns.')
+                fail(_message('Send the hidden columns.'))
             out['hidden_columns'] = list(dict.fromkeys(x for x in value['hidden_columns'] if isinstance(x, str) and x in ids))
         if personal and 'hidden_rows' in value:
             if not isinstance(value['hidden_rows'], list) or len(value['hidden_rows']) > L['bulk']:
-                fail('Send the hidden rows.')
+                fail(_message('Send the hidden rows.'))
             out['hidden_rows'] = list(dict.fromkeys(x for x in value['hidden_rows'] if isinstance(x, str) and js.length(x) <= 60))
         return out
 
@@ -1160,17 +1156,17 @@ class GroupService:
         s = self.sight(b, actor, caps)
         if d.get('reset') is True:
             BoardView.objects.filter(board_id=b['id'], staff_id=actor).delete()
-            return {'id': b['id'], 'type': 'tm_group_view', 'message': 'Your layout is back to the group’s default.'}
+            return {'id': b['id'], 'type': 'tm_group_view', 'message': _message('Your layout is back to the group’s default.')}
         nxt = {**self.view_of(b['id'], actor), **self.clean_layout(d.get('view'), s['columns'], True)}
         updated = BoardView.objects.filter(board_id=b['id'], staff_id=actor).update(view_json=js.dumps(nxt), updated_at=self.now())
         if not updated:
             BoardView.objects.create(board_id=b['id'], staff_id=actor, view_json=js.dumps(nxt), updated_at=self.now())
-        return {'id': b['id'], 'type': 'tm_group_view', 'message': 'Your layout is saved.'}
+        return {'id': b['id'], 'type': 'tm_group_view', 'message': _message('Your layout is saved.')}
 
     def layout_save(self, d, actor):
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
-        self.need(caps, 'structure', 'Only the people who manage this group can save its default layout for everyone.')
+        self.need(caps, 'structure', _message('Only the people who manage this group can save its default layout for everyone.'))
         columns = self.columns_of(b['id'])
         layout, before = self.clean_layout(d.get('layout'), columns, False), js.loads(b['layout_json'], {})
         if 'order' in layout:
@@ -1179,17 +1175,17 @@ class GroupService:
                 BoardColumn.objects.filter(id=key).update(position=i + 1)
         merged = {**before, **({'widths': layout['widths']} if 'widths' in layout else {}), **({'rownum': layout['rownum']} if 'rownum' in layout else {})}
         update(Board, b['id'], {'layout_json': js.dumps(merged), 'updated_at': self.now()})
-        what = ' and '.join(x for x in ['widths' in layout and 'column widths', 'order' in layout and 'column order'] if x) or 'layout'
-        self.record(actor, b, 'Default layout saved', what)
+        what = ' and '.join(x for x in ['widths' in layout and _message('column widths'), 'order' in layout and _message('column order')] if x) or 'layout'
+        self.record(actor, b, _message('Default layout saved'), what)
         return {'id': b['id'], 'type': 'tm_group',
-                'message': 'Saved as the default layout for everyone. People who arranged their own view keep it until they reset it.'}
+                'message': _message('Saved as the default layout for everyone. People who arranged their own view keep it until they reset it.')}
 
     # ------------------------------------------------------------ V5.5 notes on rows
     @staticmethod
     def note_row(b, s, row_id):
         found = BoardRow.objects.filter(id=js.to_js_string(row_id or ''), board_id=b['id']).values_list('id', flat=True).first()
         if not found or not s['rowOk'](found):
-            fail('This row was deleted. Reload the group.', 404)
+            fail(_message('This row was deleted. Reload the group.'), 404)
         return found
 
     def note_action(self, action, d, actor):
@@ -1197,53 +1193,53 @@ class GroupService:
         s = self.sight(b, actor, caps)
         if action == 'tm.group.note.add':
             self.archived_check(b)
-            self.need(caps, 'notes', 'You can read the notes of this group, but adding notes needs “Can edit records” access.')
+            self.need(caps, 'notes', _message('You can read the notes of this group, but adding notes needs “Can edit records” access.'))
             row_id = self.note_row(b, s, d.get('row_id'))
             t = dm.clean_text(d.get('body'))
             if not t['ok']:
-                fail(t['error'].replace('in a cell', 'in a note', 1))
+                fail(t['error'].replace(_message('in a cell'), _message('in a note'), 1))
             if not t['value']:
-                fail('Write the note first.')
+                fail(_message('Write the note first.'))
             if js.length(t['value']) > L['note']:
-                fail(f"Use at most {js.locale(L['note'])} characters in a note.")
+                fail(_message('Use at most {p0} characters in a note.', p0=js.locale(L['note'])))
             if BoardNote.objects.filter(row_id=row_id).count() >= L['notesPerRow']:
-                fail('This row already has the most notes it can hold.', 409)
+                fail(_message('This row already has the most notes it can hold.'), 409)
             key = next_id('tm-board-note', 'GNOTE')
             insert(BoardNote, {'id': key, 'board_id': b['id'], 'row_id': row_id, 'author_id': actor, 'body': t['value'], 'created_at': self.now(),
                                'edited_at': None, 'deleted_at': None, 'deleted_by': None, 'version': 0})
-            return {'id': key, 'type': 'tm_group_note', 'message': 'Note added.'}
+            return {'id': key, 'type': 'tm_group_note', 'message': _message('Note added.')}
         found = BoardNote.objects.filter(id=js.to_js_string(d.get('id') or ''), board_id=b['id']).first()
         n = row(found) if found else None
         if not n or not s['rowOk'](n['row_id']):
-            fail('Note not found.', 404)
+            fail(_message('Note not found.'), 404)
         self.tasks.check_version(n, d.get('expected_version'))
         if n['deleted_at']:
-            fail('This note was deleted.', 409)
+            fail(_message('This note was deleted.'), 409)
         self.archived_check(b)
         if action == 'tm.group.note.edit':
             if n['author_id'] != actor:
-                fail('Only the person who wrote this note can edit it.', 403)
-            self.need(caps, 'notes', 'You can read the notes of this group, but changing notes needs “Can edit records” access.')
+                fail(_message('Only the person who wrote this note can edit it.'), 403)
+            self.need(caps, 'notes', _message('You can read the notes of this group, but changing notes needs “Can edit records” access.'))
             t = dm.clean_text(d.get('body'))
             if not t['ok']:
-                fail(t['error'].replace('in a cell', 'in a note', 1))
+                fail(t['error'].replace(_message('in a cell'), _message('in a note'), 1))
             if not t['value']:
-                fail('A note can’t be empty. Delete it instead.')
+                fail(_message('A note can’t be empty. Delete it instead.'))
             if js.length(t['value']) > L['note']:
-                fail(f"Use at most {js.locale(L['note'])} characters in a note.")
+                fail(_message('Use at most {p0} characters in a note.', p0=js.locale(L['note'])))
             if t['value'] == n['body']:
-                return {'id': n['id'], 'type': 'tm_group_note', 'message': 'No change.', 'unchanged': True}
+                return {'id': n['id'], 'type': 'tm_group_note', 'message': _message('No change.'), 'unchanged': True}
             BoardNoteRevision.objects.create(note_id=n['id'], body=n['body'], action='EDIT', actor_id=actor, created_at=self.now())
             update(BoardNote, n['id'], {'body': t['value'], 'edited_at': self.now(), 'version': n['version'] + 1})
-            return {'id': n['id'], 'type': 'tm_group_note', 'message': 'Note saved. The earlier text is kept in its history.'}
+            return {'id': n['id'], 'type': 'tm_group_note', 'message': _message('Note saved. The earlier text is kept in its history.')}
         if action == 'tm.group.note.delete':
             if not caps['share'] and not (n['author_id'] == actor and caps['notes']):
-                fail('You can read the notes of this group, but deleting notes needs “Can edit records” access.' if n['author_id'] == actor
-                     else 'Only the person who wrote this note, or someone who manages the group, can delete it.', 403)
+                fail(_message('You can read the notes of this group, but deleting notes needs “Can edit records” access.') if n['author_id'] == actor
+                     else _message('Only the person who wrote this note, or someone who manages the group, can delete it.'), 403)
             BoardNoteRevision.objects.create(note_id=n['id'], body=n['body'], action='DELETE', actor_id=actor, created_at=self.now())
             update(BoardNote, n['id'], {'body': '', 'deleted_at': self.now(), 'deleted_by': actor, 'version': n['version'] + 1})
-            return {'id': n['id'], 'type': 'tm_group_note', 'message': 'Note deleted. The deletion is kept in the row’s history.'}
-        fail('Unknown note action.', 404)
+            return {'id': n['id'], 'type': 'tm_group_note', 'message': _message('Note deleted. The deletion is kept in the row’s history.')}
+        fail(_message('Unknown note action.'), 404)
 
     # ------------------------------------------------------------ commands
     def handle(self, action, d, actor):
@@ -1275,7 +1271,7 @@ class GroupService:
             return self.note_action(action, d, actor)
         handler = handlers.get(action)
         if not handler:
-            fail('Unknown group action.', 404)
+            fail(_message('Unknown group action.'), 404)
         return handler(d, actor)
 
     # ------------------------------------------------------------ reading (never through commands, so nothing changes)
@@ -1292,7 +1288,7 @@ class GroupService:
         q = js.trim(js.to_js_string(p.get('q') or '')).lower()[:200]
         filters = dm.clean_filters(p.get('filters', dm.UNDEF))
         if filters is None:
-            fail('Invalid filters.', 400)
+            fail(_message('Invalid filters.'), 400)
         cols = s['columns']
         by_id = {c['id']: c for c in cols}
         sort_col = by_id.get(js.to_js_string(p['sort'])) if p.get('sort') else None
@@ -1449,9 +1445,9 @@ class GroupService:
             return v if re.match(r'^[0-9]{4}-[0-9]{2}-[0-9]{2}$', v) else None
         frm, to = day(p.get('from')), day(p.get('to'))
         if (p.get('from') and not frm) or (p.get('to') and not to):
-            fail('Enter valid dates (YYYY-MM-DD).', 400)
+            fail(_message('Enter valid dates (YYYY-MM-DD).'), 400)
         if frm and to and frm > to:
-            fail('The end date must be on or after the start date.', 400)
+            fail(_message('The end date must be on or after the start date.'), 400)
         try:
             notes = BoardNote.objects.filter(row_id=row_id)
             if frm:
@@ -1459,7 +1455,7 @@ class GroupService:
             if to:
                 notes = notes.filter(created_at__lt=_start_of_day(_next_day(to), zone))
         except ValueError:
-            fail('Enter valid dates (YYYY-MM-DD).', 400)
+            fail(_message('Enter valid dates (YYYY-MM-DD).'), 400)
         order = 'ASC' if p.get('order') == 'oldest' else 'DESC'
         offset = max(0, js.parse_int(p.get('offset')) or 0)
         limit = max(1, min(100, js.parse_int(p.get('limit')) or 20))
@@ -1486,7 +1482,7 @@ class GroupService:
         s = self.sight(b, staff, caps)
         n = BoardNote.objects.filter(id=js.to_js_string(note_id or ''), board_id=b['id']).first()
         if not n or not s['rowOk'](n.row_id) or not (n.author_id == staff or caps['seeAll']):
-            fail('Note not found.', 404)
+            fail(_message('Note not found.'), 404)
         history = [{'body': r.body, 'action': r.action, 'actor_id': r.actor_id, 'created_at': iso(r.created_at), 'actor': self.name_of(r.actor_id)}
                    for r in BoardNoteRevision.objects.filter(note_id=n.id).order_by('id')]
         return {'id': n.id, 'history': history}
@@ -1510,7 +1506,7 @@ class GroupService:
     def audience(self, key, staff):
         """People who can open the group (for row and column access rules), for the people who manage it."""
         b, caps = self.open_board(key, staff)
-        self.need(caps, 'share', 'Only the people who manage this group can see who can open it.')
+        self.need(caps, 'share', _message('Only the people who manage this group can see who can open it.'))
         found = sql("SELECT l.id,l.name FROM staff l LEFT JOIN tm_profiles p ON p.staff_id=l.id WHERE l.active=%s AND COALESCE(p.active,%s)=%s",
                     True, True, True)
         found.sort(key=lambda x: nocase(x['name']))
@@ -1524,7 +1520,7 @@ class GroupService:
         p = p or {}
         b, caps = self.open_board(key, staff)
         if not caps['export']:
-            fail('Your role can’t export groups.', 403)
+            fail(_message('Your role can’t export groups.'), 403)
         s, view = self.sight(b, staff, caps), self.view_of(b['id'], staff)
         prepared = dm.prepare_formulas(s['all'])
         scope = p.get('scope') if p.get('scope') in ('all', 'filtered', 'selected') else 'all'
@@ -1537,7 +1533,7 @@ class GroupService:
             wanted = set(ids)
             rows = [r for r in self.rows_for(b, s) if r['id'] in wanted]
             if len(rows) != len(wanted) or any(not s['rowOk'](r['id']) for r in rows):
-                fail('Some selected rows were deleted or are no longer available to you. Reload the group and select them again.', 409)
+                fail(_message('Some selected rows were deleted or are no longer available to you. Reload the group and select them again.'), 409)
             items = [{'r': r, 'computed': dm.compute_row(r['values'], s['all'], prepared)} for r in rows]
         else:
             items = [{'r': r, 'computed': dm.compute_row(r['values'], s['all'], prepared)} for r in self.rows_for(b, s) if s['rowOk'](r['id'])]
@@ -1570,7 +1566,7 @@ class GroupService:
         buf = write_xlsx([{'name': b['name'], 'columns': [{'header': c['name'], 'type': kind(c), 'decimals': (dm.effective(c).get('settings') or {}).get('decimals')} for c in cols],
                            'rows': [[value(c, x['r'], x['computed']) for c in cols] for x in items]}])
         n, m = len(items), len(cols)
-        self.record(staff, b, 'Exported to Excel', f"{n} {plural(n, 'row')} · {m} {plural(m, 'column')}")
+        self.record(staff, b, _message('Exported to Excel'), f"{n} {plural(n, 'row')} · {m} {plural(m, 'column')}")
         return {'name': b['name'], 'buffer': buf, 'rows': n}
 
     def summaries(self, staff, boards=None):

@@ -1,4 +1,5 @@
 """Input checks ported from service.mjs so messages and limits stay identical to V5.7.7."""
+from core.i18n import msg as _message
 import re
 from datetime import datetime, timezone
 
@@ -14,17 +15,17 @@ def text(value, label, max_length=500, required=False):
     if value is None and not required:
         return ''
     if not isinstance(value, str) or (required and not value.strip()):
-        fail(f'{label} is required.' if isinstance(value, str) or value is None else f'{label} must be text.')
+        fail(_message('{p0} is required.', p0=label) if isinstance(value, str) or value is None else _message('{p0} must be text.', p0=label))
     trimmed = value.strip()
     if js_length(trimmed) > max_length:
-        fail(f'{label} must be at most {max_length} characters.')
+        fail(_message('{p0} must be at most {p1} characters.', p0=label, p1=max_length))
     return trimmed
 
 
 def choice(value, options, label):
     if value in options:
         return value
-    fail(f'Choose a valid {label}.')
+    fail(_message('Choose a valid {p0}.', p0=label))
 
 
 _DECIMAL = re.compile(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$')
@@ -57,7 +58,7 @@ def js_number(value):
                 return int(m.group(2), {'x': 16, 'o': 8, 'b': 2}[m.group(1).lower()])
             except ValueError:
                 return float('nan')
-        if s in ('Infinity', '+Infinity'):
+        if s in (_message('Infinity'), '+Infinity'):
             return float('inf')
         if s == '-Infinity':
             return float('-inf')
@@ -69,10 +70,10 @@ def integer(value, minimum, maximum, label):
     n = js_number(value)
     if isinstance(n, float):
         if n != n or n in (float('inf'), float('-inf')) or not n.is_integer():
-            fail(f'Invalid {label}.')
+            fail(_message('Invalid {p0}.', p0=label))
         n = int(n)
     if abs(n) > MAX_SAFE_INTEGER or n < minimum or n > maximum:
-        fail(f'Invalid {label}.')
+        fail(_message('Invalid {p0}.', p0=label))
     return n
 
 
@@ -82,11 +83,11 @@ _DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 def date_text(value, label):
     s = text(value, label, 10, True)
     if not _DATE.match(s):
-        fail(f'Enter a valid {label}.')
+        fail(_message('Enter a valid {p0}.', p0=label))
     try:
         datetime.strptime(s, '%Y-%m-%d')
     except ValueError:
-        fail(f'Enter a valid {label}.')
+        fail(_message('Enter a valid {p0}.', p0=label))
     return s
 
 

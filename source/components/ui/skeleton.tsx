@@ -1,3 +1,4 @@
+import { uiText } from "../../local-test/i18n";
 import { cn } from "@/lib/utils"
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {

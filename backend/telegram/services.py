@@ -3,6 +3,7 @@
 Bot settings, which Telegram account uses which login, groups linked to workspaces and short conversation steps.
 The bot runtime (telegram/bot.py) and the Mini App gateway (telegram/gateway.py) use these functions.
 """
+from core.i18n import msg as _message
 import hashlib
 import json
 import re
@@ -75,11 +76,11 @@ def mini_app_base(value):
         u = urlsplit(raw)
         host, port = u.hostname, u.port
     except ValueError:
-        fail('Enter the public HTTPS address of the Mini App gateway, for example https://tasks.example.com')
+        fail(_message('Enter the public HTTPS address of the Mini App gateway, for example https://tasks.example.com'))
     if not u.scheme or not host:
-        fail('Enter the public HTTPS address of the Mini App gateway, for example https://tasks.example.com')
+        fail(_message('Enter the public HTTPS address of the Mini App gateway, for example https://tasks.example.com'))
     if u.scheme.lower() != 'https' or u.username or u.password or u.query or u.fragment or (u.path and u.path != '/'):
-        fail('The Mini App address must be an https:// address with no path, for example https://tasks.example.com (Telegram only opens Mini Apps over HTTPS).')
+        fail(_message('The Mini App address must be an https:// address with no path, for example https://tasks.example.com (Telegram only opens Mini Apps over HTTPS).'))
     return f"https://{host.encode('idna').decode().lower()}{f':{port}' if port and port != 443 else ''}"
 
 
@@ -107,7 +108,7 @@ def unlink_account(staff, actor, why):
     n = TelegramLink.objects.filter(staff_id=staff).delete()[0]
     TelegramLinkCode.objects.filter(staff_id=staff).delete()
     if n:
-        AccessAudit.objects.create(actor_id=actor or None, action='Telegram account disconnected', target_id=staff,
+        AccessAudit.objects.create(actor_id=actor or None, action=_message('Telegram account disconnected'), target_id=staff,
                                    detail=f'{name_of(staff)} · {why}', created_at=now())
 
 
@@ -115,32 +116,31 @@ def handle(gov, action, d, actor):
     if action == 'admin.telegram.save':
         old = settings()
         if isinstance(d.get('expected_version'), bool) or d.get('expected_version') != old['version']:
-            fail('This record changed. Refresh it before saving again.', 409)
+            fail(_message('This record changed. Refresh it before saving again.'), 409)
         token = old['bot_token']
         if d.get('clear_token') is True:
             token = ''
         elif isinstance(d.get('bot_token'), str) and d['bot_token'].strip():
             token = d['bot_token'].strip()
             if not TOKEN_PATTERN.match(token):
-                fail('Paste the bot token exactly as @BotFather shows it: numbers, a colon, then letters and numbers.')
+                fail(_message('Paste the bot token exactly as @BotFather shows it: numbers, a colon, then letters and numbers.'))
         enabled = 1 if d.get('enabled') is True or d.get('enabled') == 1 else 0
         if enabled and not token:
-            fail('Add the bot token before turning Telegram on.')
-        hour = old['digest_hour'] if 'digest_hour' not in d else integer(d['digest_hour'], -1, 23, 'daily reminder time')
+            fail(_message('Add the bot token before turning Telegram on.'))
+        hour = old['digest_hour'] if 'digest_hour' not in d else integer(d['digest_hour'], -1, 23, _message('daily reminder time'))
         changed_token = token != old['bot_token']
         values = {'enabled': bool(enabled), 'bot_token': seal(token),
                   'mini_app_url': old['mini_app_url'] if 'mini_app_url' not in d else mini_app_base(d['mini_app_url']),
                   'digest_hour': hour, 'group_updates': not (d.get('group_updates') is False or d.get('group_updates') == 0),
                   'status': 'OFF' if not enabled else 'STARTING' if changed_token or old['status'] == 'OFF' else old['status'],
-                  'status_detail': '' if not enabled else 'Connecting to Telegram…' if changed_token else old['status_detail'],
+                  'status_detail': '' if not enabled else _message('Connecting to Telegram…') if changed_token else old['status_detail'],
                   'version': old['version'] + 1, 'updated_at': now()}
         if changed_token:
             values.update({'bot_id': None, 'bot_username': '', 'bot_name': '', 'last_update_id': 0, 'last_notification_id': -1, 'last_history_id': -1})
         TelegramSettings.objects.filter(id=1).update(**values)
-        audit(actor, 'Telegram settings updated',
-              f"{'On' if enabled else 'Off'}{' · bot token changed' if changed_token else ''} · Mini App {values['mini_app_url'] or 'not set'} · "
-              f"reminders {'off' if hour < 0 else str(hour) + ':00'}")
-        return {'message': 'Telegram settings saved. The bot connects within a few seconds.' if enabled else 'Telegram settings saved. The bot is off.'}
+        audit(actor, _message('Telegram settings updated'),
+              _message('{p0}{p1} · Mini App {p2} · reminders {p3}', p0='On' if enabled else 'Off', p1=' · bot token changed' if changed_token else '', p2=values['mini_app_url'] or 'not set', p3='off' if hour < 0 else str(hour) + ':00'))
+        return {'message': _message('Telegram settings saved. The bot connects within a few seconds.') if enabled else _message('Telegram settings saved. The bot is off.')}
     if action == 'admin.telegram.group':
         try:
             chat = int(d.get('chat_id')) if not isinstance(d.get('chat_id'), bool) else None
@@ -148,63 +148,63 @@ def handle(gov, action, d, actor):
             chat = None
         g = row(TelegramGroup.objects.filter(chat_id=chat).first()) if chat is not None and abs(chat) <= 9007199254740991 else None
         if not g:
-            fail('Telegram group not found.', 404)
+            fail(_message('Telegram group not found.'), 404)
         if 'expected_version' in d and (isinstance(d['expected_version'], bool) or d['expected_version'] != g['version']):
-            fail('This record changed. Refresh it before saving again.', 409)
+            fail(_message('This record changed. Refresh it before saving again.'), 409)
         workspace = None
         if d.get('workspace_id'):
             w = row(Workspace.objects.filter(id=text(d['workspace_id'], 'Workspace', 60, True)).first())
             if not w:
-                fail('Workspace not found.', 404)
+                fail(_message('Workspace not found.'), 404)
             if w['status'] != 'ACTIVE':
-                fail('Choose an active workspace.')
+                fail(_message('Choose an active workspace.'))
             if gov.governed(w) and (not gov.can_manage_workspace(actor, w) or is_personal_workspace(w)):
-                fail('Personal or unauthorized workspaces cannot be linked to a Telegram group.', 403)
+                fail(_message('Personal or unauthorized workspaces cannot be linked to a Telegram group.'), 403)
             workspace = w['id']
         TelegramGroup.objects.filter(chat_id=g['chat_id']).update(
             workspace_id=workspace, notify=not (d.get('notify') is False or d.get('notify') == 0), linked_by_id=actor if workspace else None,
             linked_at=now() if workspace else None, version=g['version'] + 1)
-        audit(actor, 'Telegram group linked' if workspace else 'Telegram group unlinked', f"{g['title']} ({g['chat_id']}){' → ' + workspace if workspace else ''}")
-        return {'message': 'Group linked to the workspace.' if workspace else 'Group unlinked.'}
+        audit(actor, _message('Telegram group linked') if workspace else _message('Telegram group unlinked'), f"{g['title']} ({g['chat_id']}){' → ' + workspace if workspace else ''}")
+        return {'message': _message('Group linked to the workspace.') if workspace else _message('Group unlinked.')}
     if action == 'admin.telegram.unlink':
         staff = active_staff(d.get('staff_id')).id
         link = TelegramLink.objects.filter(staff_id=staff).first()
         if not link:
-            return {'message': 'This person is not connected to Telegram.'}
+            return {'message': _message('This person is not connected to Telegram.')}
         TelegramLink.objects.filter(staff_id=staff).delete()
-        audit(actor, 'Telegram account disconnected', f'{name_of(staff)} · Telegram user {link.tg_user_id}')
-        return {'message': f'{name_of(staff)} is no longer connected to Telegram.'}
+        audit(actor, _message('Telegram account disconnected'), _message('{p0} · Telegram user {p1}', p0=name_of(staff), p1=link.tg_user_id))
+        return {'message': _message('{p0} is no longer connected to Telegram.', p0=name_of(staff))}
     if action == 'tg.link.code':
         s = settings()
         if not s['enabled'] or not s['bot_username']:
-            fail('Telegram is not connected yet. Ask an administrator to connect the company bot in Administration → Telegram.', 409)
+            fail(_message('Telegram is not connected yet. Ask an administrator to connect the company bot in Administration → Telegram.'), 409)
         current = None if d.get('renew') is True else (TelegramLinkCode.objects.filter(staff_id=actor, code__isnull=False, expires_at__gt=now())
                                                          .order_by('-created_at').first())
         if current:
-            return {'message': 'Your connect link is ready.', **link_info(current.code, s, current.created_at)}
+            return {'message': _message('Your connect link is ready.'), **link_info(current.code, s, current.created_at)}
         TelegramLinkCode.objects.filter(expires_at__lt=now()).delete()
         TelegramLinkCode.objects.filter(staff_id=actor).delete()
         code = ''.join(secrets.choice(CODE_ALPHABET) for _ in range(8))
         created = now()
         TelegramLinkCode.objects.create(code_hash=digest(code), staff_id=actor, expires_at=NEVER, created_at=created, code=code)
         if d.get('renew') is True:
-            audit(actor, 'Telegram connect link replaced', name_of(actor))
-        return {'message': 'New connect link created. The previous one no longer works.' if d.get('renew') is True
-                else 'Your connect link is ready. It works once and does not expire.', **link_info(code, s, created)}
+            audit(actor, _message('Telegram connect link replaced'), name_of(actor))
+        return {'message': _message('New connect link created. The previous one no longer works.') if d.get('renew') is True
+                else _message('Your connect link is ready. It works once and does not expire.'), **link_info(code, s, created)}
     if action == 'tg.link.unlink':
         n = TelegramLink.objects.filter(staff_id=actor).delete()[0]
         TelegramLinkCode.objects.filter(staff_id=actor).delete()
         if n:
-            audit(actor, 'Telegram account disconnected', name_of(actor))
-        return {'message': 'Telegram disconnected from your account.' if n else 'Your account is not connected to Telegram.'}
+            audit(actor, _message('Telegram account disconnected'), name_of(actor))
+        return {'message': _message('Telegram disconnected from your account.') if n else _message('Your account is not connected to Telegram.')}
     if action == 'tg.link.notify':
         link = TelegramLink.objects.filter(staff_id=actor).first()
         if not link:
-            fail('Connect Telegram first.', 409)
+            fail(_message('Connect Telegram first.'), 409)
         off = d.get('notify') is False or d.get('notify') == 0
         TelegramLink.objects.filter(tg_user_id=link.tg_user_id).update(notify=not off)
-        return {'message': 'Telegram messages turned off. You can still use the bot.' if off else 'Telegram messages turned on.'}
-    fail('Unknown Telegram action.', 404)
+        return {'message': _message('Telegram messages turned off. You can still use the bot.') if off else _message('Telegram messages turned on.')}
+    fail(_message('Unknown Telegram action.'), 404)
 
 
 # ---------------------------------------------------------------- used by the bot and the Mini App gateway
@@ -212,14 +212,13 @@ def redeem(value, sender, chat_id):
     """A connect link code links one Telegram account to the login that created it. Returns {'staff'} or {'error'}."""
     code = normalize_code(value)
     if len(code) != 8:
-        return {'error': 'That link code is not valid. Open the Task Controlling Management → your name (top right) → Connect Telegram to see your personal link.'}
+        return {'error': _message('That link code is not valid. Open the Task Controlling Management → your name (top right) → Connect Telegram to see your personal link.')}
     with transaction.atomic():
         found = TelegramLinkCode.objects.select_for_update().filter(code_hash=digest(code)).first()
         if not found or found.expires_at < now():
-            return {'error': 'That link code is not valid: it may be mistyped, already used or replaced by a newer link. Open the Task Controlling Management → '
-                             'your name (top right) → Connect Telegram to see your current link.'}
+            return {'error': _message('That link code is not valid: it may be mistyped, already used or replaced by a newer link. Open the Task Controlling Management → your name (top right) → Connect Telegram to see your current link.')}
         TelegramLinkCode.objects.filter(code_hash=found.code_hash).delete()
-        result = attach(found.staff_id, sender, chat_id, 'connect link')
+        result = attach(found.staff_id, sender, chat_id, _message('connect link'))
         if result.get('staff'):
             changed()
     return result
@@ -227,27 +226,25 @@ def redeem(value, sender, chat_id):
 
 def attach(staff, sender, chat_id, how):
     if not User.objects.filter(staff_id=staff, active=True).exists():
-        return {'error': 'This Task Controlling Management account is disabled. Ask an administrator for help.'}
+        return {'error': _message('This Task Controlling Management account is disabled. Ask an administrator for help.')}
     TelegramLink.objects.filter(tg_user_id=sender['id']).delete()
     TelegramLink.objects.filter(staff_id=staff).delete()
     TelegramLinkCode.objects.filter(staff_id=staff).delete()
     username, first = str(sender.get('username') or '')[:64], str(sender.get('first_name') or '')[:128]
     TelegramLink.objects.create(tg_user_id=sender['id'], staff_id=staff, chat_id=chat_id, username=username, first_name=first, notify=True,
                                 linked_at=now(), last_seen_at=now())
-    audit(staff, 'Telegram account connected',
-          f"{name_of(staff)} · Telegram user {sender['id']}{' (@' + str(sender['username']) + ')' if sender.get('username') else ''} · {how}")
-    who = '@' + username if sender.get('username') else str(sender.get('first_name') or 'A Telegram account')[:128]
+    audit(staff, _message('Telegram account connected'),
+          _message('{p0} · Telegram user {p1}{p2} · {p3}', p0=name_of(staff), p1=sender['id'], p2=' (@' + str(sender['username']) + ')' if sender.get('username') else '', p3=how))
+    who = '@' + username if sender.get('username') else str(sender.get('first_name') or _message('A Telegram account'))[:128]
     Notification.objects.create(
-        staff_id=staff, kind='telegram_connected', title='Telegram connected', actor_id=staff, created_at=now(),
-        body=f"{who} now uses your Task Controlling Management account in Telegram "
-             f"({'with your connect link' if how == 'connect link' else 'signed in with your Task Controlling Management password'}). "
-             'If this was not you, open your name → My profile → Telegram and disconnect it.')
+        staff_id=staff, kind='telegram_connected', title=_message('Telegram connected'), actor_id=staff, created_at=now(),
+        body=_message('{p0} now uses your Task Controlling Management account in Telegram ({p1}). If this was not you, open your name → My profile → Telegram and disconnect it.', p0=who, p1='with your connect link' if how == 'connect link' else 'signed in with your Task Controlling Management password'))
     return {'staff': staff, 'name': name_of(staff)}
 
 
 def connect_signed_in(staff, sender, chat_id):
     with transaction.atomic():
-        result = attach(staff, sender, chat_id, 'signed in with the Task Controlling Management password in the Telegram app')
+        result = attach(staff, sender, chat_id, _message('signed in with the Task Controlling Management password in the Telegram app'))
         if result.get('staff'):
             changed()
     return result
@@ -273,7 +270,7 @@ def touch(sender, chat_id, private):
 
 
 def seen_group(chat, active=True):
-    title = str(chat.get('title') or 'Telegram group')[:200]
+    title = str(chat.get('title') or _message('Telegram group'))[:200]
     if TelegramGroup.objects.filter(chat_id=chat['id']).exists():
         TelegramGroup.objects.filter(chat_id=chat['id']).update(title=title, type=chat.get('type') or 'group', active=bool(active), seen_at=now())
     else:
@@ -288,7 +285,7 @@ def link_group(gov, chat_id, workspace, actor):
     g = TelegramGroup.objects.filter(chat_id=chat_id).first()
     TelegramGroup.objects.filter(chat_id=chat_id).update(workspace_id=w['id'], linked_by_id=actor, linked_at=now(), active=True,
                                                          version=(g.version + 1) if g else 1)
-    audit(actor, 'Telegram group linked', f"{g.title if g else chat_id} → {w['name']}")
+    audit(actor, _message('Telegram group linked'), f"{g.title if g else chat_id} → {w['name']}")
     changed()
     return w
 
@@ -296,7 +293,7 @@ def link_group(gov, chat_id, workspace, actor):
 def unlink_group(chat_id, actor):
     g = TelegramGroup.objects.filter(chat_id=chat_id).first()
     TelegramGroup.objects.filter(chat_id=chat_id).update(workspace_id=None, linked_by_id=None, linked_at=None, version=(g.version + 1) if g else 1)
-    audit(actor, 'Telegram group unlinked', str(chat_id))
+    audit(actor, _message('Telegram group unlinked'), str(chat_id))
     changed()
 
 

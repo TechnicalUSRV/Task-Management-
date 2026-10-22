@@ -1,4 +1,5 @@
 """One Task policy for state, direct URLs, reports, notifications and document delivery."""
+from core.i18n import msg as _message
 from django.utils import timezone
 from core.errors import fail
 from organization.governance import is_personal_workspace
@@ -67,11 +68,11 @@ def validate_manager(gov, actor, data, old, workspace, visibility):
     if not value:
         value = workspace.get('governing_manager_id') if workspace.get('governing_manager_id') in options else options[0] if len(options) == 1 else None
     if value not in options:
-        fail('Choose an authorized Level 2 manager for this Task.', 422)
+        fail(_message('Choose an authorized Level 2 manager for this Task.'), 422)
     if old and value != old.get('governing_manager_id') and not can_manage_members(gov, actor, old):
         # Existing records without a specific scope retain their Workspace governor.
         if old.get('governing_manager_id') or value != workspace.get('governing_manager_id'):
-            fail('Only the Task owner or authorized Administration can change its management scope.', 403)
+            fail(_message('Only the Task owner or authorized Administration can change its management scope.'), 403)
     return value
 
 
@@ -82,19 +83,19 @@ def can_manage_members(gov, actor, task):
 def validate_visibility(gov, actor, data, old, workspace):
     value = data.get('visibility', (old or {}).get('visibility', 'PUBLIC'))
     if value not in VISIBILITIES:
-        fail('Choose Personal, Public or Organizational task visibility.', 422)
+        fail(_message('Choose Personal, Public or Organizational task visibility.'), 422)
     if old and value != old.get('visibility', 'PUBLIC'):
         if not can_manage_members(gov, actor, old):
-            fail('Only the Task owner or authorized Administration can change its visibility.', 403)
+            fail(_message('Only the Task owner or authorized Administration can change its visibility.'), 403)
         if value == 'PERSONAL' and TaskMember.objects.filter(task_id=old['id']).exists():
-            fail('Remove explicit shares before changing to owner-only visibility.', 409)
+            fail(_message('Remove explicit shares before changing to owner-only visibility.'), 409)
         if value == 'PERSONAL' and (
                 any(old.get(field) and old.get(field) != old['created_by']
                     for field in ('pic_id', 'reviewer_id', 'assigned_by'))
                 or TaskAssignee.objects.filter(task_id=old['id']).exclude(staff_id=old['created_by']).exists()):
-            fail('Personal Tasks can only contain the owner. Remove other responsible people first.', 409)
+            fail(_message('Personal Tasks can only contain the owner. Remove other responsible people first.'), 409)
     if value == 'ORGANIZATIONAL' and (workspace['kind'] != 'ORGANIZATIONAL' or not workspace.get('governing_manager_id')):
-        fail('Organizational tasks require a Workspace with an authorized governing manager.', 422)
+        fail(_message('Organizational tasks require a Workspace with an authorized governing manager.'), 422)
     return value
 
 
@@ -103,24 +104,24 @@ def save_members(service, data, actor, source):
     if not service.scope.can_see(actor, task):
         service.hidden()
     if not can_manage_members(service.gov, actor, task):
-        fail('Only the Task owner or authorized Administration can manage sharing.', 403)
+        fail(_message('Only the Task owner or authorized Administration can manage sharing.'), 403)
     service.check_version(task, data.get('expected_version'))
     if task.get('visibility') == 'PERSONAL':
-        fail('Change this Task to Public or Organizational before sharing it.', 409)
+        fail(_message('Change this Task to Public or Organizational before sharing it.'), 409)
     if service.pending_change(task['id']):
-        fail('Resolve the pending Task change before changing sharing.', 409)
+        fail(_message('Resolve the pending Task change before changing sharing.'), 409)
     entries = data.get('members')
     if not isinstance(entries, list) or len(entries) > 50:
-        fail('Choose up to 50 Task members.', 422)
+        fail(_message('Choose up to 50 Task members.'), 422)
     chosen = {}
     w = service.workspace(task['workspace_id'])
     for entry in entries:
         if not isinstance(entry, dict) or entry.get('permission') not in ('VIEWER', 'CONTRIBUTOR'):
-            fail('Choose Viewer or Contributor for each Task member.', 422)
+            fail(_message('Choose Viewer or Contributor for each Task member.'), 422)
         staff = service.assignable(entry.get('staff_id'))
         service.gov.require_operational(staff)
         if staff in chosen:
-            fail('Include each Task member once.', 422)
+            fail(_message('Include each Task member once.'), 422)
         service.gov.check_collaborator(actor, w, staff, existing=TaskMember.objects.filter(task_id=task['id'], staff_id=staff).exists())
         chosen[staff] = entry['permission']
     before = list(TaskMember.objects.filter(task_id=task['id']).values('staff_id', 'permission'))
@@ -132,5 +133,5 @@ def save_members(service, data, actor, source):
     service.gov.invalidate()
     import json
     service.history(task, 'sharing', task, actor, source, json.dumps({'before': before, 'after': entries}))
-    service.log(actor, 'task', task['id'], task['workspace_id'], 'Task sharing updated')
-    return {'id': task['id'], 'type': 'tm_task', 'message': 'Task sharing saved. Responsible roles are unchanged.'}
+    service.log(actor, 'task', task['id'], task['workspace_id'], _message('Task sharing updated'))
+    return {'id': task['id'], 'type': 'tm_task', 'message': _message('Task sharing saved. Responsible roles are unchanged.')}

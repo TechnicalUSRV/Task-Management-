@@ -9,6 +9,7 @@ Values: dates (Excel dates or written dates such as 2026-10-05 or 05/10/2026, da
 kept), status labels by name, and people by staff ID, email or a name that matches exactly one person who can be chosen.
 Excel formulas are never calculated: their saved results are imported.
 """
+from core.i18n import msg as _message
 import re
 from datetime import timedelta
 
@@ -91,7 +92,7 @@ class GroupImport:
     def load(self, key, staff):
         imp = BoardImport.objects.filter(id=js.to_js_string(key or '')).first()
         if not imp or imp.staff_id != staff:
-            fail('This upload was not found. Upload the file again.', 404)
+            fail(_message('This upload was not found. Upload the file again.'), 404)
         from .sharing import DataSharing
         result = row(imp)
         DataSharing(self.g).validate(result, staff)
@@ -103,7 +104,7 @@ class GroupImport:
         width, seen, out = max(sheet['columns'], len(cells)), {}, []
         for i in range(width):
             raw = dm.clean_name(cell_display(cells[i] if i < len(cells) else None))
-            name = js.trim(re.sub(r'^[#=]+', '', raw.replace('{', '').replace('}', ''))[:L['name']]) or f'Column {col_name(i)}'
+            name = js.trim(re.sub(r'^[#=]+', '', raw.replace('{', '').replace('}', ''))[:L['name']]) or _message('Column {p0}', p0=col_name(i))
             k = dm.name_key(name)
             n = seen.get(k, 0) + 1
             seen[k] = n
@@ -126,13 +127,13 @@ class GroupImport:
     def upload(self, d, actor):
         b, caps = self.g.open_board(d.get('group_id'), actor)
         self.g.archived_check(b)
-        self.g.need(caps, 'import', 'Importing needs “Can edit records” access to this group and a role that can add records.')
+        self.g.need(caps, 'import', _message('Importing needs “Can edit records” access to this group and a role that can add records.'))
         name = text(d.get('name'), 'File name', 200, True).replace('\\', '/').split('/')[-1]
         if re.search(r'\.(xls|xlsb|xlsm|csv|ods|numbers)$', name, re.IGNORECASE):
-            fail(f'“{name}” is not an Excel workbook (.xlsx). Open it in Excel (or another spreadsheet program) and save it as “Excel Workbook (*.xlsx)”.', 415)
+            fail(_message('“{p0}” is not an Excel workbook (.xlsx). Open it in Excel (or another spreadsheet program) and save it as “Excel Workbook (*.xlsx)”.', p0=name), 415)
         if not re.search(r'\.xlsx$', name, re.IGNORECASE):
-            fail('Choose an Excel workbook (.xlsx).', 415)
-        too_big = f"Choose an .xlsx file of up to {L['importBytes'] // 1048576} MB."
+            fail(_message('Choose an Excel workbook (.xlsx).'), 415)
+        too_big = _message('Choose an .xlsx file of up to {p0} MB.', p0=L['importBytes'] // 1048576)
         data = d.get('base64')
         if not isinstance(data, str) or not data or len(data) > -(-L['importBytes'] * 4 // 3) + 8 or not _BASE64.match(data):
             fail(too_big, 413)
@@ -151,7 +152,7 @@ class GroupImport:
                              'status': 'UPLOADED', 'result_json': None, 'created_at': timezone.now(), 'imported_at': None})
         imp = row(BoardImport.objects.get(id=key))
         n = len(sheets)
-        return {'id': key, 'type': 'tm_group_import', 'message': f"{name} is ready: {n} worksheet{'' if n == 1 else 's'}.", 'import': self.summary(imp, sheets)}
+        return {'id': key, 'type': 'tm_group_import', 'message': _message('{p0} is ready: {p1} worksheet{p2}.', p0=name, p1=n, p2='' if n == 1 else 's'), 'import': self.summary(imp, sheets)}
 
     def describe(self, key, staff):
         imp = self.load(key, staff)
@@ -193,51 +194,50 @@ class GroupImport:
         t = col['type']
         if t == 'TEXT':
             if js.length(value) > L['text']:
-                return {'error': f"Longer than {js.locale(L['text'])} characters."}
+                return {'error': _message('Longer than {p0} characters.', p0=js.locale(L['text']))}
             return {'value': value}
         if t == 'NUMBER':
             if cell.get('date'):
-                return {'error': 'This is a date, not a number.'}
+                return {'error': _message('This is a date, not a number.')}
             if isinstance(cell.get('v'), bool):
-                return {'error': 'This is TRUE/FALSE, not a number.'}
+                return {'error': _message('This is TRUE/FALSE, not a number.')}
             r = dm.parse_number(cell['v'] if js.is_number(cell.get('v')) else value)
-            return {'value': r['value']} if r['ok'] else {'error': 'Not a number. Use digits, an optional minus sign and a decimal point.'}
+            return {'value': r['value']} if r['ok'] else {'error': _message('Not a number. Use digits, an optional minus sign and a decimal point.')}
         if t == 'DATE':
             if cell.get('date'):
                 return {'value': cell['date']}
             v = cell.get('v')
             if js.is_number(v):
                 day = serial_to_day(v)
-                return {'value': day} if day and 1 <= v < 2958466 else {'error': 'Not a date.'}
+                return {'value': day} if day and 1 <= v < 2958466 else {'error': _message('Not a date.')}
             day = text_date(value)
-            return {'value': day} if day else {'error': 'Not a date. Use a date such as 2026-10-05 or 05/10/2026 (day first).'}
+            return {'value': day} if day else {'error': _message('Not a date. Use a date such as 2026-10-05 or 05/10/2026 (day first).')}
         if t == 'STATUS':
             name = dm.clean_name(value)
             if not name:
                 return {'value': None}
             if js.length(name) > L['label']:
-                return {'error': f"Status labels can have at most {L['label']} characters."}
+                return {'error': _message('Status labels can have at most {p0} characters.', p0=L['label'])}
             if col['id'].startswith('new:'):
                 if dm.name_key(name) not in col['labels']:
                     if len(col['labels']) >= L['labels']:
-                        return {'error': f"A status column can have up to {L['labels']} labels."}
+                        return {'error': _message('A status column can have up to {p0} labels.', p0=L['labels'])}
                     col['labels'][dm.name_key(name)] = name
                 return {'value': name}
             found = next((l for l in dm.status_labels(col) if dm.name_key(l['name']) == dm.name_key(name)), None)
             if found:
                 return {'value': found['id']}
             if not ctx['createLabels']:
-                return {'error': f"“{name}” isn’t one of this column’s labels ({', '.join(l['name'] for l in dm.status_labels(col))}). "
-                                 'Choose “add missing labels” or correct the file.'}
+                return {'error': _message('“{p0}” isn’t one of this column’s labels ({p1}). Choose “add missing labels” or correct the file.', p0=name, p1=', '.join(l['name'] for l in dm.status_labels(col)))}
             adds = ctx['labelAdds'].setdefault(col['id'], {})
             if len(dm.status_labels(col)) + len(adds) >= L['labels'] and dm.name_key(name) not in adds:
-                return {'error': f"A status column can have up to {L['labels']} labels."}
+                return {'error': _message('A status column can have up to {p0} labels.', p0=L['labels'])}
             adds[dm.name_key(name)] = name
             return {'value': f'label:{name}'}
         if t in ('IN_CHARGE', 'SUPPORT'):
             parts = [js.trim(x) for x in re.split(r'[;,\n]', value) if js.trim(x)] if t == 'SUPPORT' else [js.trim(value)]
             if t == 'SUPPORT' and len(parts) > L['people']:
-                return {'error': f"Up to {L['people']} people."}
+                return {'error': _message('Up to {p0} people.', p0=L['people'])}
             ids = []
             for part in parts:
                 r = self.person(part, ctx['crowd'], ctx['resolved'])
@@ -248,15 +248,15 @@ class GroupImport:
                     k = dm.name_key(part)
                     if k not in ctx['unresolved']:
                         ctx['unresolved'][k] = {'text': part, 'candidates': r['candidates']}
-                    return {'error': f'More than one person is called “{part}”. Choose who is meant.'}
-                return {'error': f'Nobody who can be chosen in this group matches “{part}”. Use their name, Task Controlling Management email or staff ID.'}
+                    return {'error': _message('More than one person is called “{p0}”. Choose who is meant.', p0=part)}
+                return {'error': _message('Nobody who can be chosen in this group matches “{p0}”. Use their name, Task Controlling Management email or staff ID.', p0=part)}
             return {'value': list(dict.fromkeys(ids)) if t == 'SUPPORT' else (ids[0] if ids else None)}
-        return {'error': f"{dm.COLUMN_TYPES.get(t) or t} columns can’t be imported into."}
+        return {'error': _message('{p0} columns can’t be imported into.', p0=dm.COLUMN_TYPES.get(t) or t)}
 
     def evaluate(self, b, actor, caps, imp, plan, real=None):
         g = self.g
         if not isinstance(plan, dict) or not isinstance(plan.get('sheets'), list) or not plan['sheets']:
-            fail('Choose at least one worksheet to import.')
+            fail(_message('Choose at least one worksheet to import.'))
         sheets = js.loads(imp['sheets_json'], [])
         # The plan is checked for size and permission before any work on it: each worksheet at most once, no more columns
         # than a worksheet can have, and new columns only for people who manage the group.
@@ -264,10 +264,10 @@ class GroupImport:
         for sh in plan['sheets']:
             i = js.num_str(js.number(sh.get('index') if isinstance(sh, dict) else None))
             if i in chosen:
-                fail('Choose each worksheet once.')
+                fail(_message('Choose each worksheet once.'))
             chosen.add(i)
             if isinstance(sh, dict) and 'columns' in sh and (not isinstance(sh['columns'], list) or len(sh['columns']) > READ_LIMITS['columns']):
-                fail(f"Choose up to {READ_LIMITS['columns']} columns for each worksheet.")
+                fail(_message('Choose up to {p0} columns for each worksheet.', p0=READ_LIMITS['columns']))
 
         def mappings(sh):
             return sh['columns'] if isinstance(sh, dict) and isinstance(sh.get('columns'), list) else []
@@ -276,9 +276,9 @@ class GroupImport:
             return m['new'] if isinstance(m.get('new'), dict) else {}
         wanted = [m for sh in plan['sheets'] for m in mappings(sh) if isinstance(m, dict) and m.get('new') and not m.get('skip')]
         if wanted and not caps['structure']:
-            fail('Creating columns needs “Can manage” access to this group. Map every column to an existing one, or ask the group’s owner.', 403)
+            fail(_message('Creating columns needs “Can manage” access to this group. Map every column to an existing one, or ask the group’s owner.'), 403)
         if len({dm.name_key(dm.clean_name(new_of(m).get('name') if isinstance(new_of(m).get('name'), str) else '')) for m in wanted}) > L['columns']:
-            fail(f"A group can have up to {L['columns']} columns.", 409)
+            fail(_message('A group can have up to {p0} columns.', p0=L['columns']), 409)
         s = g.sight(b, actor, caps, real if real is not None else g.columns_of(b['id']))
         visible = s['columns']
         mode = 'update' if plan.get('mode') == 'update' else 'append'
@@ -293,20 +293,20 @@ class GroupImport:
                     continue
                 name, col_type = dm.clean_name(new_of(m).get('name')), new_of(m).get('type')
                 if col_type not in IMPORTABLE:
-                    fail(f"Choose a type for the new column “{name or '(no name)'}”: Text, Number, Date, Status, In Charge or Support.")
+                    fail(_message('Choose a type for the new column “{p0}”: Text, Number, Date, Status, In Charge or Support.', p0=name or '(no name)'))
                 k = dm.name_key(name)
                 others = [{'id': x['id'], 'name': x['name']} for x in proposed.values() if dm.name_key(x['name']) != k]
                 error = dm.column_name_error(name, [*s['all'], *others])
                 if error and not (k in proposed and proposed[k]['type'] == col_type):
-                    fail(f'New column “{name}”: {error}', 409)
+                    fail(_message('New column “{p0}”: {p1}', p0=name, p1=error), 409)
                 if k in proposed and proposed[k]['type'] != col_type:
-                    fail(f'Two worksheets create a column named “{name}” with different types. Use one type, or different names.', 409)
+                    fail(_message('Two worksheets create a column named “{p0}” with different types. Use one type, or different names.', p0=name), 409)
                 if k not in proposed:
                     proposed[k] = {'id': f'new:{len(proposed)}', 'name': name, 'type': col_type, 'settings': {}, 'labels': {}}
         if proposed and not caps['structure']:
-            fail('Creating columns needs “Can manage” access to this group. Map every column to an existing one, or ask the group’s owner.', 403)
+            fail(_message('Creating columns needs “Can manage” access to this group. Map every column to an existing one, or ask the group’s owner.'), 403)
         if len(visible) + len(proposed) > L['columns']:
-            fail(f"A group can have up to {L['columns']} columns; this import would make {len(visible) + len(proposed)}.", 409)
+            fail(_message('A group can have up to {p0} columns; this import would make {p1}.', p0=L['columns'], p1=len(visible) + len(proposed)), 409)
         results, ops = [], []
         rows_total = BoardRow.objects.filter(board_id=b['id']).count()
         key_index = {}
@@ -347,42 +347,42 @@ class GroupImport:
             sh = sh if isinstance(sh, dict) else {}
             index = js.number(sh.get('index'))
             if not _is_int(index) or not 0 <= index < len(sheets):
-                fail('A chosen worksheet is not in this file. Upload it again.')
+                fail(_message('A chosen worksheet is not in this file. Upload it again.'))
             index = int(index)
             sheet = sheets[index]
             header_row = 1 if 'header_row' not in sh else js.number(sh['header_row'])
             top = max(1, len(sheet['rows']))
             if not _is_int(header_row) or header_row < 1 or header_row > top:
-                fail(f"“{sheet['name']}”: choose a header row between 1 and {top}.")
+                fail(_message('“{p0}”: choose a header row between 1 and {p1}.', p0=sheet['name'], p1=top))
             header_row = int(header_row)
             header = self.headers_of(sheet, header_row)
             maps = [m for m in mappings(sh) if isinstance(m, dict) and not m.get('skip') and (m.get('target') or m.get('new'))]
             if not maps:
-                fail(f"“{sheet['name']}”: choose at least one column to import.")
+                fail(_message('“{p0}”: choose at least one column to import.', p0=sheet['name']))
             used_source, used_target, cols = set(), set(), []
             for m in maps:
                 source = js.number(m.get('source'))
                 if not _is_int(source) or source < 0 or source >= max(len(header), 1):
-                    fail(f"“{sheet['name']}”: a chosen column is not in the worksheet.")
+                    fail(_message('“{p0}”: a chosen column is not in the worksheet.', p0=sheet['name']))
                 source = int(source)
                 heading = header[source] if source < len(header) else 'undefined'
                 if source in used_source:
-                    fail(f"“{sheet['name']}”: the column “{heading}” is chosen twice.")
+                    fail(_message('“{p0}”: the column “{p1}” is chosen twice.', p0=sheet['name'], p1=heading))
                 used_source.add(source)
                 if m.get('new'):
                     col = proposed.get(dm.name_key(dm.clean_name(new_of(m).get('name'))))
                 else:
                     col = next((x for x in visible if x['id'] == js.to_js_string(m.get('target'))), None)
                     if not col:
-                        fail(f"“{sheet['name']}”: the column chosen for “{heading}” no longer exists or is not available to you. Choose again.", 409)
+                        fail(_message('“{p0}”: the column chosen for “{p1}” no longer exists or is not available to you. Choose again.', p0=sheet['name'], p1=heading), 409)
                     if col['type'] == 'FORMULA':
-                        fail(f"“{col['name']}” is a formula column: the group calculates it, so nothing can be imported into it.", 409)
+                        fail(_message('“{p0}” is a formula column: the group calculates it, so nothing can be imported into it.', p0=col['name']), 409)
                     if col['type'] == 'ATTACHMENT':
-                        fail(f"“{col['name']}” is an attachment column: upload its files in the table instead.", 409)
+                        fail(_message('“{p0}” is an attachment column: upload its files in the table instead.', p0=col['name']), 409)
                     if col['type'] == 'LINKED':
-                        fail(f"“{col['name']}” is a Live Data column: it shows another group’s data, so nothing can be imported into it.", 409)
+                        fail(_message('“{p0}” is a Live Data column: it shows another group’s data, so nothing can be imported into it.', p0=col['name']), 409)
                 if col['id'] in used_target:
-                    fail(f"“{sheet['name']}”: two columns go into “{col['name']}”. Choose one.")
+                    fail(_message('“{p0}”: two columns go into “{p1}”. Choose one.', p0=sheet['name'], p1=col['name']))
                 used_target.add(col['id'])
                 cols.append({'source': source, 'col': col, 'header': heading})
             # Which rows.
@@ -391,7 +391,7 @@ class GroupImport:
             if isinstance(sh.get('rows'), list):
                 numbers = sorted({int(n) for n in (js.number(x) for x in sh['rows']) if _is_int(n) and first <= n <= last})
                 if not numbers:
-                    fail(f"“{sheet['name']}”: choose rows after the header row.")
+                    fail(_message('“{p0}”: choose rows after the header row.', p0=sheet['name']))
             elif isinstance(sh.get('rows'), dict):
                 lo, hi = js.number(sh['rows'].get('from')), js.number(sh['rows'].get('to'))
                 lo = max(first, lo if js.is_number(lo) and lo == lo and lo else first)
@@ -407,8 +407,7 @@ class GroupImport:
                 k = sh['key'] if isinstance(sh.get('key'), dict) else plan.get('key') if isinstance(plan.get('key'), dict) else {}
                 kp = next((p for p in cols if p['source'] == js.number(k.get('source'))), None)
                 if not kp or kp['col']['id'].startswith('new:') or kp['col']['type'] not in ('TEXT', 'NUMBER', 'DATE'):
-                    fail(f"“{sheet['name']}”: to update rows, choose a key column that identifies each row (an existing Text, Number or Date column, "
-                         'for example an order number).')
+                    fail(_message('“{p0}”: to update rows, choose a key column that identifies each row (an existing Text, Number or Date column, for example an order number).', p0=sheet['name']))
                 key = kp
             res = {'index': index, 'name': sheet['name'], 'header': header, 'header_row': header_row, 'selected': len(numbers), 'add': 0, 'update': 0,
                    'skipped_blank': 0, 'skipped_unmatched': 0, 'failed': 0, 'errors': [], 'warnings': [], 'sample': []}
@@ -422,10 +421,10 @@ class GroupImport:
                         continue
                     if cell.get('missing'):
                         res['warnings'].append({'row': n, 'column': p['header'],
-                                                'message': 'This formula has no saved result, so it was left empty. Open and save the file in Excel, then upload it again.'})
+                                                'message': _message('This formula has no saved result, so it was left empty. Open and save the file in Excel, then upload it again.')})
                         continue
                     if cell.get('error'):
-                        res['warnings'].append({'row': n, 'column': p['header'], 'message': f"Excel shows the error {cell['error']} here, so it was left empty."})
+                        res['warnings'].append({'row': n, 'column': p['header'], 'message': _message('Excel shows the error {p0} here, so it was left empty.', p0=cell['error'])})
                         continue
                     shown = cell_display(cell)
                     if shown == '':
@@ -451,13 +450,13 @@ class GroupImport:
                     if not k:
                         res['failed'] += 1
                         if len(res['errors']) < 300:
-                            res['errors'].append({'row': n, 'column': key['header'], 'value': '', 'message': 'The key is empty, so this row can’t be matched.'})
+                            res['errors'].append({'row': n, 'column': key['header'], 'value': '', 'message': _message('The key is empty, so this row can’t be matched.')})
                         continue
                     if k in seen_keys:
                         res['failed'] += 1
                         if len(res['errors']) < 300:
                             res['errors'].append({'row': n, 'column': key['header'], 'value': k,
-                                                  'message': 'This key appears more than once in the file; only its first row is used.'})
+                                                  'message': _message('This key appears more than once in the file; only its first row is used.')})
                         continue
                     seen_keys.add(k)
                     found = key_rows(kc).get(k) or []
@@ -465,7 +464,7 @@ class GroupImport:
                         res['failed'] += 1
                         if len(res['errors']) < 300:
                             res['errors'].append({'row': n, 'column': key['header'], 'value': k,
-                                                  'message': f'{len(found)} rows in the group have this key, so it is not clear which one to update.'})
+                                                  'message': _message('{p0} rows in the group have this key, so it is not clear which one to update.', p0=len(found))})
                         continue
                     existing = found[0] if found else None
                     if not existing and unmatched == 'skip':
@@ -481,7 +480,7 @@ class GroupImport:
                     if rows_total >= L['rows']:
                         res['failed'] += 1
                         if len(res['errors']) < 300:
-                            res['errors'].append({'row': n, 'column': '', 'value': '', 'message': f"The group would have more than {js.locale(L['rows'])} rows."})
+                            res['errors'].append({'row': n, 'column': '', 'value': '', 'message': _message('The group would have more than {p0} rows.', p0=js.locale(L['rows']))})
                         continue
                     rows_total += 1
                     ops.append({'kind': 'add', 'values': values, 'sheet': index, 'line': n})
@@ -489,13 +488,13 @@ class GroupImport:
                     if len(res['sample']) < 8:
                         res['sample'].append({'row': n, 'action': 'add', 'values': display(values, cols)})
             if sheet['truncated']:
-                res['warnings'].insert(0, {'row': None, 'column': '', 'message': 'Only the first 20,000 rows and 200 columns of this worksheet were read.'})
+                res['warnings'].insert(0, {'row': None, 'column': '', 'message': _message('Only the first 20,000 rows and 200 columns of this worksheet were read.')})
             results.append(res)
         new_columns = [{'name': x['name'], 'type': x['type'], **({'labels': list(x['labels'].values())} if x['type'] == 'STATUS' else {})} for x in proposed.values()]
         new_labels = [{'column_id': k, 'column': next((x['name'] for x in visible if x['id'] == k), ''), 'labels': list(v.values())}
                       for k, v in ctx['labelAdds'].items() if not k.startswith('new:')]
         if new_labels and not caps['structure']:
-            fail('Adding status labels needs “Can manage” access to this group.', 403)
+            fail(_message('Adding status labels needs “Can manage” access to this group.'), 403)
         totals = {'add': sum(r['add'] for r in results), 'update': sum(r['update'] for r in results),
                   'skipped': sum(r['skipped_blank'] + r['skipped_unmatched'] for r in results), 'failed': sum(r['failed'] for r in results)}
         return {'mode': mode, 'unmatched': unmatched, 'sheets': results, 'new_columns': new_columns, 'new_labels': new_labels,
@@ -519,22 +518,21 @@ class GroupImport:
         # A repeated request (a retry, a double click, a second tab) gets the first result; nothing is added twice.
         if imp['status'] == 'IMPORTED':
             return {'id': imp['id'], 'type': 'tm_group_import', 'already': True, 'result': js.loads(imp['result_json'], None),
-                    'message': 'This file was already imported. Nothing was added again.'}
+                    'message': _message('This file was already imported. Nothing was added again.')}
         g.archived_check(b)
-        g.need(caps, 'import', 'Importing needs “Can edit records” access to this group and a role that can add records.')
+        g.need(caps, 'import', _message('Importing needs “Can edit records” access to this group and a role that can add records.'))
         plan = self.evaluate(b, actor, caps, imp, d.get('plan'))
         if plan['unresolved']:
-            fail(f"Choose who is meant for {', '.join('“' + u['text'] + '”' for u in plan['unresolved'])} before importing.", 409,
+            fail(_message('Choose who is meant for {p0} before importing.', p0=', '.join('“' + u['text'] + '”' for u in plan['unresolved'])), 409,
                  {'code': 'people', 'unresolved': plan['unresolved']})
         expected = d.get('expected') if isinstance(d.get('expected'), dict) else None
         totals = plan['totals']
         if (expected is None or not js.is_number(expected.get('add')) or expected['add'] != totals['add']
                 or not js.is_number(expected.get('update')) or expected['update'] != totals['update']):
-            fail(f"The group or the choices changed since the preview (now {totals['add']} to add and {totals['update']} to update). "
-                 'Check the preview again before importing.', 409, {'code': 'preview_changed', 'totals': totals})
+            fail(_message('The group or the choices changed since the preview (now {p0} to add and {p1} to update). Check the preview again before importing.', p0=totals['add'], p1=totals['update']), 409, {'code': 'preview_changed', 'totals': totals})
         if plan['mode'] == 'update' and totals['update'] and d.get('confirm_update') is not True:
             n = totals['update']
-            fail(f"Confirm that {n} existing row{' is' if n == 1 else 's are'} changed.", 409, {'code': 'confirm_update'})
+            fail(_message('Confirm that {p0} existing row{p1} changed.', p0=n, p1=' is' if n == 1 else 's are'), 409, {'code': 'confirm_update'})
         created = []
         # New columns first (and new labels for existing status columns), then the plan is worked out again with them.
         for x in plan['proposed'].values():
@@ -542,7 +540,7 @@ class GroupImport:
             if x['type'] == 'STATUS':
                 settings = {'labels': [{'name': name, 'color': COLORS[i % 9]} for i, name in enumerate(list(x['labels'].values())[:L['labels']])]}
                 if not settings['labels']:
-                    settings['labels'] = [{'name': 'Done', 'color': 'GREEN'}]
+                    settings['labels'] = [{'name': _message('Done'), 'color': 'GREEN'}]
             r = g.column_save({'group_id': b['id'], 'name': x['name'], 'type': x['type'], 'settings': settings}, actor)
             created.append({'id': r['id'], 'name': x['name'], 'type': x['type']})
         for add in plan['new_labels']:
@@ -570,9 +568,9 @@ class GroupImport:
         def fits(data, before=0):
             n = js.length(data)
             if n > L['rowChars']:
-                fail(f"This row is too large ({js.locale(n)} characters; a row can hold {js.locale(L['rowChars'])}).", 422)
+                fail(_message('This row is too large ({p0} characters; a row can hold {p1}).', p0=js.locale(n), p1=js.locale(L['rowChars'])), 422)
             if size[0] - before + n > L['groupChars']:
-                fail('The group is full (its rows can hold 10,000,000 characters in all).', 422)
+                fail(_message('The group is full (its rows can hold 10,000,000 characters in all).'), 422)
             size[0] += n - before
         cache = {}
         for op in plan['ops']:
@@ -590,7 +588,7 @@ class GroupImport:
                 else:
                     found = BoardRow.objects.filter(id=op['row']['id'], board_id=b['id']).first()
                     if not found or not s['rowOk'](found.id):
-                        fail('The row was deleted.', 404)
+                        fail(_message('The row was deleted.'), 404)
                     current = js.loads(found.values_json, {})
                     changes = g.clean_values(b, s['columns'], op['values'], current, cache)
                     nxt = dict(current)
@@ -618,8 +616,8 @@ class GroupImport:
                   'imported_at': iso(at)}
         update(BoardImport, imp['id'], {'status': 'IMPORTED', 'result_json': js.dumps(result), 'imported_at': at, 'sheets_json': '[]'})
         g.touch(b)
-        g.record(actor, b, 'Imported from Group' if js.loads(imp['source_json'], {}) else 'Imported from Excel', f"{imp['file_name']} · {added} added · {updated} updated · {result['skipped']} skipped · {result['failed']} not imported")
+        g.record(actor, b, _message('Imported from Group') if js.loads(imp['source_json'], {}) else _message('Imported from Excel'), _message('{p0} · {p1} added · {p2} updated · {p3} skipped · {p4} not imported', p0=imp['file_name'], p1=added, p2=updated, p3=result['skipped'], p4=result['failed']))
         done = ', '.join(x for x in [f"{added} row{'' if added == 1 else 's'} added", plan['mode'] == 'update' and f'{updated} updated',
-                                     unchanged and f'{unchanged} already up to date'] if x)
+                                     unchanged and _message('{p0} already up to date', p0=unchanged)] if x)
         return {'id': imp['id'], 'type': 'tm_group_import', 'result': result,
-                'message': f"Imported: {done}{f'; ' + str(result['failed']) + ' not imported (see the list)' if result['failed'] else ''}."}
+                'message': f"Imported: {done}{f'; ' + str(result['failed']) + _message(' not imported (see the list)') if result['failed'] else ''}."}

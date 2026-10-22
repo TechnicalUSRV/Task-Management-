@@ -53,6 +53,8 @@ class User(AbstractBaseUser):
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
 
+    language = models.CharField(max_length=5, default='en', choices=[('en', 'English'), ('km', 'ភាសាខ្មែរ'), ('zh-CN', '简体中文')])
+
     USERNAME_FIELD = 'username_key'
     REQUIRED_FIELDS = []
     objects = UserManager()

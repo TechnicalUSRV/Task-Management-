@@ -1,4 +1,5 @@
 """Small shared services: readable IDs, the change counter and the company record."""
+from core.i18n import msg as _message
 from django.db import IntegrityError, connection, transaction
 from django.db.models import F
 
@@ -13,7 +14,7 @@ def next_id(kind, prefix):
     receive the same number.
     """
     if not transaction.get_connection().in_atomic_block:
-        raise RuntimeError('next_id must be called inside a transaction')
+        raise RuntimeError(_message('next_id must be called inside a transaction'))
     updated = Sequence.objects.filter(kind=kind).update(value=F('value') + 1)
     if not updated:
         try:
@@ -36,7 +37,7 @@ def write_lock(timeout_ms=15000):
     interleave; it is released at commit or rollback. Reads (the app state) do not take it. SQLite serializes writers itself.
     """
     if not transaction.get_connection().in_atomic_block:
-        raise RuntimeError('write_lock must be taken inside a transaction')
+        raise RuntimeError(_message('write_lock must be taken inside a transaction'))
     if connection.vendor != 'microsoft':
         return
     with connection.cursor() as c:
@@ -44,7 +45,7 @@ def write_lock(timeout_ms=15000):
                   "@LockOwner = 'Transaction', @LockTimeout = %s; SELECT @r", [WRITE_LOCK, int(timeout_ms)])
         result = c.fetchone()
     if result is None or result[0] < 0:
-        fail('The system is busy with other changes. Please try again in a moment.', 503)
+        fail(_message('The system is busy with other changes. Please try again in a moment.'), 503)
 
 
 def changed():
@@ -62,7 +63,7 @@ def company():
     return Company.objects.filter(id=1).first()
 
 
-def active_staff(staff_id, message='Choose an active person.'):
+def active_staff(staff_id, message=_message('Choose an active person.')):
     """V5.7.7 lookup(id, 'staff'): an active staff member or a 400 with the standard message."""
     if not isinstance(staff_id, str):
         fail(message)

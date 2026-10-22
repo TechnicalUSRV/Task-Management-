@@ -4,6 +4,7 @@ Each command runs in one database transaction (V5.7.7: BEGIN IMMEDIATE … COMMI
 active, organization governance checks it first (guard), the domain service applies it, governance reconciles
 afterwards, and the shared change counter advances so open clients reload. Any failure rolls everything back.
 """
+from core.i18n import msg as _message
 import threading
 import time
 
@@ -24,7 +25,7 @@ def apply(gov, action, d, actor, user, meta):
     if action.startswith('org.'):
         return gov.handle(action, d, actor)
     if action == 'admin.integrations.save':
-        fail('This action is not available.', 403)
+        fail(_message('This action is not available.'), 403)
     if action.startswith('admin.telegram.') or action.startswith('tg.'):
         return telegram.handle(gov, action, d, actor)
     if action == 'admin.user.save':
@@ -39,9 +40,9 @@ def apply(gov, action, d, actor, user, meta):
         return access.save_modules(d, actor)
     if action == 'me.sessions.end':
         if user is None:
-            fail('Sign in to continue.', 401)
+            fail(_message('Sign in to continue.'), 401)
         count = access.sign_out_everywhere(user, telegram=d.get('telegram') is True)
-        return {'message': f"Signed out of {count} session{'' if count == 1 else 's'}{' and Telegram' if d.get('telegram') is True else ''}. Sign in again to continue."}
+        return {'message': _message('Signed out of {p0} session{p1}{p2}. Sign in again to continue.', p0=count, p1='' if count == 1 else 's', p2=' and Telegram' if d.get('telegram') is True else '')}
     if action in ('tm.task.delivery.confirm', 'tm.group.delivery.confirm', 'tm.task.delivery.cancel', 'tm.group.delivery.cancel', 'tm.task.delivery.retry', 'tm.group.delivery.retry'):
         from groups.delivery import confirm
         return confirm(data=d, actor=actor, cancel=action.endswith('.cancel'), retry=action.endswith('.retry'), target='task' if action.startswith('tm.task') else 'group')
@@ -51,13 +52,13 @@ def apply(gov, action, d, actor, user, meta):
         return company.save_settings(d, actor)
     if action == 'lookup.save':
         return company.save_lookup(d, actor)
-    fail('Unknown action.', 404)
+    fail(_message('Unknown action.'), 404)
 
 
 def run(user, action, data, source='WEB'):
     """Authorize and run one command for a signed-in account; returns the command's result."""
     if not isinstance(data, dict):
-        fail('A record object is required.')
+        fail(_message('A record object is required.'))
     from .authorize import authorize
     authorize(user, action, data)
     meta = {'source': source if source in SOURCES else 'WEB'}
@@ -75,9 +76,9 @@ def run(user, action, data, source='WEB'):
     except IntegrityError as error:
         message = str(error).lower()
         if 'unique' in message or 'duplicate' in message:
-            fail('This ID or linked record already exists.', 409)
-        if 'foreign key' in message or 'reference constraint' in message:
-            fail('A related record is missing or still in use.', 409)
+            fail(_message('This ID or linked record already exists.'), 409)
+        if _message('foreign key') in message or _message('reference constraint') in message:
+            fail(_message('A related record is missing or still in use.'), 409)
         raise
 
 

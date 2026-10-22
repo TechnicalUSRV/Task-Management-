@@ -3,6 +3,7 @@
 These four endpoints are reachable without a session by design (they are how a session starts). Every other API
 requires a signed-in account.
 """
+from core.i18n import msg as _message
 import ipaddress
 
 from django.conf import settings
@@ -17,16 +18,16 @@ from core.services import change_seq, company
 from . import services
 from .authentication import check_origin
 
-APP_VERSION = 'Task Controlling Management V5.7.7'
+APP_VERSION = _message('Task Controlling Management V5.7.7')
 APP_BUILD = '2026-10-14 · Django'
 
 
 def require_json(request):
     if not str(request.headers.get('Content-Type', '')).startswith('application/json'):
-        fail('JSON is required.', 415)
+        fail(_message('JSON is required.'), 415)
     body = request.data
     if not isinstance(body, dict):
-        fail('Invalid request.')
+        fail(_message('Invalid request.'))
     return body
 
 
@@ -36,13 +37,13 @@ def client_address(request):
 
 def set_session_cookie(response, request, token):
     response.set_cookie(request.session_cookie_name, token, max_age=services.SESSION_SECONDS if token else 0,
-                        path=request.session_cookie_path, httponly=True, samesite='Strict',
+                        path=request.session_cookie_path, httponly=True, samesite=_message('Strict'),
                         secure=settings.SESSION_COOKIE_SECURE_FLAG)
 
 
 def companies_list():
     current = company()
-    return [{'id': settings.COMPANY_ID, 'name': current.name if current else 'New company'}]
+    return [{'id': settings.COMPANY_ID, 'name': current.name if current else _message('New company')}]
 
 
 class PublicView(APIView):
@@ -60,6 +61,9 @@ class SetupView(PublicView):
             fail('Create the first administrator on the computer that runs the Task Controlling Management, then sign in from other computers.', 403)
         user = services.bootstrap(body)
         token = services.start_session(user['id'])
+        from core.i18n import activate
+        activate(user['language'])
+        request._request.language_account = True
         response = Response({'ok': True, 'user': user})
         set_session_cookie(response, request, token)
         return response
@@ -72,6 +76,9 @@ class LoginView(PublicView):
         user = services.login_or_fail(body.get('username'), body.get('password'), client_address(request))
         with transaction.atomic():
             token = services.start_session(user['id'])
+        from core.i18n import activate
+        activate(user['language'])
+        request._request.language_account = True
         response = Response({'ok': True, 'user': user})
         set_session_cookie(response, request, token)
         return response
@@ -106,7 +113,17 @@ class CompaniesView(PublicView):
         check_origin(request)
         user = services.resolve(request._request)
         services.require_permission(user, 'admin.companies', 'create')
-        raise InputError('This installation runs one company. Additional companies are not available.', 403)
+        raise InputError(_message('This installation runs one company. Additional companies are not available.'), 403)
+
+
+class LanguageView(APIView):
+    def get(self, request):
+        return Response({'language': request.user.language})
+
+    def post(self, request):
+        check_origin(request)
+        from .language import save_language
+        return Response(save_language(request.user, require_json(request)))
 
 
 class ChangesView(APIView):

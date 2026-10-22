@@ -4,44 +4,45 @@ Keys, labels and actions are unchanged so saved role permissions and the existin
 working. CRM, Operations and Finance functions stay in the catalog (their modules are switched off in this
 deployment), which keeps permission data valid if they are migrated later.
 """
+from core.i18n import msg as _message
 
 _BASE = [
-    ('dashboard', 'Dashboard', ['view']),
+    ('dashboard', _message('Dashboard'), ['view']),
     ('crm.contacts', 'CRM · Contacts', ['view', 'create', 'update']),
     ('crm.campaigns', 'CRM · Campaigns', ['view', 'create', 'update']),
     ('crm.leads', 'CRM · Leads', ['view', 'create', 'update']),
     ('crm.opportunities', 'CRM · Opportunities', ['view', 'create', 'update']),
     ('crm.quotations', 'CRM · Quotations', ['view', 'create', 'update', 'approve', 'export']),
-    ('crm.accounts', 'CRM · Business Accounts', ['view', 'update']),
+    ('crm.accounts', _message('CRM · Business Accounts'), ['view', 'update']),
     ('crm.activities', 'CRM · Activities', ['view', 'create', 'update']),
-    ('crm.documents', 'CRM · Document links', ['view', 'create']),
-    ('tasks.organization', 'Task Management · Organizational Structure', ['view', 'create']),
-    ('tasks.workspace', 'Task Management · Workspace', ['view', 'create', 'update', 'delete']),
-    ('tasks.users', 'Task Management · Users', ['view', 'create', 'update']),
-    ('tasks.tasks', 'Task Management · Tasks', ['view', 'create', 'update', 'approve']),
-    ('tasks.company', 'Task Management · All company tasks', ['view']),
-    ('tasks.groups', 'Task Management · Groups', ['view', 'create', 'update', 'delete', 'approve', 'export']),
-    ('tasks.timesheets', 'Task Management · Timesheets', ['view', 'create', 'update', 'delete']),
-    ('tasks.meetings', 'Task Management · Meetings', ['view', 'create', 'update']),
-    ('tasks.reports', 'Task Management · Reports', ['view', 'export']),
+    ('crm.documents', _message('CRM · Document links'), ['view', 'create']),
+    ('tasks.organization', _message('Task Management · Organizational Structure'), ['view', 'create']),
+    ('tasks.workspace', _message('Task Management · Workspace'), ['view', 'create', 'update', 'delete']),
+    ('tasks.users', _message('Task Management · Users'), ['view', 'create', 'update']),
+    ('tasks.tasks', _message('Task Management · Tasks'), ['view', 'create', 'update', 'approve']),
+    ('tasks.company', _message('Task Management · All company tasks'), ['view']),
+    ('tasks.groups', _message('Task Management · Groups'), ['view', 'create', 'update', 'delete', 'approve', 'export']),
+    ('tasks.timesheets', _message('Task Management · Timesheets'), ['view', 'create', 'update', 'delete']),
+    ('tasks.meetings', _message('Task Management · Meetings'), ['view', 'create', 'update']),
+    ('tasks.reports', _message('Task Management · Reports'), ['view', 'export']),
     ('ops.quotation', 'Operations · Quotation', ['view', 'create', 'update', 'approve', 'export']),
-    ('ops.po', 'Operations · Purchase Order', ['view', 'create', 'update', 'approve', 'export']),
-    ('ops.job', 'Operations · Job File', ['view', 'create', 'update', 'approve', 'export']),
-    ('ops.dn', 'Operations · Debit Note', ['view', 'create', 'update', 'approve', 'export']),
-    ('ops.pr', 'Operations · Payment Request', ['view', 'create', 'update', 'approve', 'export']),
-    ('ops.finance', 'Operations · Finance registers', ['view', 'update', 'approve']),
-    ('ops.legacy', 'Operations · Earlier sales handoffs', ['view', 'create', 'update']),
+    ('ops.po', _message('Operations · Purchase Order'), ['view', 'create', 'update', 'approve', 'export']),
+    ('ops.job', _message('Operations · Job File'), ['view', 'create', 'update', 'approve', 'export']),
+    ('ops.dn', _message('Operations · Debit Note'), ['view', 'create', 'update', 'approve', 'export']),
+    ('ops.pr', _message('Operations · Payment Request'), ['view', 'create', 'update', 'approve', 'export']),
+    ('ops.finance', _message('Operations · Finance registers'), ['view', 'update', 'approve']),
+    ('ops.legacy', _message('Operations · Earlier sales handoffs'), ['view', 'create', 'update']),
     ('reports.crm', 'Reports · CRM', ['view', 'export']),
     ('reports.operations', 'Reports · Operations', ['view', 'export']),
-    ('settings', 'Company settings', ['view', 'update']),
+    ('settings', _message('Company settings'), ['view', 'update']),
     ('admin.roles', 'Administration · Roles & permissions', ['view', 'create', 'update', 'delete']),
-    ('admin.workspaces', 'Administration · All workspaces (Administrator role only)', ['view']),
-    ('admin.users', 'Administration · User accounts', ['view', 'create', 'update', 'delete']),
-    ('reports.central', 'Reports · Custom Task Controlling Management reports', ['view', 'export']),
-    ('admin.modules', 'Administration · Company modules', ['view', 'update']),
-    ('admin.companies', 'Administration · Company creation', ['view', 'create']),
-    ('admin.telegram', 'Administration · Telegram connection', ['view', 'update']),
-    ('admin.integrations', 'Administration · Google Sheets connection', ['view', 'update']),
+    ('admin.workspaces', _message('Administration · All workspaces (Administrator role only)'), ['view']),
+    ('admin.users', _message('Administration · User accounts'), ['view', 'create', 'update', 'delete']),
+    ('reports.central', _message('Reports · Custom Task Controlling Management reports'), ['view', 'export']),
+    ('admin.modules', _message('Administration · Company modules'), ['view', 'update']),
+    ('admin.companies', _message('Administration · Company creation'), ['view', 'create']),
+    ('admin.telegram', _message('Administration · Telegram connection'), ['view', 'update']),
+    ('admin.integrations', _message('Administration · Google Sheets connection'), ['view', 'update']),
 ]
 _EXPORTABLE = {'crm.contacts', 'crm.leads', 'crm.opportunities', 'crm.accounts', 'crm.activities', 'crm.documents',
                'crm.campaigns', 'tasks.workspace', 'tasks.users', 'tasks.tasks', 'tasks.timesheets', 'tasks.meetings',
@@ -59,19 +60,19 @@ RESOURCES = sorted([(key, label, actions + (['export'] if key in _EXPORTABLE and
                     for key, label, actions in _BASE], key=lambda r: _AREA_ORDER.index(_area(r[0])))
 CATALOG = {key: actions for key, _, actions in RESOURCES}
 LABELS = {key: label for key, label, _ in RESOURCES}
-ACTION_LABELS = {'view': 'View', 'create': 'Create', 'update': 'Update', 'delete': 'Delete / archive',
-                 'approve': 'Approve', 'export': 'Export'}
+ACTION_LABELS = {'view': _message('View'), 'create': 'Create', 'update': 'Update', 'delete': 'Delete / archive',
+                 'approve': _message('Approve'), 'export': _message('Export')}
 
 # (id, label, required, dependencies)
 MODULES = [
-    ('dashboard', 'Dashboard', True, []),
+    ('dashboard', _message('Dashboard'), True, []),
     ('crm', 'CRM', False, []),
-    ('tasks', 'Task Management', False, []),
-    ('ops', 'Operations', False, ['crm']),
-    ('finance', 'Finance', False, ['ops']),
-    ('reports', 'Report', False, []),
-    ('admin', 'Administration', True, []),
-    ('system', 'Company settings', True, []),
+    ('tasks', _message('Task Management'), False, []),
+    ('ops', _message('Operations'), False, ['crm']),
+    ('finance', _message('Finance'), False, ['ops']),
+    ('reports', _message('Report'), False, []),
+    ('admin', _message('Administration'), True, []),
+    ('system', _message('Company settings'), True, []),
 ]
 # Decision A (Stage 1): this deployment runs Task Management only.
 DEFAULT_MODULES = {'dashboard': True, 'crm': False, 'tasks': True, 'ops': False, 'finance': False,
@@ -113,10 +114,10 @@ def role_defaults(kind):
 
 
 BUILT_IN_ROLES = [
-    ('ROLE-ADMIN', 'Administrator', 'ADMIN'),
-    ('ROLE-MANAGER', 'Manager', 'MANAGER'),
-    ('ROLE-MEMBER', 'Team Member', 'MEMBER'),
-    ('ROLE-VIEWER', 'Viewer', 'VIEWER'),
+    ('ROLE-ADMIN', _message('Administrator'), 'ADMIN'),
+    ('ROLE-MANAGER', _message('Manager'), 'MANAGER'),
+    ('ROLE-MEMBER', _message('Team Member'), 'MEMBER'),
+    ('ROLE-VIEWER', _message('Viewer'), 'VIEWER'),
 ]
 ADMIN_ROLE = 'ROLE-ADMIN'
 
@@ -126,26 +127,26 @@ ADMIN_ROLE = 'ROLE-ADMIN'
 # catalog is identical to V5.7.7; their modules are off in this deployment.
 _CONTRIBUTIONS = {
     'crm': (['contacts', 'leads', 'opportunities', 'quotations', 'accounts', 'campaigns', 'crm_activities', 'documents'], [
-        {'id': 'crm-pipeline', 'kind': 'kpi', 'title': 'Open pipeline', 'source': 'opportunities', 'metric': 'amount', 'status': ['OPEN'], 'format': 'money'},
-        {'id': 'crm-customers', 'kind': 'kpi', 'title': 'Active customers', 'source': 'accounts', 'metric': 'count', 'status': ['ACTIVE']},
-        {'id': 'crm-stages', 'kind': 'bar', 'title': 'Sales by stage', 'source': 'opportunities', 'group': 'status'},
-        {'id': 'crm-followups', 'kind': 'list', 'title': 'CRM follow-ups', 'source': 'crm_activities', 'status': ['OPEN'], 'sort': 'date', 'limit': 5}]),
+        {'id': 'crm-pipeline', 'kind': 'kpi', 'title': _message('Open pipeline'), 'source': 'opportunities', 'metric': 'amount', 'status': ['OPEN'], 'format': 'money'},
+        {'id': 'crm-customers', 'kind': 'kpi', 'title': _message('Active customers'), 'source': 'accounts', 'metric': 'count', 'status': ['ACTIVE']},
+        {'id': 'crm-stages', 'kind': 'bar', 'title': _message('Sales by stage'), 'source': 'opportunities', 'group': 'status'},
+        {'id': 'crm-followups', 'kind': 'list', 'title': _message('CRM follow-ups'), 'source': 'crm_activities', 'status': ['OPEN'], 'sort': 'date', 'limit': 5}]),
     'tasks': (['workspaces', 'staff', 'tasks', 'timesheets', 'meetings'], [
-        {'id': 'task-open', 'kind': 'kpi', 'title': 'Open tasks', 'source': 'tasks', 'metric': 'count', 'exclude': ['COMPLETED', 'CANCELLED']},
-        {'id': 'time-recorded', 'kind': 'kpi', 'title': 'Time recorded', 'source': 'timesheets', 'metric': 'minutes', 'format': 'duration'},
-        {'id': 'task-stages', 'kind': 'bar', 'title': 'Task progress', 'source': 'tasks', 'group': 'status'},
-        {'id': 'team-work', 'kind': 'list', 'title': 'Tasks needing attention', 'source': 'tasks', 'exclude': ['COMPLETED', 'CANCELLED'], 'sort': 'date', 'limit': 5},
-        {'id': 'team-meetings', 'kind': 'list', 'title': 'Meeting schedule', 'source': 'meetings', 'status': ['SCHEDULED'], 'sort': 'date', 'limit': 5}]),
+        {'id': 'task-open', 'kind': 'kpi', 'title': _message('Open tasks'), 'source': 'tasks', 'metric': 'count', 'exclude': ['COMPLETED', 'CANCELLED']},
+        {'id': 'time-recorded', 'kind': 'kpi', 'title': _message('Time recorded'), 'source': 'timesheets', 'metric': 'minutes', 'format': 'duration'},
+        {'id': 'task-stages', 'kind': 'bar', 'title': _message('Task progress'), 'source': 'tasks', 'group': 'status'},
+        {'id': 'team-work', 'kind': 'list', 'title': _message('Tasks needing attention'), 'source': 'tasks', 'exclude': ['COMPLETED', 'CANCELLED'], 'sort': 'date', 'limit': 5},
+        {'id': 'team-meetings', 'kind': 'list', 'title': _message('Meeting schedule'), 'source': 'meetings', 'status': ['SCHEDULED'], 'sort': 'date', 'limit': 5}]),
     'ops': (['ops_requests', 'shipments'], [
-        {'id': 'ops-approval', 'kind': 'kpi', 'title': 'Requests awaiting approval', 'source': 'ops_requests', 'metric': 'count', 'status': ['SUBMITTED']},
-        {'id': 'ops-shipment', 'kind': 'bar', 'title': 'Shipment stages', 'source': 'shipments', 'group': 'status'},
-        {'id': 'ops-inbox', 'kind': 'list', 'title': 'My approval inbox', 'source': 'ops_requests', 'status': ['SUBMITTED'], 'assignee': 'current', 'limit': 6}]),
+        {'id': 'ops-approval', 'kind': 'kpi', 'title': _message('Requests awaiting approval'), 'source': 'ops_requests', 'metric': 'count', 'status': ['SUBMITTED']},
+        {'id': 'ops-shipment', 'kind': 'bar', 'title': _message('Shipment stages'), 'source': 'shipments', 'group': 'status'},
+        {'id': 'ops-inbox', 'kind': 'list', 'title': _message('My approval inbox'), 'source': 'ops_requests', 'status': ['SUBMITTED'], 'assignee': 'current', 'limit': 6}]),
     'finance': (['receivables', 'payables'], [
-        {'id': 'finance-ar', 'kind': 'kpi', 'title': 'Outstanding receivables', 'source': 'receivables', 'metric': 'amount', 'format': 'money'},
-        {'id': 'finance-ap', 'kind': 'kpi', 'title': 'Outstanding payables', 'source': 'payables', 'metric': 'amount', 'format': 'money'}]),
+        {'id': 'finance-ar', 'kind': 'kpi', 'title': _message('Outstanding receivables'), 'source': 'receivables', 'metric': 'amount', 'format': 'money'},
+        {'id': 'finance-ap', 'kind': 'kpi', 'title': _message('Outstanding payables'), 'source': 'payables', 'metric': 'amount', 'format': 'money'}]),
     'admin': (['users'], [
-        {'id': 'admin-active', 'kind': 'kpi', 'title': 'Active user accounts', 'source': 'users', 'metric': 'count', 'status': ['ACTIVE']},
-        {'id': 'admin-roles', 'kind': 'bar', 'title': 'People by role', 'source': 'users', 'group': 'category'}]),
+        {'id': 'admin-active', 'kind': 'kpi', 'title': _message('Active user accounts'), 'source': 'users', 'metric': 'count', 'status': ['ACTIVE']},
+        {'id': 'admin-roles', 'kind': 'bar', 'title': _message('People by role'), 'source': 'users', 'group': 'category'}]),
 }
 ERP_MODULES = [{'id': mid, 'label': label, 'required': required, 'dependencies': deps,
                 'functions': [{'key': key, 'label': flabel, 'actions': actions} for key, flabel, actions in RESOURCES if resource_module(key) == mid],

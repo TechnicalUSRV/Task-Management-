@@ -5,6 +5,7 @@ Rows keep the V5.7.7 column names and value forms (ISO timestamps, 'YYYY-MM-DD' 
 plain SQL on the same table names, so SQL Server and SQLite give identical results. CRM and Operations sections are
 present but empty (their modules are off in this deployment), exactly as V5.7.7 sends them to people without access.
 """
+from core.i18n import msg as _message
 import json
 from datetime import date, datetime, timezone as dt_timezone
 
@@ -17,13 +18,13 @@ from core.validation import iso
 from organization.governance import Governance, display_name
 from tasks.scope import TaskScope
 
-APP_VERSION = 'Task Controlling Management V5.7.7'
+APP_VERSION = _message('Task Controlling Management V5.7.7')
 APP_BUILD = '2026-10-14 · Django'
 CRM_TABLES = ['contacts', 'campaigns', 'leads', 'opportunities', 'opportunity_lines', 'quotations', 'quote_revisions', 'approvals', 'accounts',
               'activities', 'documents', 'orders', 'shipments', 'invoices', 'payments']
 OPS_TABLES = ['ops_requests', 'ops_approvals', 'ops_notifications', 'ops_jobs', 'ops_debit_notes', 'ops_postings', 'ops_ap', 'ops_settlements',
               'ops_closings', 'ops_files', 'ops_revisions', 'ops_events']
-COA_RULES = '[{"contains":"duty","category":"TAX"},{"contains":"customs tax","category":"TAX"},{"contains":"disbursement","category":"CASH_DISBURSEMENT"}]'
+COA_RULES = _message('[{"contains":"duty","category":"TAX"},{"contains":"customs tax","category":"TAX"},{"contains":"disbursement","category":"CASH_DISBURSEMENT"}]')
 # Columns as V5.7.7 sends them (its table order), and the order rows come in.
 TABLES = {
     'tm_workspaces': ('id,name,description,department,owner_id,color,status,version,created_at,updated_at,kind,governing_manager_id,'
@@ -249,7 +250,9 @@ def filter_state(s, user, gov=None):
             task_ids, meeting_ids = {t['id'] for t in out['tm_tasks']}, {m['id'] for m in out['tm_meetings']}
             request_ids, note_ids = {q['id'] for q in out['tm_requests']}, {n['id'] for n in out['tm_calendar_notes']}
             notes = query_first(150, 'SELECT id,staff_id,kind,task_id,request_id,due_request_id,title,body,actor_id,created_at,read_at,meeting_id,note_id,'
-                          'org_request_id FROM tm_notifications WHERE staff_id=%s ORDER BY id DESC', user.staff_id)
+                          'org_request_id,translation FROM tm_notifications WHERE staff_id=%s ORDER BY id DESC', user.staff_id)
+            from core.i18n import notification_text
+            notes = [notification_text(n, user.language) for n in notes]
             out['tm_notifications'] = [n for n in notes if (not n['task_id'] or n['task_id'] in task_ids) and (not n['meeting_id'] or n['meeting_id'] in meeting_ids)
                                        and (not n['request_id'] or n['request_id'] in request_ids) and (not n['note_id'] or n['note_id'] in note_ids)
                                        and (not n['org_request_id'] or (v('tasks.organization') and gov.notification_visible(user.staff_id, n['org_request_id'])))][:100]

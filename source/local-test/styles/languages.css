@@ -1,0 +1,21 @@
+/* Keep the existing visual system; allow Khmer marks and wider translated labels. */
+:root { --language-font: "Inter Variable", "Noto Sans Khmer Variable", "Noto Sans SC Variable", sans-serif; }
+html:lang(km) { --language-font: "Noto Sans Khmer Variable", "Inter Variable", "Noto Sans SC Variable", sans-serif; }
+html:lang(zh-CN) { --language-font: "Noto Sans SC Variable", "Inter Variable", "Noto Sans Khmer Variable", sans-serif; }
+body, button, input, select, textarea { font-family: var(--language-font); }
+html:lang(km) body { line-height: 1.8; }
+html:lang(zh-CN) body { line-height: 1.65; }
+html:lang(km) :is(button, input, select, textarea), html:lang(zh-CN) :is(button, input, select, textarea) { line-height: 1.65; }
+html:not(:lang(en)) :is(.btn, [data-slot="button"], .tg-tab, .nav-label) { height: auto; min-height: 2.25rem; white-space: normal; overflow-wrap: anywhere; }
+html:not(:lang(en)) :is(th, .field-label, .form-label, [data-sidebar="menu-button"]) { line-height: 1.7; }
+html:lang(km) :is(h1,h2,h3,h4,label,legend) { line-height: 1.8; letter-spacing: normal; }
+.language-setting { display: grid; gap: .5rem; padding-block: .5rem; min-width: 0; }
+.language-setting label { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.language-setting select { width: 100%; max-width: 24rem; min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid var(--border, #cbd5e1); border-radius: .5rem; color: inherit; background: var(--background, Canvas); }
+.language-setting p { font-size: .875rem; margin: 0; line-height: 1.8; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  html:not(:lang(en)) :is(.row, .dialog-footer, .sheet-actions) { flex-wrap: wrap; }
+  html:not(:lang(en)) :is(.tg-tabs button, .bottom-nav button) { font-size: .75rem; line-height: 1.65; }
+  .language-setting select { max-width: 100%; font-size: 16px; }
+}
+@media print { body { font-family: var(--language-font); } }

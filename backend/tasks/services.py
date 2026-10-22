@@ -4,6 +4,7 @@ Every rule, message and HTTP status is kept. Rows are plain dicts with V5.7.7 co
 'YYYY-MM-DD' strings and timestamps ISO strings, so the logic reads like the original. One TaskService instance is
 created per command, inside the command's database transaction; any failure rolls the whole command back.
 """
+from core.i18n import msg as _message
 import base64
 import binascii
 import json
@@ -40,17 +41,17 @@ ZONES = available_timezones() | {'UTC', DEFAULT_ZONE}
 SIDEBAR_THEMES = ['blue', 'graphite', 'light', 'red', 'teal']
 MAX_FILE, MAX_PHOTO, MAX_FILES, MAX_CHECKS = 30 * 1024 * 1024, 2 * 1024 * 1024, 30, 50
 BASE64 = re.compile(r'^[A-Za-z0-9+/]*={0,2}$')
-NOT_FOUND = 'Task Management record not found.'
-FIELD_LABELS = {'visibility': 'Task visibility', 'governing_manager_id': 'Governing manager', 'title': 'Title', 'description': 'Expectation', 'progress': 'Progress', 'start_date': 'Start date',
-                'due_date': 'Due date', 'priority': 'Priority', 'estimate_minutes': 'Estimated effort',
-                'pic_id': 'Person in charge', 'supporters': 'Supporting people', 'reviewer_id': 'Reviewer',
-                'department': 'Department', 'department_note': 'Department note', 'recurrence': 'Repeat',
-                'recurrence_rule': 'Repeat schedule', 'recurrence_until': 'Repeat until', 'related': 'Related record',
-                'status': 'Status'}
-CHANGE_WORD = {'UPDATE': 'change details', 'COMPLETE': 'complete', 'CANCEL': 'cancel'}
+NOT_FOUND = _message('Task Management record not found.')
+FIELD_LABELS = {'visibility': _message('Task visibility'), 'governing_manager_id': _message('Governing manager'), 'title': _message('Title'), 'description': _message('Expectation'), 'progress': _message('Progress'), 'start_date': _message('Start date'),
+                'due_date': _message('Due date'), 'priority': _message('Priority'), 'estimate_minutes': _message('Estimated effort'),
+                'pic_id': _message('Person in charge'), 'supporters': _message('Supporting people'), 'reviewer_id': _message('Reviewer'),
+                'department': _message('Department'), 'department_note': _message('Department note'), 'recurrence': _message('Repeat'),
+                'recurrence_rule': _message('Repeat schedule'), 'recurrence_until': _message('Repeat until'), 'related': _message('Related record'),
+                'status': _message('Status')}
+CHANGE_WORD = {'UPDATE': _message('change details'), 'COMPLETE': 'complete', 'CANCEL': 'cancel'}
 CLEARED = {'stuck_at': None, 'stuck_by': None, 'stuck_reason': ''}
 UNSUBMITTED = {'submitted_to': None, 'submitted_by': None, 'submitted_at': None, 'submit_note': ''}
-REMINDER_ERROR = 'Choose up to five reminders, each 1 to 90 days before the due date.'
+REMINDER_ERROR = _message('Choose up to five reminders, each 1 to 90 days before the due date.')
 MISSING = object()
 
 
@@ -84,7 +85,7 @@ def js_string(value):
     if isinstance(value, list):
         return ','.join('' if v is None else js_string(v) for v in value)
     if isinstance(value, dict):
-        return '[object Object]'
+        return _message('[object Object]')
     return str(value)
 
 
@@ -124,7 +125,7 @@ class TaskService:
     def active_workspace(self, key):
         w = self.workspace(key)
         if w['status'] != 'ACTIVE':
-            fail('Restore the workspace before changing its work.')
+            fail(_message('Restore the workspace before changing its work.'))
         return w
 
     @staticmethod
@@ -134,7 +135,7 @@ class TaskService:
     @staticmethod
     def check_version(record, expected):
         if isinstance(expected, bool) or expected != record['version']:
-            fail('This record changed. Refresh it before saving again.', 409)
+            fail(_message('This record changed. Refresh it before saving again.'), 409)
 
     @staticmethod
     def lookup(staff_id):
@@ -144,7 +145,7 @@ class TaskService:
         self.lookup(staff)
         p = Profile.objects.filter(staff_id=staff).first()
         if p and not p.active:
-            fail('Choose an active team member.')
+            fail(_message('Choose an active team member.'))
         return p
 
     @staticmethod
@@ -175,9 +176,9 @@ class TaskService:
         self.profile(key)
         a = self.account_of(key)
         if a and not a['active']:
-            fail(f'{self.name_of(key)}’s login is disabled. Choose someone else.')
+            fail(_message('{p0}’s login is disabled. Choose someone else.', p0=self.name_of(key)))
         if a and not self.can_staff(key, 'tasks.tasks', 'view'):
-            fail(f'{self.name_of(key)} can’t open Task Management. Ask an administrator to add it to their role, or choose someone else.')
+            fail(_message('{p0} can’t open Task Management. Ask an administrator to add it to their role, or choose someone else.', p0=self.name_of(key)))
         return key
 
     def zone_of(self, staff):
@@ -185,10 +186,10 @@ class TaskService:
         return own or Company.objects.filter(id=1).values_list('timezone', flat=True).first() or DEFAULT_ZONE
 
     @staticmethod
-    def zone_input(value, label='Time zone'):
+    def zone_input(value, label=_message('Time zone')):
         zone = text(value, label, 64)
         if zone and zone not in ZONES:
-            fail(f'Choose a valid {label.lower()} (for example Asia/Phnom_Penh).')
+            fail(_message('Choose a valid {p0} (for example Asia/Phnom_Penh).', p0=label.lower()))
         return zone
 
     def log(self, actor, entity, key, wid, action, detail=''):
@@ -201,7 +202,7 @@ class TaskService:
         except ValueError as e:
             fail(str(e))
         if n > maximum:
-            fail('Duration is too large.')
+            fail(_message('Duration is too large.'))
         return n
 
     # ------------------------------------------------------------ workspace membership (legacy workspaces)
@@ -221,12 +222,11 @@ class TaskService:
             return
         if not system and not self.can_add_members(wid, actor) and not (authority and authority != actor and self.is_member(wid, authority)):
             if staff == actor:
-                fail(f'You aren’t a member of the workspace “{w["name"]}”. Ask its owner to add you, or ask a member for a task instead.', 403)
-            fail(f'{self.name_of(staff)} isn’t a member of this workspace, and only its members can add people to it. '
-                 f'Choose members of the workspace, or ask its owner to add {self.name_of(staff)}.', 403)
+                fail(_message('You aren’t a member of the workspace “{p0}”. Ask its owner to add you, or ask a member for a task instead.', p0=w["name"]), 403)
+            fail(_message('{p0} isn’t a member of this workspace, and only its members can add people to it. Choose members of the workspace, or ask its owner to add {p1}.', p0=self.name_of(staff), p1=self.name_of(staff)), 403)
         WorkspaceMember.objects.create(workspace_id=wid, staff_id=staff)
         self.gov.invalidate()
-        self.log(actor, 'workspace', wid, wid, 'Workspace member added', f'{self.name_of(staff)} · {why}')
+        self.log(actor, 'workspace', wid, wid, _message('Workspace member added'), f'{self.name_of(staff)} · {why}')
 
     # ============================================================ workflow helpers
     def assignee_rows(self, task_id):
@@ -340,10 +340,9 @@ class TaskService:
             for r in self._approver_candidates():
                 if r != t['pic_id'] and self.reachable(r) and self.can_staff(r, 'tasks.tasks', 'approve') and self.scope.can_see(r, t):
                     return r
-            fail(f'{self.name_of(dm.assigner_of(t))} can’t approve changes any more, and nobody else can decide for them. '
-                 'Ask an administrator to give someone Task Management “Approve”.', 409)
+            fail(_message('{p0} can’t approve changes any more, and nobody else can decide for them. Ask an administrator to give someone Task Management “Approve”.', p0=self.name_of(dm.assigner_of(t))), 409)
         if not self.reachable(t['pic_id']):
-            fail('The other responsible party is unavailable. Restore their access or resolve responsibility before requesting a change.', 409)
+            fail(_message('The other responsible party is unavailable. Restore their access or resolve responsibility before requesting a change.'), 409)
         return t['pic_id']
 
     def progress_approver(self, t, actor):
@@ -357,12 +356,11 @@ class TaskService:
         for r in self._approver_candidates():
             if r != t['pic_id'] and r != actor and self.reachable(r) and self.can_staff(r, 'tasks.tasks', 'approve') and self.scope.can_see(r, t):
                 return r
-        fail(f'{self.name_of(dm.assigner_of(t))} can’t approve progress any more, and nobody else can decide for them. '
-             'Ask an administrator to give someone Task Management “Approve”.', 409)
+        fail(_message('{p0} can’t approve progress any more, and nobody else can decide for them. Ask an administrator to give someone Task Management “Approve”.', p0=self.name_of(dm.assigner_of(t))), 409)
 
     def shown(self, field, v):
         if v is None or v == '' or (isinstance(v, list) and not v):
-            return 'Nobody' if field == 'supporters' else '—'
+            return _message('Nobody') if field == 'supporters' else '—'
         if field in ('start_date', 'due_date', 'recurrence_until'):
             return dm.human(v)
         if field == 'priority':
@@ -387,17 +385,17 @@ class TaskService:
     @staticmethod
     def change_summary(kind, changes):
         if kind == 'COMPLETE':
-            return 'mark it completed'
+            return _message('mark it completed')
         if kind == 'CANCEL':
-            return 'cancel it'
+            return _message('cancel it')
         return ' · '.join(f"{c['label'].lower()} changed" if c['field'] in ('description', 'department_note')
                           else f"{c['label'].lower()} {c['from_text']} → {c['to_text']}" for c in changes)
 
     def request_change(self, t, kind, actor, source, approver, changes=(), payload=None, note='', quiet=False):
         pending = self.pending_change(t['id'])
         if pending:
-            fail('You already asked for a change to this task. Wait for the answer, or withdraw it first.' if pending['requested_by'] == actor
-                 else f"{self.name_of(pending['requested_by'])}’s change to this task is waiting for {self.name_of(pending['approver_id'])}. Wait for the answer first.", 409)
+            fail(_message('You already asked for a change to this task. Wait for the answer, or withdraw it first.') if pending['requested_by'] == actor
+                 else _message('{p0}’s change to this task is waiting for {p1}. Wait for the answer first.', p0=self.name_of(pending['requested_by']), p1=self.name_of(pending['approver_id'])), 409)
         key, at = next_id('tm-change', 'CHG'), timezone.now()
         side = 'PIC' if actor == t['pic_id'] else 'ASSIGNER'
         summary = self.change_summary(kind, list(changes))
@@ -406,12 +404,12 @@ class TaskService:
                                          base_version=t['version'], decision_note='', source=source, version=0, created_at=at, updated_at=at)
         asked = 'approve: ' + summary if kind == 'UPDATE' else summary
         if not quiet:
-            self.history(t, 'change_request', t, actor, source, f"Asked {self.name_of(approver)} to {asked}{' · ' + note if note else ''}")
-            self.notify([approver], 'change_request', actor, f"Approval needed: {t['title']}",
-                        f"{self.name_of(actor)} asks to {'change ' + summary if kind == 'UPDATE' else summary}{' · ' + note if note else ''} · approve or reject",
+            self.history(t, 'change_request', t, actor, source, _message('Asked {p0} to {p1}{p2}', p0=self.name_of(approver), p1=asked, p2=' · ' + note if note else ''))
+            self.notify([approver], 'change_request', actor, _message('Approval needed: {p0}', p0=t['title']),
+                        _message('{p0} asks to {p1}{p2} · approve or reject', p0=self.name_of(actor), p1='change ' + summary if kind == 'UPDATE' else summary, p2=' · ' + note if note else ''),
                         task=t)
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Change requested',
-                 f"{t['title']} · {CHANGE_WORD[kind]} · to {self.name_of(approver)}{' · ' + note if note else ''}")
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Change requested'),
+                 _message('{p0} · {p1} · to {p2}{p3}', p0=t['title'], p1=CHANGE_WORD[kind], p2=self.name_of(approver), p3=' · ' + note if note else ''))
         return key
 
     def settle_change(self, cr, status, actor, source, note=''):
@@ -422,11 +420,11 @@ class TaskService:
             q = row(DueDateRequest.objects.filter(id=payload['due_request_id']).first())
             t = row(Task.objects.filter(id=cr['task_id']).first())
             if q and q['status'] == 'APPROVED' and t:
-                why = (f"{self.name_of(actor)} rejected the new date{': ' + note if note else ''}" if status == 'REJECTED'
-                       else 'The change was withdrawn' if status == 'WITHDRAWN' else note or 'The change could no longer apply')
+                why = (_message('{p0} rejected the new date{p1}', p0=self.name_of(actor), p1=': ' + note if note else '') if status == 'REJECTED'
+                       else _message('The change was withdrawn') if status == 'WITHDRAWN' else note or _message('The change could no longer apply'))
                 DueDateRequest.objects.filter(id=q['id']).update(status='DECLINED', decision_note=clip(why, 1000), decided_by_id=actor,
                                                                  decided_at=timezone.now(), version=q['version'] + 1, updated_at=timezone.now())
-                self.notify([q['requested_by']], 'due_declined', actor, f"New due date not applied: {t['title']}", why, task=t, due=q)
+                self.notify([q['requested_by']], 'due_declined', actor, _message('New due date not applied: {p0}', p0=t['title']), why, task=t, due=q)
 
     def end_due_requests(self, t, status, why, actor, requester=None):
         qs = DueDateRequest.objects.filter(task_id=t['id'], status='PENDING')
@@ -436,7 +434,7 @@ class TaskService:
             DueDateRequest.objects.filter(id=q['id']).update(status=status, decision_note=why, decided_by_id=actor if status == 'DECLINED' else None,
                                                              decided_at=timezone.now(), version=q['version'] + 1, updated_at=timezone.now())
             self.notify([q['requested_by'] if status == 'DECLINED' else q['decide_by']], 'due_declined' if status == 'DECLINED' else 'task_updated',
-                        actor, f"{'Due date request declined' if status == 'DECLINED' else 'Due date request withdrawn'}: {t['title']}", why, task=t, due=q)
+                        actor, f"{_message('Due date request declined') if status == 'DECLINED' else _message('Due date request withdrawn')}: {t['title']}", why, task=t, due=q)
 
     def task_input(self, t):
         """A task as the edit form sends it, so an approved change can be applied on top of the task as it is now."""
@@ -483,7 +481,7 @@ class TaskService:
     def relation(related_type, related_id):
         if not related_type:
             return {'related_type': '', 'related_id': None, 'contact_id': None}
-        fail('Links to CRM and Operations records are not available in this installation.', 403)
+        fail(_message('Links to CRM and Operations records are not available in this installation.'), 403)
 
     # ============================================================ create / edit a task
     def save_task(self, d, actor, source, opts=None):
@@ -498,15 +496,15 @@ class TaskService:
             duplicate = row(Task.objects.filter(creation_key=creation_key).first())
             if duplicate:
                 if duplicate['workspace_id'] != d.get('workspace_id'):
-                    fail('Creation key already belongs to another workspace.')
-                return {'id': duplicate['id'], 'type': 'tm_task', 'message': 'Task already created.'}
+                    fail(_message('Creation key already belongs to another workspace.'))
+                return {'id': duplicate['id'], 'type': 'tm_task', 'message': _message('Task already created.')}
         w = self.active_workspace(old['workspace_id'] if old else d.get('workspace_id'))
         from .policy import validate_visibility, validate_manager
         visibility = validate_visibility(self.gov, actor, d, old, w)
         key = old['id'] if old else next_id('tm-task', 'TASK')
         if not old and not self.gov.can_create_resource(actor, w) and not (
                 opts.get('requestId') and self.gov.can_create_resource(opts.get('memberAuthority'), w)):
-            fail('Join this workspace before creating work in it.', 403)
+            fail(_message('Join this workspace before creating work in it.'), 403)
         pic = d['pic_id'] if 'pic_id' in d else MISSING
         supporters = d['supporter_ids'] if 'supporter_ids' in d else MISSING
         if pic is MISSING and isinstance(d.get('assignee_ids'), list):
@@ -521,13 +519,13 @@ class TaskService:
         if old and supporters is MISSING:
             supporters = previous_active
         if pic is MISSING or js_falsy(pic):
-            fail('Choose the person in charge.')
+            fail(_message('Choose the person in charge.'))
         pic = self.lookup(pic) if isinstance(pic, str) and old and pic == old['pic_id'] else self.assignable(pic)
         if supporters is not MISSING and supporters is not None and not isinstance(supporters, list):
             fail('Select the supporting people.')
         supporters = list(dict.fromkeys(s for s in ([] if supporters in (MISSING, None) else supporters) if s and s != pic))
         if len(supporters) > 50:
-            fail('Choose up to 50 supporting people.')
+            fail(_message('Choose up to 50 supporting people.'))
         for s in supporters:
             if s not in previous_active:
                 self.assignable(s)
@@ -537,15 +535,15 @@ class TaskService:
         for target in [pic, *supporters, reviewer]:
             self.gov.check_collaborator(opts.get('memberAuthority') or actor, w, target, existing=bool(old) and target in known)
         if (old or {}).get('activity_id') or (not old and d.get('activity_id')):
-            fail('Links to CRM activities are not available in this installation.', 403)
+            fail(_message('Links to CRM activities are not available in this installation.'), 403)
         rel = self.relation(d.get('related_type'), d.get('related_id'))
-        start, due = date_text(d.get('start_date'), 'Start date'), date_text(d.get('due_date'), 'Due date')
+        start, due = date_text(d.get('start_date'), _message('Start date')), date_text(d.get('due_date'), _message('Due date'))
         if due < start:
-            fail('Due date cannot be before start date.')
+            fail(_message('Due date cannot be before start date.'))
         if d.get('recurrence') is None:
             recurrence = (old.get('recurrence') or '') if old else ''
         else:
-            recurrence = choice(js_string(d['recurrence']), list(dm.RECURRENCE), 'repeat option')
+            recurrence = choice(js_string(d['recurrence']), list(dm.RECURRENCE), _message('repeat option'))
         try:
             rule = d['recurrence_rule'] if d.get('recurrence_rule') is not None else (old or {}).get('recurrence_rule')
             if move_series(d):
@@ -559,9 +557,9 @@ class TaskService:
         elif 'recurrence_until' not in d:
             until = (old or {}).get('recurrence_until') or None
         else:
-            until = date_text(d['recurrence_until'], 'Repeat until') if d['recurrence_until'] else None
+            until = date_text(d['recurrence_until'], _message('Repeat until')) if d['recurrence_until'] else None
         if until and until < due:
-            fail('“Repeat until” must be on or after the due date.')
+            fail(_message('“Repeat until” must be on or after the due date.'))
         description = d['expectation'] if 'description' not in d and 'expectation' in d else d.get('description')
         values = {'workspace_id': w['id'], 'activity_id': None, **rel, 'title': text(d.get('title'), 'Task title', 300, True),
                   'description': text(description, 'Expectation', 8000, not old), 'start_date': start, 'due_date': due,
@@ -573,7 +571,7 @@ class TaskService:
         values['visibility'] = visibility
         values['governing_manager_id'] = validate_manager(self.gov, actor, d, old, w, visibility)
         if visibility == 'PERSONAL' and ({pic, reviewer, *supporters} - {actor if not old else old['created_by']}):
-            fail('Personal tasks are owner only. Choose Public or Organizational before adding participants.', 422)
+            fail(_message('Personal tasks are owner only. Choose Public or Organizational before adding participants.'), 422)
         reviewer_changed = not old or reviewer != old['reviewer_id']
         reviewer_self = reviewer == actor or opts.get('reviewerAccepted') == reviewer
         reviewer_values = ({'reviewer_status': 'ACCEPTED' if reviewer_self else 'PENDING', 'reviewer_responded_at': now() if reviewer_self else None,
@@ -581,11 +579,11 @@ class TaskService:
         roles = None
         if not old:
             if d.get('status') in ('IN_REVIEW', 'CANCELLED'):
-                fail('New tasks start as Not started, In progress or Completed.')
-            status = choice(d.get('status') or 'NOT_STARTED', ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'], 'starting status')
+                fail(_message('New tasks start as Not started, In progress or Completed.'))
+            status = choice(d.get('status') or 'NOT_STARTED', ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'], _message('starting status'))
             if status != 'NOT_STARTED' and pic != actor:
-                fail('Only the person in charge can start or complete a task. Create it as Not started; they can accept it and record progress.', 403)
-            progress = 100 if status == 'COMPLETED' else 0 if status == 'NOT_STARTED' else integer(d.get('progress') or 0, 0, 99, 'progress (0–99 until completed)')
+                fail(_message('Only the person in charge can start or complete a task. Create it as Not started; they can accept it and record progress.'), 403)
+            progress = 100 if status == 'COMPLETED' else 0 if status == 'NOT_STARTED' else integer(d.get('progress') or 0, 0, 99, _message('progress (0–99 until completed)'))
             accepted = pic == actor or opts.get('accepted')
             plan = {'scheduled_due': due, 'series_anchor': int(due[8:10])} if recurrence else {}
             reminders = [1] if d.get('reminder_days') is None else self.reminder_input(d['reminder_days'])
@@ -598,15 +596,15 @@ class TaskService:
                  'reminder_days': jtext(reminders)}
             insert(Task, t)
             t = self.task(key)
-            self.history(t, 'create', None, actor, source, f"From task request {opts['requestId']}" if opts.get('requestId')
-                         else f'Repeats {dm.RECURRENCE_SHORT[recurrence]}' if recurrence else '')
-            message = 'Task created.'
+            self.history(t, 'create', None, actor, source, _message('From task request {p0}', p0=opts['requestId']) if opts.get('requestId')
+                         else _message('Repeats {p0}', p0=dm.RECURRENCE_SHORT[recurrence]) if recurrence else '')
+            message = _message('Task created.')
         else:
             if d.get('status') not in (None, '') and d['status'] != old['status']:
-                fail('Use the task actions (accept, submit, close and so on) to change its status.', 409)
+                fail(_message('Use the task actions (accept, submit, close and so on) to change its status.'), 409)
             if d.get('progress') not in (None, ''):
                 if js_number(d['progress']) != old['progress']:
-                    fail('Use “Update progress” to change progress.', 409)
+                    fail(_message('Use “Update progress” to change progress.'), 409)
             roles = self.roles_for(old, actor)
             if not opts.get('applying'):
                 self.guard('edit', old, roles)
@@ -616,7 +614,7 @@ class TaskService:
             approver = None if opts.get('applying') else self.approver_for(old, actor, edit=True)
             if not opts.get('applying') and not approver:
                 if not any(changed(k) for k in values) and same_value(supporters, previous_active):
-                    return {'id': key, 'type': 'tm_task', 'unchanged': True, 'message': 'Nothing was changed.'}
+                    return {'id': key, 'type': 'tm_task', 'unchanged': True, 'message': _message('Nothing was changed.')}
                 # A one-sided task still asks another responsible party (its reviewer, creator, or the new reviewer or
                 # person in charge) to approve a detail change. Approval is about distinct people, not roles: when the
                 # person editing holds every one of those roles, nobody else has to agree, so the change is saved
@@ -629,7 +627,7 @@ class TaskService:
                         approver = who
                         break
                 if others and not approver:
-                    fail('Choose another active reviewer or person in charge to approve this change. The task remains unchanged until approved.', 409)
+                    fail(_message('Choose another active reviewer or person in charge to approve this change. The task remains unchanged until approved.'), 409)
             if approver:
                 diff, payload = [], {}
 
@@ -649,22 +647,22 @@ class TaskService:
                 if after_rel != before_rel:
                     put('related', before_rel, after_rel, {'related_type': values['related_type'], 'related_id': values['related_id']})
                 if not diff:
-                    return {'id': key, 'type': 'tm_task', 'message': 'Nothing was changed.', 'unchanged': True}
+                    return {'id': key, 'type': 'tm_task', 'message': _message('Nothing was changed.'), 'unchanged': True}
                 if move_series(d):
                     payload['move_series'] = True
                 note = text(d.get('change_note'), 'Reason for the change', 1000)
                 change_id = self.request_change(old, 'UPDATE', actor, source, approver, diff, payload, note)
                 return {'id': key, 'type': 'tm_task', 'change_id': change_id,
-                        'message': f'Sent to {self.name_of(approver)} for approval. Nothing changes until they approve.'}
+                        'message': _message('Sent to {p0} for approval. Nothing changes until they approve.', p0=self.name_of(approver))}
             if not roles['isGovernor'] and not opts.get('applying'):
                 locked = [k for k in ('title', 'start_date', 'due_date', 'priority', 'pic_id', 'reviewer_id', 'department', 'workspace_id',
                                       'recurrence', 'recurrence_rule', 'recurrence_until') if changed(k)]
                 if locked:
-                    fail('Only the task’s manager can change its title, dates, priority, department, repeat, person in charge or reviewer. Ask for a new due date instead.', 403)
+                    fail(_message('Only the task’s manager can change its title, dates, priority, department, repeat, person in charge or reviewer. Ask for a new due date instead.'), 403)
             extra = dict(reviewer_values) if reviewer_changed else self.confirm_reviewer(old, roles, now())
             if changed('pic_id'):
                 if old['status'] == 'IN_REVIEW':
-                    fail('Return or close the review before changing the person in charge.', 409)
+                    fail(_message('Return or close the review before changing the person in charge.'), 409)
                 extra.update({'accepted_at': (old['accepted_at'] or now()) if pic == actor else None, 'declined_at': None, 'declined_reason': ''})
             if changed('reviewer_id') and old['status'] == 'IN_REVIEW' and old['submitted_to'] == old['reviewer_id']:
                 extra['submitted_to'] = reviewer
@@ -691,18 +689,18 @@ class TaskService:
                 diff.append(self.change('related', before_rel, after_rel, f"{old['related_type']} {old['related_id']}" if old.get('related_id') else '—',
                                         f"{values['related_type']} {values['related_id']}" if values.get('related_id') else '—'))
             summary = clip(self.change_summary('UPDATE', diff), 1800)
-            approved = f" · approved by {self.name_of(opts['approvedBy'])}" if opts.get('approvedBy') else ''
-            self.history(t, 'edit', old, actor, source, f"{'Changed ' + summary if summary else 'Details saved'}{approved}")
+            approved = _message(' · approved by {p0}', p0=self.name_of(opts['approvedBy'])) if opts.get('approvedBy') else ''
+            self.history(t, 'edit', old, actor, source, f"{'Changed ' + summary if summary else _message('Details saved')}{approved}")
             if changed('pic_id'):
-                tail = ('' if t.get('accepted_at') else ' · please accept or reject' if t['status'] in dm.OPEN_TASK_STATUSES
-                        else f" · the task is {dm.TASK_STATUS[t['status']].lower()}; you are asked to accept it if it is reopened")
-                self.notify([pic], 'task_assigned', actor, f"New task: {t['title']}",
-                            f'{self.name_of(actor)} made you the person in charge · due {dm.human(due)}{tail}', task=t)
-                self.notify([old['pic_id']], 'task_updated', actor, f"Reassigned: {t['title']}", f'{self.name_of(pic)} is now the person in charge', task=t)
+                tail = ('' if t.get('accepted_at') else _message(' · please accept or reject') if t['status'] in dm.OPEN_TASK_STATUSES
+                        else _message(' · the task is {p0}; you are asked to accept it if it is reopened', p0=dm.TASK_STATUS[t['status']].lower()))
+                self.notify([pic], 'task_assigned', actor, _message('New task: {p0}', p0=t['title']),
+                            _message('{p0} made you the person in charge · due {p1}{p2}', p0=self.name_of(actor), p1=dm.human(due), p2=tail), task=t)
+                self.notify([old['pic_id']], 'task_updated', actor, f"Reassigned: {t['title']}", _message('{p0} is now the person in charge', p0=self.name_of(pic)), task=t)
             if changed('due_date'):
-                self.notify([pic, *supporters], 'task_updated', actor, f"New due date: {t['title']}",
-                            f"{self.name_of(actor)} changed the due date from {dm.human(old['due_date'])} to {dm.human(due)}", task=t)
-            message = 'Task saved.'
+                self.notify([pic, *supporters], 'task_updated', actor, _message('New due date: {p0}', p0=t['title']),
+                            _message('{p0} changed the due date from {p1} to {p2}', p0=self.name_of(actor), p1=dm.human(old['due_date']), p2=dm.human(due)), task=t)
+            message = _message('Task saved.')
         # Assignee rows: the person in charge, then supporting people (each with their answer).
         stamp, assignee_rows, invited, pic_prev = now(), [], [], prev_by.get(pic)
         assignee_rows.append({'task_id': key, 'staff_id': pic, 'status': 'ACCEPTED', 'invited_by': (pic_prev or {}).get('invited_by') or actor,
@@ -726,34 +724,34 @@ class TaskService:
         if old:
             for s in previous_active:
                 if s != pic and s not in supporters:
-                    self.end_due_requests(t, 'WITHDRAWN', f'{self.name_of(s)} no longer supports this task', actor, requester=s)
+                    self.end_due_requests(t, 'WITHDRAWN', _message('{p0} no longer supports this task', p0=self.name_of(s)), actor, requester=s)
         if not self.gov.governed(w):
             for s in [pic, *supporters]:
-                self.ensure_member(w['id'], s, actor, 'chosen for a task', authority=opts.get('memberAuthority'))
+                self.ensure_member(w['id'], s, actor, _message('chosen for a task'), authority=opts.get('memberAuthority'))
         if not old:
             if not opts.get('quietPic'):
-                self.notify([pic], 'task_assigned', actor, f"New task: {t['title']}",
-                            f"{self.name_of(actor)} made you the person in charge · due {dm.human(due)}{'' if t.get('accepted_at') else ' · please accept or reject'}", task=t)
+                self.notify([pic], 'task_assigned', actor, _message('New task: {p0}', p0=t['title']),
+                            _message('{p0} made you the person in charge · due {p1}{p2}', p0=self.name_of(actor), p1=dm.human(due), p2='' if t.get('accepted_at') else ' · please accept or reject'), task=t)
             steps = d['steps'] if isinstance(d.get('steps'), list) else d.get('checklist')
             if isinstance(steps, list):
                 items = [x for x in (text(x, 'Step', 300) for x in steps) if x]
                 if len(items) > MAX_CHECKS:
-                    fail(f'A task can have up to {MAX_CHECKS} steps.')
+                    fail(_message('A task can have up to {p0} steps.', p0=MAX_CHECKS))
                 for i, title in enumerate(items):
                     ChecklistItem.objects.create(id=next_id('tm-check', 'CHK'), task_id=key, position=i + 1, title=title, done=False,
                                                  created_by_id=actor, created_at=stamp)
         if not old and t['status'] == 'COMPLETED' and t.get('recurrence'):
             following = self.schedule_next(t, actor, source)
-            message += f" The next one is due {dm.human(following['due_date'])}." if following else ''
-        open_text = (' · please accept or reject' if t['status'] in dm.OPEN_TASK_STATUSES
-                     else f" · the task is {dm.TASK_STATUS[t['status']].lower()}; you can answer if it is reopened")
-        self.notify(invited, 'task_supporting', actor, f"Support request: {t['title']}",
-                    f"{self.name_of(actor)} asked you to support {'them' if pic == actor else self.name_of(pic)} · due {dm.human(due)}{open_text}", task=t)
+            message += _message(' The next one is due {p0}.', p0=dm.human(following['due_date'])) if following else ''
+        open_text = (_message(' · please accept or reject') if t['status'] in dm.OPEN_TASK_STATUSES
+                     else _message(' · the task is {p0}; you can answer if it is reopened', p0=dm.TASK_STATUS[t['status']].lower()))
+        self.notify(invited, 'task_supporting', actor, _message('Support request: {p0}', p0=t['title']),
+                    _message('{p0} asked you to support {p1} · due {p2}{p3}', p0=self.name_of(actor), p1='them' if pic == actor else self.name_of(pic), p2=dm.human(due), p3=open_text), task=t)
         if reviewer_changed and t.get('reviewer_status') == 'PENDING' and reviewer != pic:
-            self.notify([reviewer], 'task_reviewer', actor, f"Review request: {t['title']}",
-                        f'{self.name_of(actor)} asked you to review this task · {self.name_of(pic)} is in charge · due {dm.human(due)} · please accept or reject', task=t)
-        self.log(actor, 'task', key, w['id'], 'Task updated' if old else 'Task created',
-                 f"{t['title']} · {dm.TASK_STATUS[t['status']]} · {t['progress']}% · in charge {self.name_of(pic)}")
+            self.notify([reviewer], 'task_reviewer', actor, _message('Review request: {p0}', p0=t['title']),
+                        _message('{p0} asked you to review this task · {p1} is in charge · due {p2} · please accept or reject', p0=self.name_of(actor), p1=self.name_of(pic), p2=dm.human(due)), task=t)
+        self.log(actor, 'task', key, w['id'], _message('Task updated') if old else _message('Task created'),
+                 _message('{p0} · {p1} · {p2}% · in charge {p3}', p0=t['title'], p1=dm.TASK_STATUS[t['status']], p2=t['progress'], p3=self.name_of(pic)))
         return {'id': key, 'type': 'tm_task', 'message': message}
 
     # ============================================================ accept / reject
@@ -765,9 +763,9 @@ class TaskService:
             mine = [v for k, v in (('pic', roles['picState']), ('supporter', roles['supportStatus']), ('reviewer', roles['reviewerStatus']))
                     if v and (not role or k == role)]
             if verb == 'accept' and mine and all(s == 'ACCEPTED' for s in mine):
-                return {'id': t['id'], 'type': 'tm_task', 'message': 'You already accepted this task.', 'unchanged': True}
+                return {'id': t['id'], 'type': 'tm_task', 'message': _message('You already accepted this task.'), 'unchanged': True}
             if verb == 'decline' and mine and all(s == 'DECLINED' for s in mine):
-                return {'id': t['id'], 'type': 'tm_task', 'message': 'You already rejected this task.', 'unchanged': True}
+                return {'id': t['id'], 'type': 'tm_task', 'message': _message('You already rejected this task.'), 'unchanged': True}
             fail(block['message'], block['status'])
         at, who = now(), self.name_of(actor)
         note = text(nn(d.get('note'), d.get('reason')), 'Reason for rejecting', 1000, True) if verb == 'decline' else ''
@@ -778,42 +776,42 @@ class TaskService:
                 if verb == 'accept':
                     changes.update({'accepted_at': at, 'declined_at': None, 'declined_reason': '',
                                     'status': 'IN_PROGRESS' if t['status'] == 'NOT_STARTED' else t['status']})
-                    messages.append('Task accepted. It is now in progress.')
-                    tells.append(([self.active_reviewer(t), dm.assigner_of(t)], 'task_accepted', f"Accepted: {t['title']}", f'{who} accepted the task'))
+                    messages.append(_message('Task accepted. It is now in progress.'))
+                    tells.append(([self.active_reviewer(t), dm.assigner_of(t)], 'task_accepted', f"Accepted: {t['title']}", _message('{p0} accepted the task', p0=who)))
                 else:
                     changes.update({'declined_at': at, 'declined_reason': note})
-                    messages.append('Task rejected. Its manager has been told.')
+                    messages.append(_message('Task rejected. Its manager has been told.'))
                     tells.append(([self.active_reviewer(t), dm.assigner_of(t)], 'task_declined', f"Rejected: {t['title']}", f'{who}: {note}'))
             elif r == 'reviewer':
                 if verb == 'accept':
                     changes.update({'reviewer_status': 'ACCEPTED', 'reviewer_responded_at': at, 'reviewer_note': ''})
-                    messages.append('You are the reviewer of this task.')
-                    tells.append(([dm.assigner_of(t)], 'review_accepted', f"Reviewer confirmed: {t['title']}", f'{who} will review the task'))
+                    messages.append(_message('You are the reviewer of this task.'))
+                    tells.append(([dm.assigner_of(t)], 'review_accepted', _message('Reviewer confirmed: {p0}', p0=t['title']), _message('{p0} will review the task', p0=who)))
                 else:
                     changes.update({'reviewer_status': 'DECLINED', 'reviewer_responded_at': at, 'reviewer_note': note})
                     c = self.pending_change(t['id'])
                     if t['status'] == 'IN_REVIEW' and t.get('submitted_to') == actor:
                         if c and c['kind'] == 'COMPLETE' and c['requester_side'] == 'PIC' and c['approver_id'] != actor:
                             changes['submitted_to'] = c['approver_id']
-                            tells.append(([c['approver_id']], 'task_submitted', f"Approval needed: {t['title']}",
-                                          f"{self.name_of(t['submitted_by'])} asks to complete the task · {who} is no longer reviewing it"))
+                            tells.append(([c['approver_id']], 'task_submitted', _message('Approval needed: {p0}', p0=t['title']),
+                                          _message('{p0} asks to complete the task · {p1} is no longer reviewing it', p0=self.name_of(t['submitted_by']), p1=who)))
                         else:
                             changes.update({'status': 'IN_PROGRESS', **UNSUBMITTED})
                     if c and c['approver_id'] == actor:
                         closing = c
-                    messages.append('You are no longer the reviewer. The people on the task have been told.')
+                    messages.append(_message('You are no longer the reviewer. The people on the task have been told.'))
                     tells.append(([dm.assigner_of(t), t['pic_id'], t.get('submitted_by') if t['status'] == 'IN_REVIEW' else None], 'review_declined',
-                                  f"Review rejected: {t['title']}", f'{who}: {note}'))
+                                  _message('Review rejected: {p0}', p0=t['title']), f'{who}: {note}'))
             else:
                 TaskAssignee.objects.filter(task_id=t['id'], staff_id=actor).update(status='ACCEPTED' if verb == 'accept' else 'DECLINED',
                                                                                     responded_at=at, response_note=note)
                 inviter = self.on_task(t, (support_row or {}).get('invited_by')) or dm.assigner_of(t)
                 if verb == 'accept':
-                    messages.append('You are supporting this task.')
-                    tells.append(([inviter], 'support_accepted', f"Supporting: {t['title']}", f'{who} accepted to support the task'))
+                    messages.append(_message('You are supporting this task.'))
+                    tells.append(([inviter], 'support_accepted', f"Supporting: {t['title']}", _message('{p0} accepted to support the task', p0=who)))
                 else:
-                    messages.append('You are no longer supporting this task. The people on it have been told.')
-                    tells.append(([inviter, t['pic_id'], self.active_reviewer(t)], 'support_declined', f"Support rejected: {t['title']}", f'{who}: {note}'))
+                    messages.append(_message('You are no longer supporting this task. The people on it have been told.'))
+                    tells.append(([inviter, t['pic_id'], self.active_reviewer(t)], 'support_declined', _message('Support rejected: {p0}', p0=t['title']), f'{who}: {note}'))
         following = t
         if changes:
             following = self.save_row(t, {**changes, 'version': t['version'] + 1, 'updated_at': at})
@@ -826,18 +824,18 @@ class TaskService:
             for q in rows(DueDateRequest.objects.filter(task_id=t['id'], status='PENDING', decide_by_id=actor)):
                 if decider and decider != actor:
                     DueDateRequest.objects.filter(id=q['id']).update(decide_by_id=decider, version=q['version'] + 1, updated_at=timezone.now())
-                    self.notify([decider], 'due_new', actor, f"New due date requested: {t['title']}",
-                                f"{self.name_of(q['requested_by'])} asks to move it from {dm.human(q['current_due_date'])} to {dm.human(q['proposed_due_date'])}: {q['reason']} · {who} is no longer the reviewer",
+                    self.notify([decider], 'due_new', actor, _message('New due date requested: {p0}', p0=t['title']),
+                                _message('{p0} asks to move it from {p1} to {p2}: {p3} · {p4} is no longer the reviewer', p0=self.name_of(q['requested_by']), p1=dm.human(q['current_due_date']), p2=dm.human(q['proposed_due_date']), p3=q['reason'], p4=who),
                                 task=following, due=q)
         if closing:
-            self.settle_change(closing, 'CLOSED', actor, source, f'{who} is no longer the reviewer')
-            self.notify([closing['requested_by']], 'change_rejected', actor, f"Change closed: {t['title']}",
-                        f'{who} is no longer the reviewer, so your request was closed. Ask again if it is still needed.', task=following)
+            self.settle_change(closing, 'CLOSED', actor, source, _message('{p0} is no longer the reviewer', p0=who))
+            self.notify([closing['requested_by']], 'change_rejected', actor, _message('Change closed: {p0}', p0=t['title']),
+                        _message('{p0} is no longer the reviewer, so your request was closed. Ask again if it is still needed.', p0=who), task=following)
         for ids, kind, title, body in tells:
             self.notify(ids, kind, actor, title, body, task=following)
-        labels = {'pic': 'person in charge', 'supporter': 'supporting person', 'reviewer': 'reviewer'}
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Task accepted' if verb == 'accept' else 'Task rejected',
-                 f"{t['title']} · as {' and '.join(labels[r] for r in targets)}{' · ' + note if note else ''}")
+        labels = {'pic': _message('person in charge'), 'supporter': _message('supporting person'), 'reviewer': 'reviewer'}
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Task accepted') if verb == 'accept' else _message('Task rejected'),
+                 _message('{p0} · as {p1}{p2}', p0=t['title'], p1=' and '.join(labels[r] for r in targets), p2=' · ' + note if note else ''))
         return {'id': t['id'], 'type': 'tm_task', 'message': ' '.join(messages)}
 
     # ============================================================ workflow actions
@@ -856,20 +854,20 @@ class TaskService:
             return self.respond(verb, t, roles, d, actor, source)
         is_open = t['status'] in dm.OPEN_TASK_STATUSES
         if verb == 'stuck' and (roles['isPic'] or roles['isSupporter']) and t.get('stuck_at') and is_open:
-            return done('This task is already marked as stuck.')
+            return done(_message('This task is already marked as stuck.'))
         if verb == 'submit' and t['status'] == 'IN_REVIEW' and t.get('submitted_by') == actor:
-            return done('This task is already waiting for review.')
+            return done(_message('This task is already waiting for review.'))
         if verb == 'close' and t['status'] == 'COMPLETED' and (roles['isPic'] or t.get('closed_by') == actor):
-            return done('This task is already closed.')
+            return done(_message('This task is already closed.'))
         if verb == 'cancel' and t['status'] == 'CANCELLED' and (roles['isGovernor'] or roles['isPic']):
-            return done('This task is already cancelled.')
+            return done(_message('This task is already cancelled.'))
         if verb == 'reopen' and is_open and (roles['isGovernor'] or roles['isPic']):
-            return done('This task is already open.')
+            return done(_message('This task is already open.'))
         if verb == 'resume' and not t.get('stuck_at') and is_open and (roles['isPic'] or roles['isSupporter'] or roles['isGovernor']):
-            return done('This task is not marked as stuck.')
+            return done(_message('This task is not marked as stuck.'))
         if verb == 'note' and isinstance(d.get('note'), str) and d['note'].strip() and TaskHistory.objects.filter(
                 task_id=t['id'], kind='note', actor_id=actor, note=d['note'].strip(), created_at__gt=timezone.now() - timedelta(seconds=15)).exists():
-            return done('Comment added.')
+            return done(_message('Comment added.'))
         if not applying:
             self.guard(verb, t, roles)
         cr = self.pending_change(t['id'])
@@ -879,67 +877,67 @@ class TaskService:
             if approver:
                 note = text(nn(d.get('note'), d.get('reason')), 'Reason for reopening', 2000, True)
                 change_id = self.request_change(t, 'UPDATE', actor, source, approver,
-                                                [self.change('status', t['status'], 'REOPENED', dm.task_state_label(t), 'Reopened')],
+                                                [self.change('status', t['status'], 'REOPENED', dm.task_state_label(t), _message('Reopened'))],
                                                 {'reopen': {'note': note}}, note)
                 return {'id': t['id'], 'type': 'tm_task', 'change_id': change_id,
-                        'message': f"Sent to {self.name_of(approver)} for approval. The task stays {dm.TASK_STATUS[t['status']].lower()} until they approve."}
+                        'message': _message('Sent to {p0} for approval. The task stays {p1} until they approve.', p0=self.name_of(approver), p1=dm.TASK_STATUS[t['status']].lower())}
         if not applying and (verb == 'cancel' or (verb == 'close' and t['status'] != 'IN_REVIEW' and not roles['isPic'])):
             approver = self.approver_for(t, actor)
             if approver:
                 cancel = verb == 'cancel'
-                note = text(nn(d.get('note'), d.get('reason')), 'Cancellation reason' if cancel else 'Closing note', 1000 if cancel else 2000, cancel)
+                note = text(nn(d.get('note'), d.get('reason')), _message('Cancellation reason') if cancel else _message('Closing note'), 1000 if cancel else 2000, cancel)
                 change_id = self.request_change(
                     t, 'CANCEL' if cancel else 'COMPLETE', actor, source, approver,
                     [self.change('status', t['status'], 'CANCELLED' if cancel else 'COMPLETED', f"{dm.task_state_label(t)} · {t['progress']}%",
-                                 'Cancelled' if cancel else 'Completed · 100%')],
+                                 _message('Cancelled') if cancel else 'Completed · 100%')],
                     {'reason': note, 'keep_series': flag(d.get('keep_series'))} if cancel else {'note': note}, note)
                 return {'id': t['id'], 'type': 'tm_task', 'change_id': change_id,
-                        'message': f'Sent to {self.name_of(approver)} for approval. The task stays open until they approve.'}
+                        'message': _message('Sent to {p0} for approval. The task stays open until they approve.', p0=self.name_of(approver))}
         at, changes = now(), {}
 
         def note_text(label, required, maximum=2000):
             return text(nn(d.get('note'), d.get('reason')), label, maximum, required)
         note, message, tell, kind, title, body, settle, ask_approval, also = '', '', [], '', '', '', None, None, []
         who = self.name_of(actor)
-        approved_by = f" · approved by {self.name_of(opts.get('approvedBy'))}" if applying else ''
+        approved_by = _message(' · approved by {p0}', p0=self.name_of(opts.get('approvedBy'))) if applying else ''
         if verb != 'note':
             changes.update(self.confirm_reviewer(t, roles, at))
             if verb in ('progress', 'stuck', 'resume', 'submit'):
                 self.confirm_support(t, roles, actor, at)
         if verb == 'progress':
             if d.get('progress') in (None, ''):
-                fail('Enter the progress (0–99%).')
-            progress = integer(d['progress'], 0, 99, 'progress: 0–99% (close or submit the task when the work is finished)')
-            note = note_text('Progress note', False)
+                fail(_message('Enter the progress (0–99%).'))
+            progress = integer(d['progress'], 0, 99, _message('progress: 0–99% (close or submit the task when the work is finished)'))
+            note = note_text(_message('Progress note'), False)
             if progress == t['progress'] and t['status'] == 'IN_PROGRESS' and not note:
-                return done(f'Progress is already {progress}%.')
+                return done(_message('Progress is already {p0}%.', p0=progress))
             if not applying and progress != t['progress']:
                 approver = self.progress_approver(t, actor)
                 if approver:
                     change_id = self.request_change(t, 'UPDATE', actor, source, approver, [self.change('progress', t['progress'], progress)],
                                                     {'progress': progress, 'note': note}, note)
                     return {'id': t['id'], 'type': 'tm_task', 'change_id': change_id,
-                            'message': f"Sent to {self.name_of(approver)} for approval. Progress stays {t['progress']}% until they approve."}
+                            'message': _message('Sent to {p0} for approval. Progress stays {p1}% until they approve.', p0=self.name_of(approver), p1=t['progress'])}
             changes.update({'progress': progress, 'status': 'IN_PROGRESS' if t['status'] == 'NOT_STARTED' else t['status']})
             if roles['isPic'] and not t.get('accepted_at'):
                 changes.update({'accepted_at': at, 'declined_at': None, 'declined_reason': ''})
-            message = f'Progress updated to {progress}%.'
+            message = _message('Progress updated to {p0}%.', p0=progress)
             if note and not roles['isPic']:
-                tell, kind, title, body = [t['pic_id']], 'task_progress', f"Progress {progress}%: {t['title']}", f'{who}: {note}'
+                tell, kind, title, body = [t['pic_id']], 'task_progress', _message('Progress {p0}%: {p1}', p0=progress, p1=t['title']), f'{who}: {note}'
         elif verb == 'stuck':
-            note = note_text('What is blocking the task', True, 1000)
+            note = note_text(_message('What is blocking the task'), True, 1000)
             changes.update({'stuck_at': at, 'stuck_by': actor, 'stuck_reason': note})
             if roles['isPic'] and not t.get('accepted_at'):
                 changes['accepted_at'] = at
-            message = 'Task marked as stuck. The people involved have been told.'
+            message = _message('Task marked as stuck. The people involved have been told.')
             tell, kind, title, body = self.everyone(t), 'task_stuck', f"Stuck: {t['title']}", f'{who}: {note}'
         elif verb == 'resume':
-            note = note_text('Note', False)
+            note = note_text(_message('Note'), False)
             changes.update(CLEARED)
-            message = 'Task resumed.'
-            tell, kind, title, body = self.everyone(t), 'task_resumed', f"Resumed: {t['title']}", f'{who}: {note}' if note else f'{who} resumed the work'
+            message = _message('Task resumed.')
+            tell, kind, title, body = self.everyone(t), 'task_resumed', f"Resumed: {t['title']}", f'{who}: {note}' if note else _message('{p0} resumed the work', p0=who)
         elif verb == 'submit':
-            note = note_text('Note for the reviewer', False)
+            note = note_text(_message('Note for the reviewer'), False)
             to, approver = t['pic_id'], None
             if roles['isPic']:
                 path = dm.completion_path(t)
@@ -952,60 +950,60 @@ class TaskService:
                 changes['accepted_at'] = at
             final = bool(ask_approval) and to == approver
             if ask_approval:
-                message = (f'Sent to {self.name_of(approver)} to approve completing it.' if final else
-                           f'Submitted to {self.name_of(to)} for review. {self.name_of(approver)} then approves completing it.')
+                message = (_message('Sent to {p0} to approve completing it.', p0=self.name_of(approver)) if final else
+                           _message('Submitted to {p0} for review. {p1} then approves completing it.', p0=self.name_of(to), p1=self.name_of(approver)))
             else:
-                message = f'Submitted to {self.name_of(to)} for review.'
+                message = _message('Submitted to {p0} for review.', p0=self.name_of(to))
             tell, kind = [to], 'task_submitted'
-            title = f"{'Approval needed' if final else 'Review requested'}: {t['title']}"
-            body = f"{who} {'asks to complete the task' if final else 'submitted the task to you'}{': ' + note if note else ''}"
+            title = f"{_message('Approval needed') if final else _message('Review requested')}: {t['title']}"
+            body = f"{who} {_message('asks to complete the task') if final else _message('submitted the task to you')}{': ' + note if note else ''}"
         elif verb == 'pass':
-            note = note_text('Note for the approver', False)
+            note = note_text(_message('Note for the approver'), False)
             approver = (completion or {}).get('approver_id') or dm.completion_path(t)['approver']
             changes['submitted_to'] = approver
-            message = f'Passed to {self.name_of(approver)} to approve completing it.'
-            tell, kind, title = [approver], 'task_submitted', f"Approval needed: {t['title']}"
-            body = f"{who} reviewed the work{': ' + note if note else ''} · {self.name_of(t['submitted_by'])} asks to complete the task"
+            message = _message('Passed to {p0} to approve completing it.', p0=self.name_of(approver))
+            tell, kind, title = [approver], 'task_submitted', _message('Approval needed: {p0}', p0=t['title'])
+            body = _message('{p0} reviewed the work{p1} · {p2} asks to complete the task', p0=who, p1=': ' + note if note else '', p2=self.name_of(t['submitted_by']))
             also.append(([t['submitted_by']], 'task_passed', f"Reviewed: {t['title']}",
-                         f"{who} passed your work to {self.name_of(approver)} for approval{': ' + note if note else ''}"))
+                         _message('{p0} passed your work to {p1} for approval{p2}', p0=who, p1=self.name_of(approver), p2=': ' + note if note else '')))
         elif verb == 'return':
-            note = note_text('What still needs to be done', True)
+            note = note_text(_message('What still needs to be done'), True)
             changes.update({'status': 'IN_PROGRESS', **UNSUBMITTED})
             if completion:
                 settle = (completion, 'REJECTED', note)
-            message = f"Returned to {self.name_of(t['submitted_by'])}."
+            message = _message('Returned to {p0}.', p0=self.name_of(t['submitted_by']))
             tell, kind, title, body = [t['submitted_by'], t['pic_id'], t['submitted_to']], 'task_returned', f"Returned: {t['title']}", f'{who}: {note}'
         elif verb == 'close':
-            note = note_text('Closing note', False)
+            note = note_text(_message('Closing note'), False)
             changes.update({'status': 'COMPLETED', 'progress': 100, 'completed_at': at, 'closed_by': actor,
                             'accepted_at': t.get('accepted_at') or at, **CLEARED, **UNSUBMITTED})
             if completion:
                 settle = (completion, 'APPROVED', note)
-            message = 'Completion approved. The task is completed.' if applying or completion else 'Task closed as completed.'
+            message = _message('Completion approved. The task is completed.') if applying or completion else _message('Task closed as completed.')
             tell, kind, title = [*self.everyone(t), t.get('submitted_by'), t.get('submitted_to')], 'task_closed', f"Completed: {t['title']}"
-            body = f"{who} {'approved completing the task' if completion else 'closed the task'}{approved_by}{': ' + note if note else ''}"
+            body = f"{who} {_message('approved completing the task') if completion else _message('closed the task')}{approved_by}{': ' + note if note else ''}"
         elif verb == 'cancel':
-            note = note_text('Cancellation reason', True, 1000)
+            note = note_text(_message('Cancellation reason'), True, 1000)
             changes.update({'status': 'CANCELLED', 'reason': note, 'closed_by': actor, **CLEARED, **UNSUBMITTED})
-            message = 'Cancellation approved. The task is cancelled.' if applying else 'Task cancelled.'
+            message = _message('Cancellation approved. The task is cancelled.') if applying else _message('Task cancelled.')
             tell, kind, title, body = self.everyone(t), 'task_cancelled', f"Cancelled: {t['title']}", f'{who}: {note}{approved_by}'
         elif verb == 'reopen':
-            note = note_text('Reason for reopening', True)
+            note = note_text(_message('Reason for reopening'), True)
             changes.update({'status': 'IN_PROGRESS' if t.get('accepted_at') else 'NOT_STARTED',
                             'progress': min(t['progress'], 99) if t.get('accepted_at') else 0, 'completed_at': None, 'closed_by': None, 'reason': ''})
-            message = 'Task reopened.'
+            message = _message('Task reopened.')
             tell, kind, title, body = self.everyone(t), 'task_reopened', f"Reopened: {t['title']}", f'{who}: {note}'
         elif verb == 'note':
             note = text(d.get('note'), 'Comment', 2000, True)
-            message = 'Comment added.'
-            tell, kind, title, body = [*self.everyone(t), t.get('submitted_to')], 'task_note', f"Comment on {t['title']}", f'{who}: {note}'
+            message = _message('Comment added.')
+            tell, kind, title, body = [*self.everyone(t), t.get('submitted_to')], 'task_note', _message('Comment on {p0}', p0=t['title']), f'{who}: {note}'
         following = t if verb == 'note' else self.save_row(t, {**changes, 'version': t['version'] + 1, 'updated_at': at})
-        history_note = ' · '.join(x for x in (note, f"approved by {self.name_of(opts.get('approvedBy'))}") if x) if applying else note
+        history_note = ' · '.join(x for x in (note, _message('approved by {p0}', p0=self.name_of(opts.get('approvedBy')))) if x) if applying else note
         self.history(following, verb, t, actor, source, history_note)
         if settle:
             self.settle_change(settle[0], settle[1], actor, source, settle[2])
         if verb in ('close', 'cancel'):
-            self.end_due_requests(following, 'DECLINED', 'The task was completed' if verb == 'close' else 'The task was cancelled', actor)
+            self.end_due_requests(following, 'DECLINED', _message('The task was completed') if verb == 'close' else _message('The task was cancelled'), actor)
         if ask_approval:
             self.request_change(following, 'COMPLETE', actor, source, ask_approval,
                                 [self.change('status', t['status'], 'COMPLETED', f"{dm.task_state_label(t)} · {t['progress']}%", 'Completed · 100%')],
@@ -1013,9 +1011,9 @@ class TaskService:
         next_task = None
         if t.get('recurrence') and not t.get('next_task_id') and (verb == 'close' or (verb == 'cancel' and flag(d.get('keep_series')))):
             next_task = self.schedule_next(following, actor, source)
-            message += f" The next one is due {dm.human(next_task['due_date'])}." if next_task else ' That was the last one in this series.'
+            message += _message(' The next one is due {p0}.', p0=dm.human(next_task['due_date'])) if next_task else _message(' That was the last one in this series.')
         elif verb == 'cancel' and t.get('recurrence') and not t.get('next_task_id'):
-            message += ' The series stops here.'
+            message += _message(' The series stops here.')
         if kind:
             self.notify(tell, kind, actor, title, body, task=following)
         for ids, k, ti, bo in also:
@@ -1080,17 +1078,17 @@ class TaskService:
             if a['staff_id'] not in (t['pic_id'], pic) and a['status'] != 'DECLINED' and self._ok_assignable(a['staff_id']):
                 insert(TaskAssignee, {'task_id': key, **a})
         if pic != t['pic_id']:
-            self.ensure_member(n['workspace_id'], pic, actor, 'put in charge of a task', system=True)
+            self.ensure_member(n['workspace_id'], pic, actor, _message('put in charge of a task'), system=True)
         for i, title in enumerate(ChecklistItem.objects.filter(task_id=t['id']).order_by('position').values_list('title', flat=True)):
             ChecklistItem.objects.create(id=next_id('tm-check', 'CHK'), task_id=key, position=i + 1, title=title, done=False,
                                          created_by_id=actor, created_at=stamp)
         Task.objects.filter(id=t['id']).update(next_task_id=key)
         n = self.task(key)
         self.history(n, 'create', None, actor, source,
-                     f"Repeats {dm.RECURRENCE_SHORT[rule]} · follows {t['id']}" + ('' if pic_kept else f" · {self.name_of(t['pic_id'])} can no longer be given tasks"))
-        self.notify([n['pic_id']], 'task_repeat', actor, f"Next up: {n['title']}",
-                    f"Repeats {dm.RECURRENCE_SHORT[rule]} · due {dm.human(due)}{'' if n.get('accepted_at') else ' · please accept or reject'}", task=n)
-        self.log(actor, 'task', key, n['workspace_id'], 'Repeating task created', f"{n['title']} · due {due} · follows {t['id']}")
+                     _message('Repeats {p0} · follows {p1}', p0=dm.RECURRENCE_SHORT[rule], p1=t['id']) + ('' if pic_kept else _message(' · {p0} can no longer be given tasks', p0=self.name_of(t['pic_id']))))
+        self.notify([n['pic_id']], 'task_repeat', actor, _message('Next up: {p0}', p0=n['title']),
+                    _message('Repeats {p0} · due {p1}{p2}', p0=dm.RECURRENCE_SHORT[rule], p1=dm.human(due), p2='' if n.get('accepted_at') else ' · please accept or reject'), task=n)
+        self.log(actor, 'task', key, n['workspace_id'], _message('Repeating task created'), _message('{p0} · due {p1} · follows {p2}', p0=n['title'], p1=due, p2=t['id']))
         return n
 
     # ------------------------------------------------------------ hand over, reminders
@@ -1105,16 +1103,16 @@ class TaskService:
         if not applying:
             self.guard('handover', t, roles)
         if not d.get('to_id'):
-            fail('Choose who should take charge.')
+            fail(_message('Choose who should take charge.'))
         to = self.assignable(d['to_id'])
         asked = self.pending_change(t['id'])
         if not applying and asked and asked['requested_by'] == actor:
             payload = parse(asked.get('payload_json') or '{}', {})
             if isinstance(payload, dict) and (payload.get('handover') or {}).get('to_id') == to:
                 return {'id': t['id'], 'type': 'tm_task', 'change_id': asked['id'],
-                        'message': f'You already asked to hand this task over to {self.name_of(to)}. Wait for the answer.', 'unchanged': True}
+                        'message': _message('You already asked to hand this task over to {p0}. Wait for the answer.', p0=self.name_of(to)), 'unchanged': True}
         if to == t['pic_id']:
-            fail('Choose someone other than the current person in charge.')
+            fail(_message('Choose someone other than the current person in charge.'))
         self.gov.check_collaborator(actor, self.workspace(t['workspace_id']), to, existing=self.scope.is_involved(to, t))
         note, keep, at = text(d.get('note'), 'Note', 1000), flag(d.get('keep')), now()
         approver = None if applying else self.approver_for(t, actor)
@@ -1122,7 +1120,7 @@ class TaskService:
             change_id = self.request_change(t, 'UPDATE', actor, source, approver, [self.change('pic_id', t['pic_id'], to)],
                                             {'handover': {'to_id': to, 'keep': keep, 'note': note}}, note)
             return {'id': t['id'], 'type': 'tm_task', 'change_id': change_id,
-                    'message': f'Sent to {self.name_of(approver)} for approval. You stay in charge until they approve.'}
+                    'message': _message('Sent to {p0} for approval. You stay in charge until they approve.', p0=self.name_of(approver))}
         others = [a for a in self._assignee_dicts(t['id']) if a['staff_id'] not in (to, t['pic_id'])]
         TaskAssignee.objects.filter(task_id=t['id']).delete()
         insert(TaskAssignee, {'task_id': t['id'], 'staff_id': to, 'status': 'ACCEPTED', 'invited_by': actor, 'invited_at': at, 'responded_at': None, 'response_note': ''})
@@ -1133,15 +1131,15 @@ class TaskService:
             insert(TaskAssignee, {'task_id': t['id'], **a})
         changes = {'pic_id': to, 'accepted_at': None, 'declined_at': None, 'declined_reason': '', **self.confirm_reviewer(t, roles, at)}
         following = self.save_row(t, {**changes, 'version': t['version'] + 1, 'updated_at': at})
-        self.ensure_member(t['workspace_id'], to, actor, 'given a task by hand-over')
-        approved = f" · approved by {self.name_of(opts.get('approvedBy'))}" if applying else ''
+        self.ensure_member(t['workspace_id'], to, actor, _message('given a task by hand-over'))
+        approved = _message(' · approved by {p0}', p0=self.name_of(opts.get('approvedBy'))) if applying else ''
         self.history(following, 'handover', t, actor, source, f"{self.name_of(t['pic_id'])} → {self.name_of(to)}{': ' + note if note else ''}{approved}")
-        self.notify([to], 'task_assigned', actor, f"Handed over to you: {t['title']}",
-                    f"{self.name_of(actor)} asks you to take charge · due {dm.human(t['due_date'])}{' · ' + note if note else ''} · please accept or reject", task=following)
-        self.notify([self.active_reviewer(t), dm.assigner_of(t)], 'task_updated', actor, f"Handed over: {t['title']}",
+        self.notify([to], 'task_assigned', actor, _message('Handed over to you: {p0}', p0=t['title']),
+                    _message('{p0} asks you to take charge · due {p1}{p2} · please accept or reject', p0=self.name_of(actor), p1=dm.human(t['due_date']), p2=' · ' + note if note else ''), task=following)
+        self.notify([self.active_reviewer(t), dm.assigner_of(t)], 'task_updated', actor, _message('Handed over: {p0}', p0=t['title']),
                     f"{self.name_of(actor)} → {self.name_of(to)}{': ' + note if note else ''}", task=following)
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Task handed over', f"{t['title']} · {self.name_of(t['pic_id'])} → {self.name_of(to)}")
-        return {'id': t['id'], 'type': 'tm_task', 'message': f'Handed over to {self.name_of(to)}. They are asked to accept it.'}
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Task handed over'), f"{t['title']} · {self.name_of(t['pic_id'])} → {self.name_of(to)}")
+        return {'id': t['id'], 'type': 'tm_task', 'message': _message('Handed over to {p0}. They are asked to accept it.', p0=self.name_of(to))}
 
     def remind(self, d, actor, source):
         t = self.task(d.get('id'))
@@ -1150,16 +1148,16 @@ class TaskService:
         self.guard('remind', t, roles)
         last = TaskHistory.objects.filter(task_id=t['id'], kind='remind').order_by('-id').values_list('created_at', flat=True).first()
         if last and timezone.now() - last < timedelta(minutes=30):
-            fail('A reminder was sent less than 30 minutes ago. Please wait a little before sending another.', 409)
+            fail(_message('A reminder was sent less than 30 minutes ago. Please wait a little before sending another.'), 409)
         waiting = [w for w in self.waiting_on(t) if w['staff_id'] != actor]
         who = self.name_of(actor)
-        asks = {'pic': 'to take charge of', 'supporter': 'to support', 'reviewer': 'to review'}
+        asks = {'pic': _message('to take charge of'), 'supporter': _message('to support'), 'reviewer': _message('to review')}
         for w in waiting:
             self.notify([w['staff_id']], 'task_reminder', actor, f"Reminder: {t['title']}",
-                        f"{who} is waiting for your answer {asks[w['role']]} this task · due {dm.human(t['due_date'])} · please accept or reject", task=t)
+                        _message('{p0} is waiting for your answer {p1} this task · due {p2} · please accept or reject', p0=who, p1=asks[w['role']], p2=dm.human(t['due_date'])), task=t)
         names = ', '.join(self.name_of(w['staff_id']) for w in waiting)
-        self.history(t, 'remind', t, actor, source, f'Reminded {names}')
-        return {'id': t['id'], 'type': 'tm_task', 'message': f'Reminder sent to {names}.'}
+        self.history(t, 'remind', t, actor, source, _message('Reminded {p0}', p0=names))
+        return {'id': t['id'], 'type': 'tm_task', 'message': _message('Reminder sent to {p0}.', p0=names)}
 
     def set_reminders(self, d, actor, source):
         t = self.task(d.get('id'))
@@ -1168,26 +1166,26 @@ class TaskService:
         self.guard('reminders', t, roles)
         chosen = self.reminder_input(d.get('reminder_days'))
         if jtext(chosen) == jtext(dm.reminder_days(t.get('reminder_days'))):
-            return {'id': t['id'], 'type': 'tm_task', 'message': 'Reminders unchanged.', 'unchanged': True}
+            return {'id': t['id'], 'type': 'tm_task', 'message': _message('Reminders unchanged.'), 'unchanged': True}
         Task.objects.filter(id=t['id']).update(reminder_days=jtext(chosen))
         self.history(t, 'reminders', t, actor, source, dm.reminder_text(chosen))
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Reminders changed', f"{t['title']} · {dm.reminder_text(chosen)}")
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Reminders changed'), f"{t['title']} · {dm.reminder_text(chosen)}")
         return {'id': t['id'], 'type': 'tm_task',
-                'message': f'Reminders set: {dm.reminder_text(chosen)}.' if chosen else 'Deadline reminders are off for this task.'}
+                'message': _message('Reminders set: {p0}.', p0=dm.reminder_text(chosen)) if chosen else _message('Deadline reminders are off for this task.')}
 
     # ------------------------------------------------------------ deciding a change request
     def change_action(self, action, d, actor, source):
         cr = self.find(TaskChangeRequest, d.get('id'))
         t = self.task(cr['task_id'])
         summary = self.change_summary(cr['kind'], parse(cr.get('changes_json') or '[]', []))
-        asked = f'change {summary}' if cr['kind'] == 'UPDATE' else summary
+        asked = _message('change {p0}', p0=summary) if cr['kind'] == 'UPDATE' else summary
         if action == 'tm.change.withdraw':
             if cr['requested_by'] != actor:
-                fail('Only the person who asked for this change can withdraw it.', 403)
+                fail(_message('Only the person who asked for this change can withdraw it.'), 403)
             if cr['status'] == 'WITHDRAWN':
-                return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': 'This request was already withdrawn.', 'unchanged': True}
+                return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': _message('This request was already withdrawn.'), 'unchanged': True}
             if cr['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             self.active_workspace(t['workspace_id'])
             note = text(d.get('note'), 'Note', 1000)
             self.settle_change(cr, 'WITHDRAWN', actor, source, note)
@@ -1195,19 +1193,19 @@ class TaskService:
             back = cr['kind'] == 'COMPLETE' and cr['requester_side'] == 'PIC' and t['status'] == 'IN_REVIEW'
             if back:
                 following = self.save_row(t, {'status': 'IN_PROGRESS', **UNSUBMITTED, 'version': t['version'] + 1, 'updated_at': now()})
-            self.history(following, 'change_withdrawn', t, actor, source, f"Withdrew the request to {asked}{' · ' + note if note else ''}")
-            self.notify([cr['approver_id'], t.get('submitted_to') if back else None], 'change_withdrawn', actor, f"Request withdrawn: {t['title']}",
-                        f'{self.name_of(actor)} withdrew the request to {asked}', task=following)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'Change request withdrawn', f"{t['title']} · {CHANGE_WORD[cr['kind']]}")
+            self.history(following, 'change_withdrawn', t, actor, source, _message('Withdrew the request to {p0}{p1}', p0=asked, p1=' · ' + note if note else ''))
+            self.notify([cr['approver_id'], t.get('submitted_to') if back else None], 'change_withdrawn', actor, _message('Request withdrawn: {p0}', p0=t['title']),
+                        _message('{p0} withdrew the request to {p1}', p0=self.name_of(actor), p1=asked), task=following)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('Change request withdrawn'), f"{t['title']} · {CHANGE_WORD[cr['kind']]}")
             return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'],
-                    'message': 'Completion request withdrawn. The task is back in progress.' if back else 'Request withdrawn. Nothing was changed.'}
+                    'message': _message('Completion request withdrawn. The task is back in progress.') if back else _message('Request withdrawn. Nothing was changed.')}
         if action != 'tm.change.decide':
-            fail('Unknown change request action.', 404)
+            fail(_message('Unknown change request action.'), 404)
         decision = choice(d.get('decision'), ['APPROVE', 'REJECT'], 'decision')
         if (cr['status'] == 'APPROVED' and decision == 'APPROVE') or (cr['status'] == 'REJECTED' and decision == 'REJECT'):
-            return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': 'This request was already decided.', 'unchanged': True}
+            return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': _message('This request was already decided.'), 'unchanged': True}
         if cr['status'] != 'PENDING':
-            fail('This request was withdrawn.' if cr['status'] == 'WITHDRAWN' else 'This request has already been decided.', 409)
+            fail(_message('This request was withdrawn.') if cr['status'] == 'WITHDRAWN' else _message('This request has already been decided.'), 409)
         if d.get('expected_version') is not None:
             self.check_version(cr, d['expected_version'])
         self.active_workspace(t['workspace_id'])
@@ -1221,7 +1219,7 @@ class TaskService:
             else:
                 substitute = self.approver_for(t, cr['requested_by'], edit=cr['kind'] == 'UPDATE')
             if substitute != actor:
-                fail(f"Only {self.name_of(cr['approver_id'])} can approve or reject this request.", 403)
+                fail(_message('Only {p0} can approve or reject this request.', p0=self.name_of(cr['approver_id'])), 403)
             TaskChangeRequest.objects.filter(id=cr['id']).update(approver_id=actor, updated_at=timezone.now())
             if t['status'] == 'IN_REVIEW' and t.get('submitted_to') == cr['approver_id']:
                 Task.objects.filter(id=t['id']).update(submitted_to_id=actor)
@@ -1232,27 +1230,27 @@ class TaskService:
         if decision == 'REJECT':
             note = text(nn(d.get('note'), d.get('reason')), 'Reason for rejecting', 1000, True)
             self.settle_change(cr, 'REJECTED', actor, source, note)
-            self.history(t, 'change_rejected', t, actor, source, f"Rejected {self.name_of(cr['requested_by'])}’s request to {asked}: {note}")
-            self.notify([cr['requested_by']], 'change_rejected', actor, f"Request rejected: {t['title']}",
-                        f'{self.name_of(actor)} rejected your request to {asked}: {note}', task=t)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'Change rejected', f"{t['title']} · {CHANGE_WORD[cr['kind']]} · {note}")
-            return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': 'Request rejected. The task is unchanged.'}
+            self.history(t, 'change_rejected', t, actor, source, _message('Rejected {p0}’s request to {p1}: {p2}', p0=self.name_of(cr['requested_by']), p1=asked, p2=note))
+            self.notify([cr['requested_by']], 'change_rejected', actor, _message('Request rejected: {p0}', p0=t['title']),
+                        _message('{p0} rejected your request to {p1}: {p2}', p0=self.name_of(actor), p1=asked, p2=note), task=t)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('Change rejected'), f"{t['title']} · {CHANGE_WORD[cr['kind']]} · {note}")
+            return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': _message('Request rejected. The task is unchanged.')}
         note = text(d.get('note'), 'Note', 1000)
         changes = parse(cr.get('changes_json') or '[]', [])
         payload = parse(cr.get('payload_json') or '{}', {})
         if t['status'] not in dm.OPEN_TASK_STATUSES and not (cr['kind'] == 'UPDATE' and t['version'] == cr['base_version']):
-            self.settle_change(cr, 'CLOSED', actor, source, 'The task was already closed')
+            self.settle_change(cr, 'CLOSED', actor, source, _message('The task was already closed'))
             # As in V5.7.7 the refusal rolls the whole command back, so the request itself stays pending.
-            fail('This task is already closed, so the change can no longer apply. The request was closed.', 409)
+            fail(_message('This task is already closed, so the change can no longer apply. The request was closed.'), 409)
         stale = [c for c in changes if not same_value(self.current_value(t, c['field']), c['from'])] if cr['kind'] == 'UPDATE' else []
         if stale:
-            why = f"Out of date: {', '.join(c['label'].lower() for c in stale)} changed after it was asked"
+            why = _message('Out of date: {p0} changed after it was asked', p0=', '.join(c['label'].lower() for c in stale))
             self.settle_change(cr, 'CLOSED', actor, source, why)
-            self.history(t, 'change_closed', t, actor, source, f"{self.name_of(cr['requested_by'])}’s request to {asked} · {why}")
-            self.notify([cr['requested_by']], 'change_rejected', actor, f"Request closed: {t['title']}",
-                        f'{why}. Nothing was changed; ask again if it is still needed.', task=t)
+            self.history(t, 'change_closed', t, actor, source, _message('{p0}’s request to {p1} · {p2}', p0=self.name_of(cr['requested_by']), p1=asked, p2=why))
+            self.notify([cr['requested_by']], 'change_rejected', actor, _message('Request closed: {p0}', p0=t['title']),
+                        _message('{p0}. Nothing was changed; ask again if it is still needed.', p0=why), task=t)
             return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'closed': True,
-                    'message': f"{why}. The request was closed and nothing was changed; {self.name_of(cr['requested_by'])} can ask again."}
+                    'message': _message('{p0}. The request was closed and nothing was changed; {p1} can ask again.', p0=why, p1=self.name_of(cr['requested_by']))}
         self.quiet = actor
         try:
             applying = {'applying': cr, 'approvedBy': actor}
@@ -1274,12 +1272,12 @@ class TaskService:
         finally:
             self.quiet = None
         self.settle_change(cr, 'APPROVED', actor, source, note)
-        self.notify([cr['requested_by']], 'change_approved', actor, f"Request approved: {t['title']}",
-                    f"{self.name_of(actor)} approved your request to {asked}{': ' + note if note else ''}", task=t)
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Change approved', f"{t['title']} · {CHANGE_WORD[cr['kind']]} · asked by {self.name_of(cr['requested_by'])}")
-        message = ('Approved. The task is cancelled.' if cr['kind'] == 'CANCEL' else 'Approved. The task is completed.' if cr['kind'] == 'COMPLETE'
-                   else 'Approved. The task is reopened.' if payload.get('reopen') else f"Approved. Progress is now {payload['progress']}%." if 'progress' in payload
-                   else 'Approved. The change is applied.')
+        self.notify([cr['requested_by']], 'change_approved', actor, _message('Request approved: {p0}', p0=t['title']),
+                    _message('{p0} approved your request to {p1}{p2}', p0=self.name_of(actor), p1=asked, p2=': ' + note if note else ''), task=t)
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Change approved'), _message('{p0} · {p1} · asked by {p2}', p0=t['title'], p1=CHANGE_WORD[cr['kind']], p2=self.name_of(cr['requested_by'])))
+        message = (_message('Approved. The task is cancelled.') if cr['kind'] == 'CANCEL' else _message('Approved. The task is completed.') if cr['kind'] == 'COMPLETE'
+                   else _message('Approved. The task is reopened.') if payload.get('reopen') else _message('Approved. Progress is now {p0}%.', p0=payload['progress']) if 'progress' in payload
+                   else _message('Approved. The change is applied.'))
         return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': message}
 
     # ------------------------------------------------------------ Steps of Work (checklist)
@@ -1301,14 +1299,14 @@ class TaskService:
             twin = ChecklistItem.objects.filter(task_id=t['id'], title=title, created_by_id=actor,
                                                 created_at__gt=timezone.now() - timedelta(seconds=15)).values_list('id', flat=True).first()
             if twin:
-                return {'id': twin, 'type': 'tm_check', 'message': 'Step added.', 'unchanged': True}
+                return {'id': twin, 'type': 'tm_check', 'message': _message('Step added.'), 'unchanged': True}
             if ChecklistItem.objects.filter(task_id=t['id']).count() >= MAX_CHECKS:
-                fail(f'A task can have up to {MAX_CHECKS} steps.')
+                fail(_message('A task can have up to {p0} steps.', p0=MAX_CHECKS))
             key = next_id('tm-check', 'CHK')
             position = (ChecklistItem.objects.filter(task_id=t['id']).aggregate(p=Max('position'))['p'] or 0) + 1
             ChecklistItem.objects.create(id=key, task_id=t['id'], position=position, title=title, done=False, created_by_id=actor, created_at=timezone.now())
-            self.after_checklist(t, roles, actor, source, f'Added step “{title}”')
-            return {'id': key, 'type': 'tm_check', 'message': 'Step added.'}
+            self.after_checklist(t, roles, actor, source, _message('Added step “{p0}”', p0=title))
+            return {'id': key, 'type': 'tm_check', 'message': _message('Step added.')}
         item = self.find(ChecklistItem, d.get('id'))
         t = self.task(item['task_id'])
         self.active_workspace(t['workspace_id'])
@@ -1317,22 +1315,22 @@ class TaskService:
         if action == 'tm.check.toggle':
             done = flag(d.get('done'))
             if bool(item['done']) == done:
-                return {'id': item['id'], 'type': 'tm_check', 'message': 'This step is already completed.' if done else 'This step is already open.', 'unchanged': True}
+                return {'id': item['id'], 'type': 'tm_check', 'message': _message('This step is already completed.') if done else _message('This step is already open.'), 'unchanged': True}
             ChecklistItem.objects.filter(id=item['id']).update(done=done, done_by_id=actor if done else None, done_at=timezone.now() if done else None)
             c = self.step_count(t['id'])
-            following = self.after_checklist(t, roles, actor, source, f"{'Completed' if done else 'Reopened'} step “{item['title']}”")
+            following = self.after_checklist(t, roles, actor, source, f"{_message('Completed') if done else _message('Reopened')} step “{item['title']}”")
             if done:
-                self.notify([dm.assigner_of(t)], 'step_completed', actor, f"Step completed: {t['title']}",
-                            f"{self.name_of(actor)} completed “{clip(item['title'], 120)}” · {c['done']} of {c['n']} steps completed", task=following)
+                self.notify([dm.assigner_of(t)], 'step_completed', actor, _message('Step completed: {p0}', p0=t['title']),
+                            _message('{p0} completed “{p1}” · {p2} of {p3} steps completed', p0=self.name_of(actor), p1=clip(item['title'], 120), p2=c['done'], p3=c['n']), task=following)
             return {'id': item['id'], 'type': 'tm_check',
-                    'message': f"Step completed ({c['done']} of {c['n']})." if done else f"Step reopened ({c['done']} of {c['n']} completed)."}
+                    'message': _message('Step completed ({p0} of {p1}).', p0=c['done'], p1=c['n']) if done else _message('Step reopened ({p0} of {p1} completed).', p0=c['done'], p1=c['n'])}
         if action == 'tm.check.rename':
             title = text(d.get('title'), 'Step', 300, True)
             if title == item['title']:
-                return {'id': item['id'], 'type': 'tm_check', 'message': 'No change.', 'unchanged': True}
+                return {'id': item['id'], 'type': 'tm_check', 'message': _message('No change.'), 'unchanged': True}
             ChecklistItem.objects.filter(id=item['id']).update(title=title)
-            self.after_checklist(t, roles, actor, source, f"Renamed step “{item['title']}” to “{title}”")
-            return {'id': item['id'], 'type': 'tm_check', 'message': 'Step renamed.'}
+            self.after_checklist(t, roles, actor, source, _message('Renamed step “{p0}” to “{p1}”', p0=item['title'], p1=title))
+            return {'id': item['id'], 'type': 'tm_check', 'message': _message('Step renamed.')}
         if action == 'tm.check.move':
             order = list(ChecklistItem.objects.filter(task_id=t['id']).order_by('position', 'created_at', 'id').values_list('id', flat=True))
             start = order.index(item['id'])
@@ -1341,21 +1339,21 @@ class TaskService:
             elif d.get('direction') == 'down':
                 to = start + 1
             else:
-                to = integer(d.get('position'), 1, len(order), 'step position') - 1
+                to = integer(d.get('position'), 1, len(order), _message('step position')) - 1
             if to < 0 or to >= len(order) or to == start:
-                return {'id': item['id'], 'type': 'tm_check', 'message': 'The step is already there.', 'unchanged': True}
+                return {'id': item['id'], 'type': 'tm_check', 'message': _message('The step is already there.'), 'unchanged': True}
             order.pop(start)
             order.insert(to, item['id'])
             for i, key in enumerate(order):
                 ChecklistItem.objects.filter(id=key).update(position=i + 1)
-            self.after_checklist(t, roles, actor, source, f"Moved step “{item['title']}” to position {to + 1}")
-            return {'id': item['id'], 'type': 'tm_check', 'message': f'Step moved to position {to + 1}.'}
+            self.after_checklist(t, roles, actor, source, _message('Moved step “{p0}” to position {p1}', p0=item['title'], p1=to + 1))
+            return {'id': item['id'], 'type': 'tm_check', 'message': _message('Step moved to position {p0}.', p0=to + 1)}
         if action == 'tm.check.remove':
             ChecklistItem.objects.filter(id=item['id']).delete()
             self.renumber(t['id'])
-            self.after_checklist(t, roles, actor, source, f"Removed step “{item['title']}”")
-            return {'id': t['id'], 'type': 'tm_task', 'message': 'Step removed.'}
-        fail('Unknown step action.', 404)
+            self.after_checklist(t, roles, actor, source, _message('Removed step “{p0}”', p0=item['title']))
+            return {'id': t['id'], 'type': 'tm_task', 'message': _message('Step removed.')}
+        fail(_message('Unknown step action.'), 404)
 
     def after_checklist(self, t, roles, actor, source, note):
         c, at = self.step_count(t['id']), now()
@@ -1368,8 +1366,8 @@ class TaskService:
         following = t
         if changes:
             following = self.save_row(t, {**changes, 'version': t['version'] + 1, 'updated_at': at})
-        self.history(following, 'checklist', t, actor, source, f"{note} · {c['done']} of {c['n']} steps completed")
-        self.log(actor, 'task', t['id'], t['workspace_id'], 'Steps of work updated', f"{t['title']} · {note}")
+        self.history(following, 'checklist', t, actor, source, _message('{p0} · {p1} of {p2} steps completed', p0=note, p1=c['done'], p2=c['n']))
+        self.log(actor, 'task', t['id'], t['workspace_id'], _message('Steps of work updated'), f"{t['title']} · {note}")
         return following
 
     # ------------------------------------------------------------ files and photos
@@ -1398,19 +1396,19 @@ class TaskService:
             name = clean_file_name(text(d.get('name'), 'File name', 160, True))
             ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
             if ext not in dm.TASK_FILE_TYPES:
-                fail('Attach a PDF, image (JPG, PNG, WebP, GIF, HEIC), Word, Excel, PowerPoint, CSV, TXT or ZIP file.')
-            content = self.decode(d.get('base64'), MAX_FILE, 'Choose a file between 1 byte and 30 MB.')
+                fail(_message('Attach a PDF, image (JPG, PNG, WebP, GIF, HEIC), Word, Excel, PowerPoint, CSV, TXT or ZIP file.'))
+            content = self.decode(d.get('base64'), MAX_FILE, _message('Choose a file between 1 byte and 30 MB.'))
             if not content_matches(ext, content):
-                fail(f'This file is not a real {ext.upper()} file. Choose the original file.')
+                fail(_message('This file is not a real {p0} file. Choose the original file.', p0=ext.upper()))
             if TaskFile.objects.filter(task_id=t['id']).count() >= MAX_FILES:
-                fail(f'A task can have up to {MAX_FILES} files. Remove one first.')
+                fail(_message('A task can have up to {p0} files. Remove one first.', p0=MAX_FILES))
             key = next_id('tm-file', 'FILE')
             TaskFile.objects.create(id=key, task_id=t['id'], name=name, mime=dm.TASK_FILE_TYPES[ext], size=len(content), content=content,
                                     uploaded_by_id=actor, source=source, created_at=timezone.now())
             self.history(t, 'file', t, actor, source, name)
-            self.notify([t['pic_id'], self.active_reviewer(t), dm.assigner_of(t)], 'task_file', actor, f"File added: {t['title']}",
-                        f'{self.name_of(actor)} attached {name}', task=t)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'File attached', f"{t['title']} · {name}")
+            self.notify([t['pic_id'], self.active_reviewer(t), dm.assigner_of(t)], 'task_file', actor, _message('File added: {p0}', p0=t['title']),
+                        _message('{p0} attached {p1}', p0=self.name_of(actor), p1=name), task=t)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('File attached'), f"{t['title']} · {name}")
             return {'id': key, 'type': 'tm_file', 'task_id': t['id'], 'message': f'{name} attached.'}
         if action == 'tm.file.remove':
             f = self.find(TaskFile, d.get('id'))
@@ -1418,17 +1416,17 @@ class TaskService:
             self.active_workspace(t['workspace_id'])
             roles = self.roles_for(t, actor)
             if f['uploaded_by'] != actor and not roles['isGovernor']:
-                fail('Only the person who added this file or the task’s manager can remove it.', 403)
+                fail(_message('Only the person who added this file or the task’s manager can remove it.'), 403)
             if t['status'] not in dm.OPEN_TASK_STATUSES:
-                fail('This task is closed, so its files are kept. Reopen it first to remove a file.', 409)
+                fail(_message('This task is closed, so its files are kept. Reopen it first to remove a file.'), 409)
             TaskFile.objects.filter(id=f['id']).delete()
             self.history(t, 'file_removed', t, actor, source, f['name'])
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'File removed', f"{t['title']} · {f['name']}")
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('File removed'), f"{t['title']} · {f['name']}")
             return {'id': t['id'], 'type': 'tm_task', 'message': f"{f['name']} removed."}
-        fail('Unknown file action.', 404)
+        fail(_message('Unknown file action.'), 404)
 
     def set_photo(self, staff, value, actor):
-        b = self.decode(value, MAX_PHOTO, 'Choose a JPEG, PNG or WebP photo up to 2 MB.')
+        b = self.decode(value, MAX_PHOTO, _message('Choose a JPEG, PNG or WebP photo up to 2 MB.'))
         if b[:3] == b'\xff\xd8\xff':
             mime = 'image/jpeg'
         elif b[:8] == b'\x89PNG\r\n\x1a\n':
@@ -1436,7 +1434,7 @@ class TaskService:
         elif b[:4] == b'RIFF' and b[8:12] == b'WEBP':
             mime = 'image/webp'
         else:
-            fail('Choose a JPEG, PNG or WebP photo up to 2 MB.')
+            fail(_message('Choose a JPEG, PNG or WebP photo up to 2 MB.'))
         old = StaffPhoto.objects.filter(staff_id=staff).first()
         if old:
             StaffPhoto.objects.filter(staff_id=staff).update(mime=mime, size=len(b), content=b, version=old.version + 1,
@@ -1462,20 +1460,20 @@ class TaskService:
     def me(self, action, d, actor):
         if action == 'me.profile.save':
             if 'name' in d and text(d['name'], 'Display name', 200, True) != self.canonical_name(actor):
-                fail('Your display name comes from your username. Ask an administrator to change it.', 403)
+                fail(_message('Your display name comes from your username. Ask an administrator to change it.'), 403)
             if 'nickname' in d:
                 nickname = text(d['nickname'], 'Nickname', 80)
                 p = Profile.objects.filter(staff_id=actor).first()
                 self._profile_upsert(actor, nickname=nickname, **({'version': p.version + 1} if p else {}))
-                self.log(actor, 'user', actor, None, 'Nickname changed', nickname)
-                return {'id': actor, 'type': 'me', 'message': 'Your nickname is saved.'}
+                self.log(actor, 'user', actor, None, _message('Nickname changed'), nickname)
+                return {'id': actor, 'type': 'me', 'message': _message('Your nickname is saved.')}
             if 'sidebar_theme' in d:
-                theme = '' if d['sidebar_theme'] in ('', 'blue') else choice(d['sidebar_theme'], SIDEBAR_THEMES, 'Sidebar colour')
+                theme = '' if d['sidebar_theme'] in ('', 'blue') else choice(d['sidebar_theme'], SIDEBAR_THEMES, _message('Sidebar colour'))
                 before = Profile.objects.filter(staff_id=actor).values_list('sidebar_theme', flat=True).first() or ''
                 if theme != before:
                     self._profile_upsert(actor, sidebar_theme=theme)
                 if 'name' not in d and 'timezone' not in d:
-                    return {'id': actor, 'type': 'me', 'message': 'Your sidebar colour is saved.' if theme != before else 'Your sidebar colour is unchanged.',
+                    return {'id': actor, 'type': 'me', 'message': _message('Your sidebar colour is saved.') if theme != before else _message('Your sidebar colour is unchanged.'),
                             **({} if theme != before else {'unchanged': True})}
             if 'timezone' in d:
                 zone = self.zone_input(d['timezone'])
@@ -1483,32 +1481,32 @@ class TaskService:
                 zone_changed = False
                 if zone != before:
                     self._profile_upsert(actor, timezone=zone)
-                    self.log(actor, 'user', actor, None, 'Time zone changed', f"{before or 'company time zone'} → {zone or 'company time zone'}")
+                    self.log(actor, 'user', actor, None, _message('Time zone changed'), f"{before or _message('company time zone')} → {zone or _message('company time zone')}")
                     zone_changed = True
                 if 'name' not in d:
-                    return {'id': actor, 'type': 'me', 'message': 'Your time zone is saved.' if zone_changed else 'Your time zone is unchanged.',
+                    return {'id': actor, 'type': 'me', 'message': _message('Your time zone is saved.') if zone_changed else _message('Your time zone is unchanged.'),
                             **({} if zone_changed else {'unchanged': True})}
-            return {'id': actor, 'type': 'me', 'message': 'Your profile is unchanged.', 'unchanged': True}
+            return {'id': actor, 'type': 'me', 'message': _message('Your profile is unchanged.'), 'unchanged': True}
         if action == 'me.photo.save':
             self.set_photo(actor, d.get('base64'), actor)
-            self.log(actor, 'user', actor, None, 'Profile photo changed', self.name_of(actor))
-            return {'id': actor, 'type': 'me', 'message': 'Your photo is saved.'}
+            self.log(actor, 'user', actor, None, _message('Profile photo changed'), self.name_of(actor))
+            return {'id': actor, 'type': 'me', 'message': _message('Your photo is saved.')}
         if action == 'me.photo.remove':
             n = self.remove_photo(actor, actor)
             if n:
-                self.log(actor, 'user', actor, None, 'Profile photo removed', self.name_of(actor))
-            return {'id': actor, 'type': 'me', 'message': 'Your photo is removed.' if n else 'You have no photo.'}
-        fail('Unknown profile action.', 404)
+                self.log(actor, 'user', actor, None, _message('Profile photo removed'), self.name_of(actor))
+            return {'id': actor, 'type': 'me', 'message': _message('Your photo is removed.') if n else _message('You have no photo.')}
+        fail(_message('Unknown profile action.'), 404)
 
     # ------------------------------------------------------------ task requests (anyone can ask anyone)
     def receiver_for(self, staff, requester):
         if not staff:
-            fail('Choose the person you are asking.')
+            fail(_message('Choose the person you are asking.'))
         m = self.assignable(staff)
         if m == requester:
-            fail('Choose someone else. You can’t send a request to yourself.')
+            fail(_message('Choose someone else. You can’t send a request to yourself.'))
         if not self.account_of(m):
-            fail(f'{self.name_of(m)} has no Task Controlling Management login, so they can’t answer requests. Choose someone who uses the Task Controlling Management.')
+            fail(_message('{p0} has no Task Controlling Management login, so they can’t answer requests. Choose someone who uses the Task Controlling Management.', p0=self.name_of(m)))
         return m
 
     def request(self, action, d, actor, source):
@@ -1517,33 +1515,33 @@ class TaskService:
             if old:
                 self.check_version(old, d.get('expected_version'))
                 if old['requested_by'] != actor:
-                    fail('Only the person who made this request can change it.', 403)
+                    fail(_message('Only the person who made this request can change it.'), 403)
                 if old['status'] != 'PENDING':
-                    fail('This request has already been decided.', 409)
+                    fail(_message('This request has already been decided.'), 409)
             creation_key = f"{actor}:{text(d['request_key'], 'Creation key', 100, True)}" if not old and d.get('request_key') else None
             if creation_key:
                 duplicate = TaskRequest.objects.filter(creation_key=creation_key).values_list('id', flat=True).first()
                 if duplicate:
-                    return {'id': duplicate, 'type': 'tm_request', 'message': 'Request already sent.'}
+                    return {'id': duplicate, 'type': 'tm_request', 'message': _message('Request already sent.')}
             receiver = self.receiver_for(d.get('manager_id'), actor)
             wid = self.active_workspace(d['workspace_id'])['id'] if d.get('workspace_id') else None
             if (not old or old['manager_id'] != receiver) and TaskRequest.objects.filter(requested_by_id=actor, manager_id=receiver, status='PENDING').count() >= 20:
-                fail(f'You already have 20 requests waiting for {self.name_of(receiver)}. Wait for answers, or withdraw some first.', 429)
+                fail(_message('You already have 20 requests waiting for {p0}. Wait for answers, or withdraw some first.', p0=self.name_of(receiver)), 429)
             if wid:
                 w = self.workspace(wid)
                 if not old and not self.gov.can_create_resource(actor, w):
-                    fail('Join this workspace before requesting work in it.', 403)
+                    fail(_message('Join this workspace before requesting work in it.'), 403)
                 self.gov.check_collaborator(actor, w, receiver, existing=bool(old) and old['manager_id'] == receiver and old['workspace_id'] == wid)
-            proposed = date_text(d['proposed_due_date'], 'Proposed due date') if d.get('proposed_due_date') else None
+            proposed = date_text(d['proposed_due_date'], _message('Proposed due date')) if d.get('proposed_due_date') else None
             if proposed and proposed < dm.task_today() and proposed != (old or {}).get('proposed_due_date'):
-                fail('Choose a “needed by” date from today on.')
-            doer = ((old or {}).get('doer') or 'REQUESTER') if d.get('doer') in (None, '') else choice(d['doer'], ['RECEIVER', 'REQUESTER', 'DECIDE'], 'option for who does the work')
+                fail(_message('Choose a “needed by” date from today on.'))
+            doer = ((old or {}).get('doer') or 'REQUESTER') if d.get('doer') in (None, '') else choice(d['doer'], ['RECEIVER', 'REQUESTER', 'DECIDE'], _message('option for who does the work'))
             key = old['id'] if old else next_id('tm-request', 'REQ')
             visibility = d.get('visibility', (old or {}).get('visibility', 'PUBLIC'))
             if visibility not in ('PUBLIC', 'ORGANIZATIONAL'):
-                fail('Requests involve another person. Choose Public or Organizational.', 422)
+                fail(_message('Requests involve another person. Choose Public or Organizational.'), 422)
             if visibility == 'ORGANIZATIONAL' and (not wid or self.workspace(wid)['kind'] != 'ORGANIZATIONAL'):
-                fail('Choose an Organizational Workspace for this request.', 422)
+                fail(_message('Choose an Organizational Workspace for this request.'), 422)
             from .policy import validate_manager
             manager_scope = validate_manager(self.gov, actor, {**({'governing_manager_id': old.get('governing_manager_id')} if old else {}), **d}, None, self.workspace(wid) if wid else None, visibility)
             values = {'governing_manager_id': manager_scope, 'visibility': visibility, 'workspace_id': wid, 'title': text(d.get('title'), 'Request title', 300, True),
@@ -1558,88 +1556,88 @@ class TaskService:
                 insert(TaskRequest, {'id': key, **values, 'requested_by': actor, 'status': 'PENDING', 'source': source,
                                      'creation_key': creation_key, 'created_at': now()})
             q = self.find(TaskRequest, key)
-            ask = 'asks you to do this task' if doer == 'RECEIVER' else 'asks to take on this task' if doer == 'REQUESTER' else 'asks for this task'
+            ask = _message('asks you to do this task') if doer == 'RECEIVER' else _message('asks to take on this task') if doer == 'REQUESTER' else _message('asks for this task')
             if not old or old['manager_id'] != receiver:
-                self.notify([receiver], 'request_new', actor, f"Task request: {q['title']}",
-                            f"{self.name_of(actor)} {ask}{' · needed by ' + dm.human(proposed) if proposed else ''}", request=q)
-            self.log(actor, 'request', key, wid, 'Task request updated' if old else 'Task requested', f"{q['title']} · to {self.name_of(receiver)}")
-            return {'id': key, 'type': 'tm_request', 'message': 'Request updated.' if old else f'Request sent to {self.name_of(receiver)}.'}
+                self.notify([receiver], 'request_new', actor, _message('Task request: {p0}', p0=q['title']),
+                            f"{self.name_of(actor)} {ask}{_message(' · needed by ') + dm.human(proposed) if proposed else ''}", request=q)
+            self.log(actor, 'request', key, wid, _message('Task request updated') if old else _message('Task requested'), _message('{p0} · to {p1}', p0=q['title'], p1=self.name_of(receiver)))
+            return {'id': key, 'type': 'tm_request', 'message': _message('Request updated.') if old else _message('Request sent to {p0}.', p0=self.name_of(receiver))}
         q = self.find(TaskRequest, d.get('id'))
         if not self.scope.can_see_request(actor, q):
             fail(NOT_FOUND, 404)
         if action == 'tm.request.withdraw':
             if q['requested_by'] != actor:
-                fail('Only the person who made this request can withdraw it.', 403)
+                fail(_message('Only the person who made this request can withdraw it.'), 403)
             if q['status'] == 'WITHDRAWN':
-                return {'id': q['id'], 'type': 'tm_request', 'message': 'This request was already withdrawn.', 'unchanged': True}
+                return {'id': q['id'], 'type': 'tm_request', 'message': _message('This request was already withdrawn.'), 'unchanged': True}
             if q['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
             update(TaskRequest, q['id'], {'status': 'WITHDRAWN', 'decision_note': text(d.get('note'), 'Note', 1000), 'version': q['version'] + 1, 'updated_at': now()})
-            self.notify([q['manager_id']], 'request_withdrawn', actor, f"Request withdrawn: {q['title']}", f'{self.name_of(actor)} withdrew the request', request=q)
-            self.log(actor, 'request', q['id'], q['workspace_id'], 'Task request withdrawn', q['title'])
-            return {'id': q['id'], 'type': 'tm_request', 'message': 'Request withdrawn.'}
+            self.notify([q['manager_id']], 'request_withdrawn', actor, _message('Request withdrawn: {p0}', p0=q['title']), _message('{p0} withdrew the request', p0=self.name_of(actor)), request=q)
+            self.log(actor, 'request', q['id'], q['workspace_id'], _message('Task request withdrawn'), q['title'])
+            return {'id': q['id'], 'type': 'tm_request', 'message': _message('Request withdrawn.')}
         if action == 'tm.request.forward':
             if q['manager_id'] != actor:
-                fail('Only the person this request was sent to can pass it on.', 403)
+                fail(_message('Only the person this request was sent to can pass it on.'), 403)
             if q['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
             if d.get('manager_id') and d['manager_id'] == q['requested_by']:
-                fail(f"{self.name_of(q['requested_by'])} asked for this task. To give it back, decline it with a note instead.")
+                fail(_message('{p0} asked for this task. To give it back, decline it with a note instead.', p0=self.name_of(q['requested_by'])))
             receiver = self.receiver_for(d.get('manager_id'), q['requested_by'])
             if receiver == actor:
-                fail('Choose someone else to pass it to.')
+                fail(_message('Choose someone else to pass it to.'))
             if q['workspace_id']:
                 w = self.workspace(q['workspace_id'])
                 if w['status'] != 'ACTIVE':
-                    fail('Restore the workspace before changing its work.')
+                    fail(_message('Restore the workspace before changing its work.'))
                 self.gov.check_collaborator(actor, w, receiver)
             note = text(d.get('note'), 'Note', 1000)
             update(TaskRequest, q['id'], {'manager_id': receiver, 'version': q['version'] + 1, 'updated_at': now()})
-            self.notify([receiver], 'request_new', actor, f"Task request: {q['title']}",
-                        f"{self.name_of(actor)} passed on a request from {self.name_of(q['requested_by'])}{': ' + note if note else ''}", request=q)
-            self.notify([q['requested_by']], 'request_forwarded', actor, f"Request passed on: {q['title']}",
-                        f'{self.name_of(actor)} passed your request to {self.name_of(receiver)}', request=q)
-            self.log(actor, 'request', q['id'], q['workspace_id'], 'Task request passed on', f"{q['title']} · to {self.name_of(receiver)}")
-            return {'id': q['id'], 'type': 'tm_request', 'message': f'Request passed to {self.name_of(receiver)}.'}
+            self.notify([receiver], 'request_new', actor, _message('Task request: {p0}', p0=q['title']),
+                        _message('{p0} passed on a request from {p1}{p2}', p0=self.name_of(actor), p1=self.name_of(q['requested_by']), p2=': ' + note if note else ''), request=q)
+            self.notify([q['requested_by']], 'request_forwarded', actor, _message('Request passed on: {p0}', p0=q['title']),
+                        _message('{p0} passed your request to {p1}', p0=self.name_of(actor), p1=self.name_of(receiver)), request=q)
+            self.log(actor, 'request', q['id'], q['workspace_id'], _message('Task request passed on'), _message('{p0} · to {p1}', p0=q['title'], p1=self.name_of(receiver)))
+            return {'id': q['id'], 'type': 'tm_request', 'message': _message('Request passed to {p0}.', p0=self.name_of(receiver))}
         if action == 'tm.request.decide':
             decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], 'decision')
             if q['manager_id'] != actor:
-                fail('Only the person this request was sent to can decide it.', 403)
+                fail(_message('Only the person this request was sent to can decide it.'), 403)
             if q['status'] == 'APPROVED' and decision == 'APPROVE':
-                return {'id': q['task_id'], 'type': 'tm_task', 'message': 'This request was already accepted.', 'unchanged': True}
+                return {'id': q['task_id'], 'type': 'tm_task', 'message': _message('This request was already accepted.'), 'unchanged': True}
             if q['status'] == 'DECLINED' and decision == 'DECLINE':
-                return {'id': q['id'], 'type': 'tm_request', 'message': 'This request was already declined.', 'unchanged': True}
+                return {'id': q['id'], 'type': 'tm_request', 'message': _message('This request was already declined.'), 'unchanged': True}
             if q['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
             if decision == 'DECLINE':
                 note = text(d.get('note'), 'Reason for declining', 1000, True)
                 update(TaskRequest, q['id'], {'status': 'DECLINED', 'decision_note': note, 'decided_by': actor, 'decided_at': now(),
                                               'version': q['version'] + 1, 'updated_at': now()})
-                self.notify([q['requested_by']], 'request_declined', actor, f"Request declined: {q['title']}", f'{self.name_of(actor)}: {note}', request=q)
-                self.log(actor, 'request', q['id'], q['workspace_id'], 'Task request declined', f"{q['title']} · {note}")
-                return {'id': q['id'], 'type': 'tm_request', 'message': 'Request declined. The requester has been told.'}
+                self.notify([q['requested_by']], 'request_declined', actor, _message('Request declined: {p0}', p0=q['title']), f'{self.name_of(actor)}: {note}', request=q)
+                self.log(actor, 'request', q['id'], q['workspace_id'], _message('Task request declined'), f"{q['title']} · {note}")
+                return {'id': q['id'], 'type': 'tm_request', 'message': _message('Request declined. The requester has been told.')}
             wid = d.get('workspace_id') or q['workspace_id']
             if not wid:
-                fail('Choose the workspace for this task.')
+                fail(_message('Choose the workspace for this task.'))
             doer = q.get('doer') or 'REQUESTER'
             pic = d.get('pic_id') or (actor if doer == 'RECEIVER' else q['requested_by'] if doer == 'REQUESTER' else None)
             if not pic:
-                fail('Choose the person in charge of this task.')
+                fail(_message('Choose the person in charge of this task.'))
             reviewer = d.get('reviewer_id') or (q['requested_by'] if doer == 'RECEIVER' else actor)
             due = d.get('due_date') or q['proposed_due_date']
             if not due:
-                fail('Choose a due date for this task.')
-            due_day = date_text(due, 'Due date')
+                fail(_message('Choose a due date for this task.'))
+            due_day = date_text(due, _message('Due date'))
             start = d.get('start_date') or (dm.task_today() if dm.task_today() <= due_day else due_day)
             requester_does = pic == q['requested_by'] and doer == 'REQUESTER'
             if d.get('visibility', q.get('visibility', 'PUBLIC')) not in ('PUBLIC', 'ORGANIZATIONAL'):
-                fail('Task requests must remain visible to their responsible participants.', 422)
+                fail(_message('Task requests must remain visible to their responsible participants.'), 422)
             created = self.save_task(
                 {'governing_manager_id': d.get('governing_manager_id', q.get('governing_manager_id')), 'visibility': d.get('visibility', q.get('visibility', 'PUBLIC')), 'workspace_id': wid, 'title': d.get('title') or q['title'], 'description': nn(d.get('description'), q['description']),
                  'start_date': start, 'due_date': due_day, 'priority': d.get('priority') or q['priority'], 'estimate': d.get('estimate') or '0:00',
@@ -1654,13 +1652,13 @@ class TaskService:
             note = text(d.get('note'), 'Note', 1000)
             update(TaskRequest, q['id'], {'status': 'APPROVED', 'task_id': created['id'], 'decision_note': note, 'decided_by': actor, 'decided_at': now(),
                                           'version': q['version'] + 1, 'updated_at': now()})
-            who = 'you are in charge' if pic == q['requested_by'] else f'{self.name_of(actor)} will do it' if pic == actor else 'in charge: ' + self.name_of(pic)
-            self.notify([q['requested_by']], 'request_approved', actor, f"Request accepted: {q['title']}",
-                        f"{self.name_of(actor)} accepted it as {created['id']} · {who} · due {dm.human(due_day)}{' · ' + note if note else ''}",
+            who = _message('you are in charge') if pic == q['requested_by'] else _message('{p0} will do it', p0=self.name_of(actor)) if pic == actor else _message('in charge: ') + self.name_of(pic)
+            self.notify([q['requested_by']], 'request_approved', actor, _message('Request accepted: {p0}', p0=q['title']),
+                        _message('{p0} accepted it as {p1} · {p2} · due {p3}{p4}', p0=self.name_of(actor), p1=created['id'], p2=who, p3=dm.human(due_day), p4=' · ' + note if note else ''),
                         request=q, task={'id': created['id']})
-            self.log(actor, 'request', q['id'], wid, 'Task request accepted', f"{q['title']} · {created['id']}")
-            return {'id': created['id'], 'type': 'tm_task', 'message': f"Request accepted as {created['id']}."}
-        fail('Unknown task request action.', 404)
+            self.log(actor, 'request', q['id'], wid, _message('Task request accepted'), f"{q['title']} · {created['id']}")
+            return {'id': created['id'], 'type': 'tm_task', 'message': _message('Request accepted as {p0}.', p0=created['id'])}
+        fail(_message('Unknown task request action.'), 404)
 
     # ------------------------------------------------------------ due date change requests
     def due_request(self, action, d, actor, source):
@@ -1669,11 +1667,11 @@ class TaskService:
             self.active_workspace(t['workspace_id'])
             roles = self.roles_for(t, actor)
             self.guard('due', t, roles)
-            proposed = date_text(d.get('proposed_due_date'), 'New due date')
+            proposed = date_text(d.get('proposed_due_date'), _message('New due date'))
             if proposed < t['start_date']:
-                fail('The new due date cannot be before the start date.')
+                fail(_message('The new due date cannot be before the start date.'))
             if proposed == t['due_date']:
-                fail('Choose a date that differs from the current due date.')
+                fail(_message('Choose a date that differs from the current due date.'))
             reason = text(d.get('reason'), 'Reason', 1000, True)
             if roles['isPic'] and dm.two_sided(t):
                 approver = self.approver_for(t, actor)
@@ -1681,7 +1679,7 @@ class TaskService:
                     change_id = self.request_change(t, 'UPDATE', actor, source, approver, [self.change('due_date', t['due_date'], proposed)],
                                                     {'due_date': proposed}, reason)
                     return {'id': t['id'], 'type': 'tm_task', 'change_id': change_id,
-                            'message': f"Sent to {self.name_of(approver)} for approval. The due date stays {dm.human(t['due_date'])} until they approve."}
+                            'message': _message('Sent to {p0} for approval. The due date stays {p1} until they approve.', p0=self.name_of(approver), p1=dm.human(t['due_date']))}
             decider, key = dm.due_decider(t), next_id('tm-due', 'DUE')
             self.confirm_support(t, roles, actor, now())
             insert(DueDateRequest, {'id': key, 'task_id': t['id'], 'requested_by': actor, 'decide_by': decider, 'current_due_date': t['due_date'],
@@ -1689,72 +1687,72 @@ class TaskService:
                                     'created_at': now(), 'updated_at': now()})
             self.history(t, 'due_request', t, actor, source, f"{t['due_date']} → {proposed}: {reason}")
             q = self.find(DueDateRequest, key)
-            self.notify([decider], 'due_new', actor, f"New due date requested: {t['title']}",
-                        f"{self.name_of(actor)} asks to move it from {dm.human(t['due_date'])} to {dm.human(proposed)}: {reason}", task=t, due=q)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'New due date requested', f"{t['due_date']} → {proposed} · {reason}")
-            return {'id': key, 'type': 'tm_due_request', 'message': f'Request sent to {self.name_of(decider)}.'}
+            self.notify([decider], 'due_new', actor, _message('New due date requested: {p0}', p0=t['title']),
+                        _message('{p0} asks to move it from {p1} to {p2}: {p3}', p0=self.name_of(actor), p1=dm.human(t['due_date']), p2=dm.human(proposed), p3=reason), task=t, due=q)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('New due date requested'), f"{t['due_date']} → {proposed} · {reason}")
+            return {'id': key, 'type': 'tm_due_request', 'message': _message('Request sent to {p0}.', p0=self.name_of(decider))}
         q = self.find(DueDateRequest, d.get('id'))
         t = self.task(q['task_id'])
         if action == 'tm.due.withdraw':
             if q['requested_by'] != actor:
-                fail('Only the person who asked can withdraw this request.', 403)
+                fail(_message('Only the person who asked can withdraw this request.'), 403)
             if q['status'] == 'WITHDRAWN':
-                return {'id': q['id'], 'type': 'tm_due_request', 'message': 'Already withdrawn.', 'unchanged': True}
+                return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('Already withdrawn.'), 'unchanged': True}
             if q['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             update(DueDateRequest, q['id'], {'status': 'WITHDRAWN', 'version': q['version'] + 1, 'updated_at': now()})
             self.history(t, 'due_withdrawn', t, actor, source, f"{q['current_due_date']} → {q['proposed_due_date']} withdrawn")
-            self.notify([q['decide_by']], 'task_updated', actor, f"Due date request withdrawn: {t['title']}",
-                        f"{self.name_of(actor)} withdrew the request to move it to {dm.human(q['proposed_due_date'])}", task=t, due=q)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'Due date request withdrawn', f"{q['current_due_date']} → {q['proposed_due_date']}")
-            return {'id': q['id'], 'type': 'tm_due_request', 'message': 'Due date request withdrawn.'}
+            self.notify([q['decide_by']], 'task_updated', actor, _message('Due date request withdrawn: {p0}', p0=t['title']),
+                        _message('{p0} withdrew the request to move it to {p1}', p0=self.name_of(actor), p1=dm.human(q['proposed_due_date'])), task=t, due=q)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('Due date request withdrawn'), f"{q['current_due_date']} → {q['proposed_due_date']}")
+            return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('Due date request withdrawn.')}
         if action == 'tm.due.decide':
             decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], 'decision')
             if q['decide_by'] != actor and dm.due_decider(t) != actor and not (self.can_approve(actor) and self.scope.is_involved(actor, t)):
-                fail('Only the task’s reviewer or a task approver on this task can decide this request.', 403)
+                fail(_message('Only the task’s reviewer or a task approver on this task can decide this request.'), 403)
             if (q['status'] == 'APPROVED' and decision == 'APPROVE') or (q['status'] == 'DECLINED' and decision == 'DECLINE'):
-                return {'id': q['id'], 'type': 'tm_due_request', 'message': 'This request was already decided.', 'unchanged': True}
+                return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('This request was already decided.'), 'unchanged': True}
             if q['status'] != 'PENDING':
-                fail('This request has already been decided.', 409)
+                fail(_message('This request has already been decided.'), 409)
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
             self.active_workspace(t['workspace_id'])
-            note = text(d.get('note'), 'Reason for declining' if decision == 'DECLINE' else 'Note', 1000, decision == 'DECLINE')
+            note = text(d.get('note'), _message('Reason for declining') if decision == 'DECLINE' else _message('Note'), 1000, decision == 'DECLINE')
             update(DueDateRequest, q['id'], {'status': 'APPROVED' if decision == 'APPROVE' else 'DECLINED', 'decision_note': note, 'decided_by': actor,
                                              'decided_at': now(), 'version': q['version'] + 1, 'updated_at': now()})
             confirm = self.confirm_reviewer(t, self.roles_for(t, actor), now())
             if decision == 'APPROVE':
                 if t['status'] not in dm.OPEN_TASK_STATUSES:
-                    fail('This task is closed, so its due date can no longer change.', 409)
+                    fail(_message('This task is closed, so its due date can no longer change.'), 409)
                 if q['proposed_due_date'] < t['start_date']:
-                    fail('The new due date is before the task’s start date.', 409)
+                    fail(_message('The new due date is before the task’s start date.'), 409)
                 approver = self.approver_for(t, actor)
                 if approver:
                     change_id = self.request_change(t, 'UPDATE', actor, source, approver, [self.change('due_date', t['due_date'], q['proposed_due_date'])],
                                                     {'due_date': q['proposed_due_date'], 'due_request_id': q['id']},
                                                     f"{self.name_of(q['requested_by'])} asked: {q['reason']}")
-                    update(DueDateRequest, q['id'], {'decision_note': ' · '.join(x for x in (note, f'sent to {self.name_of(approver)} for approval') if x)})
-                    self.notify([q['requested_by']], 'due_approved', actor, f"New due date agreed: {t['title']}",
-                                f"{self.name_of(actor)} agreed to {dm.human(q['proposed_due_date'])}; {self.name_of(approver)} approves it before it applies", task=t, due=q)
-                    self.log(actor, 'task', t['id'], t['workspace_id'], 'Due date change agreed',
-                             f"{t['due_date']} → {q['proposed_due_date']} · sent to {self.name_of(approver)}")
+                    update(DueDateRequest, q['id'], {'decision_note': ' · '.join(x for x in (note, _message('sent to {p0} for approval', p0=self.name_of(approver))) if x)})
+                    self.notify([q['requested_by']], 'due_approved', actor, _message('New due date agreed: {p0}', p0=t['title']),
+                                _message('{p0} agreed to {p1}; {p2} approves it before it applies', p0=self.name_of(actor), p1=dm.human(q['proposed_due_date']), p2=self.name_of(approver)), task=t, due=q)
+                    self.log(actor, 'task', t['id'], t['workspace_id'], _message('Due date change agreed'),
+                             _message('{p0} → {p1} · sent to {p2}', p0=t['due_date'], p1=q['proposed_due_date'], p2=self.name_of(approver)))
                     return {'id': q['id'], 'type': 'tm_due_request', 'change_id': change_id,
-                            'message': f'Agreed. {self.name_of(approver)} approves the new date before it applies.'}
+                            'message': _message('Agreed. {p0} approves the new date before it applies.', p0=self.name_of(approver))}
                 plan = ({'scheduled_due': t['due_date'], 'series_anchor': t.get('series_anchor') or int(t['due_date'][8:10])}
                         if t.get('recurrence') and not t.get('scheduled_due') else {})
                 following = self.save_row(t, {**confirm, **plan, 'due_date': q['proposed_due_date'], 'version': t['version'] + 1, 'updated_at': now()})
                 self.history(following, 'due_change', t, actor, source, f"{t['due_date']} → {following['due_date']}{': ' + note if note else ''}")
-                self.notify([q['requested_by'], t['pic_id'], *self.supporters_of(t)], 'due_approved', actor, f"Due date moved: {t['title']}",
-                            f"{self.name_of(actor)} approved {dm.human(following['due_date'])} (was {dm.human(t['due_date'])})", task=following, due=q)
-                self.log(actor, 'task', t['id'], t['workspace_id'], 'Due date change approved', f"{t['due_date']} → {following['due_date']}")
-                return {'id': q['id'], 'type': 'tm_due_request', 'message': f"Due date changed to {following['due_date']}."}
+                self.notify([q['requested_by'], t['pic_id'], *self.supporters_of(t)], 'due_approved', actor, _message('Due date moved: {p0}', p0=t['title']),
+                            _message('{p0} approved {p1} (was {p2})', p0=self.name_of(actor), p1=dm.human(following['due_date']), p2=dm.human(t['due_date'])), task=following, due=q)
+                self.log(actor, 'task', t['id'], t['workspace_id'], _message('Due date change approved'), f"{t['due_date']} → {following['due_date']}")
+                return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('Due date changed to {p0}.', p0=following['due_date'])}
             if confirm:
                 self.save_row(t, {**confirm, 'version': t['version'] + 1, 'updated_at': now()})
             self.history(t, 'due_declined', t, actor, source, f"{q['proposed_due_date']} declined: {note}")
-            self.notify([q['requested_by']], 'due_declined', actor, f"Due date request declined: {t['title']}", f'{self.name_of(actor)}: {note}', task=t, due=q)
-            self.log(actor, 'task', t['id'], t['workspace_id'], 'Due date change declined', note)
-            return {'id': q['id'], 'type': 'tm_due_request', 'message': 'Due date request declined.'}
-        fail('Unknown due date action.', 404)
+            self.notify([q['requested_by']], 'due_declined', actor, _message('Due date request declined: {p0}', p0=t['title']), f'{self.name_of(actor)}: {note}', task=t, due=q)
+            self.log(actor, 'task', t['id'], t['workspace_id'], _message('Due date change declined'), note)
+            return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('Due date request declined.')}
+        fail(_message('Unknown due date action.'), 404)
 
     # ------------------------------------------------------------ deadline reminders (worker, every few minutes)
     def due_reminders(self, at=None):
@@ -1781,17 +1779,17 @@ class TaskService:
                     continue
                 n = chosen[-1]
                 key = 'task_due_soon' if n == 1 else f'due_in_{n}'
-                when = 'Due tomorrow' if days == 1 else f'Due in {days} days'
+                when = _message('Due tomorrow') if days == 1 else _message('Due in {p0} days', p0=days)
                 workers = [x for x in [None if t.get('declined_at') else t['pic_id'], *self.supporters_of(t)] if x]
-                state = (f"{t['progress']}% done" + (' · waiting for review' if t['status'] == 'IN_REVIEW' else ' · stuck' if t.get('stuck_at')
-                                                     else ' · not accepted yet' if not t.get('accepted_at') else ''))
+                state = (f"{t['progress']}% done" + (_message(' · waiting for review') if t['status'] == 'IN_REVIEW' else ' · stuck' if t.get('stuck_at')
+                                                     else _message(' · not accepted yet') if not t.get('accepted_at') else ''))
                 for s in dict.fromkeys(workers):
                     send(t, s, key, 'task_due_soon', f"{when}: {t['title']}", f"{dm.human(t['due_date'])} · {state}")
                 for s in dict.fromkeys([dm.assigner_of(t), self.active_reviewer(t)]):
                     if s and s not in workers:
-                        send(t, s, key, 'task_due_soon', f"{when}: {t['title']}", f"{dm.human(t['due_date'])} · {self.name_of(t['pic_id'])} is in charge · {state}")
+                        send(t, s, key, 'task_due_soon', f"{when}: {t['title']}", _message('{p0} · {p1} is in charge · {p2}', p0=dm.human(t['due_date']), p1=self.name_of(t['pic_id']), p2=state))
             elif days < 0:
-                body = f"It was due {dm.human(t['due_date'])} ({-days} day{'' if days == -1 else 's'} ago) · {t['progress']}% done"
+                body = _message('It was due {p0} ({p1} day{p2} ago) · {p3}% done', p0=dm.human(t['due_date']), p1=-days, p2='' if days == -1 else 's', p3=t['progress'])
                 for s in dict.fromkeys([None if t.get('declined_at') else t['pic_id'], dm.assigner_of(t), dm.due_decider(t)]):
                     send(t, s, 'task_overdue', 'task_overdue', f"Overdue: {t['title']}", body)
         return sent
@@ -1804,19 +1802,19 @@ class TaskService:
         if current == manager:
             return False
         if not self.can_staff(actor, 'admin.users', 'update'):
-            fail('Changing reporting lines needs Administration · User accounts “Update”.', 403)
+            fail(_message('Changing reporting lines needs Administration · User accounts “Update”.'), 403)
         if manager == key:
-            fail(f'{self.name_of(key)} can’t report to themselves. Choose someone else as their manager.', 422)
+            fail(_message('{p0} can’t report to themselves. Choose someone else as their manager.', p0=self.name_of(key)), 422)
         if manager:
             if Profile.objects.filter(staff_id=manager, active=False).exists():
-                fail('Choose an active team member as the manager.')
+                fail(_message('Choose an active team member as the manager.'))
             if key in self.scope.managers(manager):
-                fail(f'{self.name_of(manager)} already reports to {self.name_of(key)} (directly or through others), so {self.name_of(key)} can’t report to {self.name_of(manager)}.', 422)
+                fail(_message('{p0} already reports to {p1} (directly or through others), so {p2} can’t report to {p3}.', p0=self.name_of(manager), p1=self.name_of(key), p2=self.name_of(key), p3=self.name_of(manager)), 422)
         p = Profile.objects.filter(staff_id=key).first()
         self._profile_upsert(key, manager_id=manager, **({'version': p.version + 1} if p else {}))
         self.gov.invalidate()
-        self.log(actor, 'user', key, None, 'Reporting line changed',
-                 f"{self.name_of(key)} reports to {self.name_of(manager) if manager else 'nobody'}{f' (was {self.name_of(current)})' if current else ''}")
+        self.log(actor, 'user', key, None, _message('Reporting line changed'),
+                 _message('{p0} reports to {p1}{p2}', p0=self.name_of(key), p1=self.name_of(manager) if manager else 'nobody', p2=f' (was {self.name_of(current)})' if current else ''))
         return True
 
     def save_profile(self, d, actor):
@@ -1826,18 +1824,18 @@ class TaskService:
         key = self.lookup(d['staff_id']) if d.get('staff_id') else next_id('staff', 'STAFF')
         canonical = User.objects.filter(staff_id=key).values_list('username', flat=True).first() if d.get('staff_id') else None
         if canonical and 'name' in d and d['name'] != canonical:
-            fail('Change usernames in Administration → User accounts.', 403)
+            fail(_message('Change usernames in Administration → User accounts.'), 403)
         name = canonical or text(d.get('name'), 'Full name', 200, True)
         email = text(d.get('email'), 'Email', 200).lower()
         if email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
-            fail('Enter a valid email address.')
+            fail(_message('Enter a valid email address.'))
         if Staff.objects.filter(name=name).exclude(id=key).exists():
-            fail('Another team member already uses this name. Add a detail, such as the department, to tell them apart.', 409)
+            fail(_message('Another team member already uses this name. Add a detail, such as the department, to tell them apart.'), 409)
         active = 0 if d.get('active') is False or d.get('active') == 0 else 1
         if not active and (
                 TaskAssignee.objects.filter(staff_id=key).exclude(status='DECLINED').exclude(task__status__in=['COMPLETED', 'CANCELLED']).exists()
                 or self._has_scheduled_meeting(key) or TaskRequest.objects.filter(manager_id=key, status='PENDING').exists()):
-            fail('Reassign open tasks, scheduled meetings and task requests waiting for this team member before making them inactive.')
+            fail(_message('Reassign open tasks, scheduled meetings and task requests waiting for this team member before making them inactive.'))
         values = {'email': email, 'phone': text(d.get('phone'), 'Phone', 50), 'position': text(d.get('position'), 'Position', 150),
                   'department': text(d.get('department'), 'Department', 150), 'active': active,
                   'version': old['version'] + 1 if old else 0,
@@ -1850,17 +1848,17 @@ class TaskService:
         self._profile_upsert(key, email=values['email'], phone=values['phone'], position=values['position'], department=values['department'],
                              active=bool(values['active']), version=values['version'], timezone=values['timezone'])
         identity = [x for x in (
-            old and previous_name != name and f'name {previous_name} → {name}',
-            old and (old.get('email') or '') != email and f"team email {old.get('email') or '—'} → {email or '—'}",
-            old and nn(old.get('active'), 1) != active and ('made active' if active else 'made inactive'),
-            not d.get('staff_id') and f'team member {name} added') if x]
+            old and previous_name != name and _message('name {p0} → {p1}', p0=previous_name, p1=name),
+            old and (old.get('email') or '') != email and _message('team email {p0} → {p1}', p0=old.get('email') or '—', p1=email or '—'),
+            old and nn(old.get('active'), 1) != active and (_message('made active') if active else _message('made inactive')),
+            not d.get('staff_id') and _message('team member {p0} added', p0=name)) if x]
         if identity:
             account = self.account_of(key)
-            AccessAudit.objects.create(actor_id=actor, action='Team profile changed', target_id=(account or {}).get('id') or key,
+            AccessAudit.objects.create(actor_id=actor, action=_message('Team profile changed'), target_id=(account or {}).get('id') or key,
                                        detail=f"{name} · {' · '.join(identity)}", created_at=timezone.now())
         if 'manager_id' in d:
             self.set_manager(key, d['manager_id'], actor)
-        self.log(actor, 'user', key, None, 'Team profile saved', name)
+        self.log(actor, 'user', key, None, _message('Team profile saved'), name)
         return {'id': key, 'type': 'tm_user'}
 
     @staticmethod
@@ -1878,29 +1876,29 @@ class TaskService:
         if not t and wid and not self.gov.can_view_workspace(actor, self.workspace(wid)):
             self.hidden()
         if not t and staff != actor:
-            fail('Only the owner can change an independent time entry.', 403)
+            fail(_message('Only the owner can change an independent time entry.'), 403)
         if staff != actor and not self.scope.is_involved(actor, t):
-            fail('You can view this task but not change it, so you can’t record or change other people’s time on it. Ask someone on the task.', 403)
+            fail(_message('You can view this task but not change it, so you can’t record or change other people’s time on it. Ask someone on the task.'), 403)
         if old:
             self.check_version(old, d.get('expected_version'))
         if wid:
             self.active_workspace(wid)
         self.profile(staff)
         if t and not TaskAssignee.objects.filter(task_id=t['id'], staff_id=staff).exclude(status='DECLINED').exists():
-            fail('Log time for someone assigned to this task (the person in charge or a supporting person).')
+            fail(_message('Log time for someone assigned to this task (the person in charge or a supporting person).'))
         if t and t['status'] == 'CANCELLED':
-            fail('Time cannot be added or revised on a cancelled task.')
-        day = date_text(d.get('work_date'), 'Work date')
+            fail(_message('Time cannot be added or revised on a cancelled task.'))
+        day = date_text(d.get('work_date'), _message('Work date'))
         if day > dm.task_today():
-            fail('Time entries cannot be in the future.')
+            fail(_message('Time entries cannot be in the future.'))
         minutes = self.duration(d.get('duration'), 1440)
         if not minutes:
-            fail('Time must be at least one minute.')
+            fail(_message('Time must be at least one minute.'))
         if t and TimeEntry.objects.filter(task_id=t['id'], staff_id=staff, work_date=day).exclude(id=(old or {}).get('id') or '').exists():
-            fail('This person already has time recorded for this task on that date. Open that entry to change it.', 409)
+            fail(_message('This person already has time recorded for this task on that date. Open that entry to change it.'), 409)
         day_total = TimeEntry.objects.filter(staff_id=staff, work_date=day).exclude(id=(old or {}).get('id') or '').aggregate(n=Sum('minutes'))['n'] or 0
         if day_total + minutes > 1440:
-            fail('Total logged time for one person cannot exceed 24 hours in a day.')
+            fail(_message('Total logged time for one person cannot exceed 24 hours in a day.'))
         key = old['id'] if old else next_id('tm-time', 'TIME')
         values = {'task_id': (t or {}).get('id'), 'workspace_id': wid, 'activity': '' if t else text(nn(d.get('activity'), (old or {}).get('activity')), 'Activity', 300, True),
                   'staff_id': staff, 'work_date': day, 'minutes': minutes, 'notes': text(d.get('notes'), 'Time entry notes', 2000),
@@ -1909,7 +1907,7 @@ class TaskService:
             update(TimeEntry, key, values)
         else:
             insert(TimeEntry, {'id': key, **values, 'created_at': now()})
-        self.log(actor, 'timesheet', key, wid, 'Time entry updated' if old else 'Time logged',
+        self.log(actor, 'timesheet', key, wid, _message('Time entry updated') if old else _message('Time logged'),
                  f"{(t or {}).get('id') or values['activity']} · {staff} · {day} · {minutes} minutes")
         return {'id': key, 'type': 'tm_time'}
 
@@ -1917,15 +1915,15 @@ class TaskService:
         entry = self.find(TimeEntry, d.get('id'))
         t = self.task(entry['task_id']) if entry['task_id'] else None
         if entry['staff_id'] != actor and not self.scope.is_involved(actor, t):
-            fail('You can view this task but not change it, so you can’t remove other people’s time on it. Ask someone on the task.', 403)
+            fail(_message('You can view this task but not change it, so you can’t remove other people’s time on it. Ask someone on the task.'), 403)
         self.check_version(entry, d.get('expected_version'))
         if (t or {}).get('workspace_id') or entry['workspace_id']:
             self.active_workspace((t or {}).get('workspace_id') or entry['workspace_id'])
         reason = text(d.get('reason'), 'Deletion reason', 1000, True)
         TimeEntry.objects.filter(id=entry['id']).delete()
-        self.log(actor, 'timesheet', entry['id'], (t or {}).get('workspace_id') or entry['workspace_id'], 'Time entry deleted',
+        self.log(actor, 'timesheet', entry['id'], (t or {}).get('workspace_id') or entry['workspace_id'], _message('Time entry deleted'),
                  f"{entry['task_id']} · {entry['staff_id']} · {entry['work_date']} · {entry['minutes']} minutes · {reason}")
-        return {'message': 'Time entry removed; deletion retained in history.'}
+        return {'message': _message('Time entry removed; deletion retained in history.')}
 
     # ------------------------------------------------------------ notifications
     def read_notification(self, d, actor, source):
@@ -1935,15 +1933,15 @@ class TaskService:
             if telegram:
                 qs = qs.exclude(kind='telegram_connected')
             n = qs.update(read_at=timezone.now())
-            return {'message': f"{n} notification{'' if n == 1 else 's'} marked as read." if n else 'No unread notifications.'}
+            return {'message': _message('{p0} notification{p1} marked as read.', p0=n, p1='' if n == 1 else 's') if n else _message('No unread notifications.')}
         n = Notification.objects.filter(id=integer(d.get('id'), 1, 9007199254740991, 'notification')).first()
         if not n or n.staff_id != actor:
-            fail('Notification not found.', 404)
+            fail(_message('Notification not found.'), 404)
         if telegram and n.kind == 'telegram_connected':
-            return {'message': 'Open the Task Controlling Management to review this notice.', 'unchanged': True}
+            return {'message': _message('Open the Task Controlling Management to review this notice.'), 'unchanged': True}
         if not n.read_at:
             Notification.objects.filter(id=n.id).update(read_at=timezone.now())
-        return {'message': 'Marked as read.'}
+        return {'message': _message('Marked as read.')}
 
     # ============================================================ dispatcher
     def task_for(self, action, d):
@@ -1983,9 +1981,9 @@ class TaskService:
                 self.hidden()
         if action == 'tm.profile.manager':
             if not self.can_staff(actor, 'admin.users', 'update'):
-                fail('Changing reporting lines needs Administration · User accounts “Update”.', 403)
+                fail(_message('Changing reporting lines needs Administration · User accounts “Update”.'), 403)
             changed = self.set_manager(d.get('staff_id'), d.get('manager_id'), actor)
-            return {'id': d.get('staff_id'), 'type': 'tm_user', 'message': 'Reporting line saved.' if changed else 'Reporting line unchanged.',
+            return {'id': d.get('staff_id'), 'type': 'tm_user', 'message': _message('Reporting line saved.') if changed else _message('Reporting line unchanged.'),
                     **({} if changed else {'unchanged': True})}
         if action.startswith('me.'):
             return self.me(action, d, actor)
@@ -1994,11 +1992,11 @@ class TaskService:
             if d.get('remove') is True:
                 n = self.remove_photo(staff, actor)
                 if n:
-                    self.log(actor, 'user', staff, None, 'Profile photo removed', self.name_of(staff))
-                return {'id': staff, 'type': 'tm_user', 'message': 'Photo removed.' if n else 'There was no photo.'}
+                    self.log(actor, 'user', staff, None, _message('Profile photo removed'), self.name_of(staff))
+                return {'id': staff, 'type': 'tm_user', 'message': _message('Photo removed.') if n else _message('There was no photo.')}
             self.set_photo(staff, d.get('base64'), actor)
-            self.log(actor, 'user', staff, None, 'Profile photo changed', self.name_of(staff))
-            return {'id': staff, 'type': 'tm_user', 'message': 'Photo saved.'}
+            self.log(actor, 'user', staff, None, _message('Profile photo changed'), self.name_of(staff))
+            return {'id': staff, 'type': 'tm_user', 'message': _message('Photo saved.')}
         if action == 'tm.profile.save':
             return self.save_profile(d, actor)
         if action.startswith('tm.workspace.'):
@@ -2043,5 +2041,5 @@ class TaskService:
         if action.startswith('tm.group.'):
             from groups.service import GroupService
             return GroupService(self).handle(action, d, actor)
-        fail('Unknown Task Management action.', 404)
+        fail(_message('Unknown Task Management action.'), 404)
 

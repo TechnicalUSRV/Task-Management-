@@ -1,0 +1,412 @@
+Remove	ដកចេញ	移除
+Change	ផ្លាស់ប្តូរ	更改
+Attach	ភ្ជាប់	附加
+Rename	ប្តូរឈ្មោះ	重命名
+Resume	បន្ត	继续
+Revoke	ដកហូត	撤销
+Discard	បោះបង់	放弃
+Pause	ផ្អាក	暂停
+Post	ចុះបញ្ជី	记账
+Repeat	ធ្វើម្តងទៀត	重复
+Refresh	ផ្ទុកឡើងវិញ	刷新
+Find	ស្វែងរក	查找
+Insert	បញ្ចូល	插入
+Publish	ផ្សព្វផ្សាយ	发布
+Prepare	រៀបចំ	准备
+Generate	បង្កើត	生成
+Confirm password	បញ្ជាក់ពាក្យសម្ងាត់	确认密码
+Connected	បានភ្ជាប់	已连接
+Disconnected	បានផ្តាច់	已断开
+Asked	បានស្នើ	已请求
+Asked by	ស្នើដោយ	请求人
+Assigned by	ចាត់តាំងដោយ	分配人
+Decides	អ្នកសម្រេច	决策人
+Decision note	កំណត់ចំណាំការសម្រេច	决定备注
+Denied	បានបដិសេធ	已拒绝
+Deny	បដិសេធ	拒绝
+Direction	ទិសដៅ	方向
+Directory	បញ្ជីឈ្មោះ	通讯录
+Display format	ទម្រង់បង្ហាញ	显示格式
+Document flow	លំហូរឯកសារ	单据流程
+Document links	តំណឯកសារ	文档链接
+Does not repeat	មិនធ្វើម្តងទៀត	不重复
+Don’t import	កុំចូលទិន្នន័យ	不导入
+Due from	កំណត់ចាប់ពី	截止日期起
+Due to	កំណត់ដល់	截止日期至
+Due until	កំណត់ដល់	截止日期至
+Due today	ដល់កំណត់ថ្ងៃនេះ	今天到期
+Due tomorrow	ដល់កំណត់ថ្ងៃស្អែក	明天到期
+End	បញ្ចប់	结束
+Ends	បញ្ចប់	结束
+Start	ចាប់ផ្តើម	开始
+Starts	ចាប់ផ្តើម	开始
+Started	បានចាប់ផ្តើម	已开始
+Stopped	បានបញ្ឈប់	已停止
+Every day	រៀងរាល់ថ្ងៃ	每天
+Every week	រៀងរាល់សប្តាហ៍	每周
+Every month	រៀងរាល់ខែ	每月
+Everyone	មនុស្សគ្រប់គ្នា	所有人
+Everyone I manage	បុគ្គលិកទាំងអស់ដែលខ្ញុំគ្រប់គ្រង	我管理的所有员工
+Example	ឧទាហរណ៍	示例
+Expectation	លទ្ធផលរំពឹងទុក	预期结果
+Expected close	កាលបរិច្ឆេទរំពឹងថានឹងបិទ	预计结束日期
+Finance	ហិរញ្ញវត្ថុ	财务
+Forecast	ការព្យាករ	预测
+Form	ទម្រង់	表单
+From sheet	ពីសន្លឹក	来源工作表
+To sheet	ទៅសន្លឹក	目标工作表
+Function	មុខងារ	功能
+General number	លេខទូទៅ	常规数值
+Go back	ត្រឡប់ក្រោយ	返回
+Go to date	ទៅកាលបរិច្ឆេទ	跳转到日期
+Goes into	ដាក់ចូលក្នុង	写入
+Governing manager	អ្នកគ្រប់គ្រងទទួលបន្ទុក	主管经理
+Gray	ប្រផេះ	灰色
+Green	បៃតង	绿色
+Gross weight	ទម្ងន់សរុប	毛重
+Hand over	ប្រគល់បន្ត	移交
+Header row	ជួរចំណងជើង	标题行
+Header rows	ជួរចំណងជើង	标题行
+Hi	សួស្តី	你好
+Hide for me	លាក់សម្រាប់ខ្ញុំ	对我隐藏
+Hide in my view	លាក់ក្នុងទិដ្ឋភាពរបស់ខ្ញុំ	在我的视图中隐藏
+How	របៀប	如何
+How access works	របៀបដំណើរការសិទ្ធិចូលប្រើ	访问权限说明
+How to connect	របៀបភ្ជាប់	连接方法
+I do it	ខ្ញុំធ្វើ	我来做
+They do it	ពួកគេធ្វើ	由对方做
+In 3 days	ក្នុង ៣ ថ្ងៃ	3 天后
+In a week	ក្នុងមួយសប្តាហ៍	一周后
+In my charge	ខ្ញុំទទួលបន្ទុក	由我负责
+In this company	ក្នុងក្រុមហ៊ុននេះ	在本公司
+In your team	ក្នុងក្រុមរបស់អ្នក	在你的团队
+Independent work	ការងារឯករាជ្យ	独立工作
+Info	ព័ត៌មាន	信息
+Inquiry source	ប្រភពសំណួរ	咨询来源
+Insights	ការវិភាគ	分析
+Internal	ផ្ទៃក្នុង	内部
+Internal task	កិច្ចការផ្ទៃក្នុង	内部任务
+Invited	បានអញ្ជើញ	已邀请
+Invoiced	បានចេញវិក្កយបត្រ	已开票
+Issued	បានចេញ	已签发
+Join online	ចូលរួមតាមអនឡាញ	在线加入
+Just now	ទើបតែ	刚刚
+Keep	រក្សា	保留
+Keep connected	រក្សាការភ្ជាប់	保持连接
+Keep editing	បន្តកែប្រែ	继续编辑
+Keep request	រក្សាសំណើ	保留请求
+Key figures	តួលេខសំខាន់	关键数据
+Last 30 days	៣០ ថ្ងៃចុងក្រោយ	最近 30 天
+Last 7 days	៧ ថ្ងៃចុងក្រោយ	最近 7 天
+Last active	សកម្មចុងក្រោយ	最近活跃
+Last checked	ពិនិត្យចុងក្រោយ	上次检查
+Last run	ដំណើរការចុងក្រោយ	上次运行
+Last name	នាមត្រកូល	姓
+First name	នាមខ្លួន	名
+Full name	ឈ្មោះពេញ	姓名
+Late	យឺត	逾期
+Latest activity	សកម្មភាពចុងក្រោយ	最新活动
+Lead class	ប្រភេទអតិថិជនសក្តានុពល	线索类别
+Contact class	ប្រភេទទំនាក់ទំនង	联系人类别
+Campaign class	ប្រភេទយុទ្ធនាការ	营销活动类别
+Opportunity class	ប្រភេទឱកាសលក់	商机类别
+Leave	ចាកចេញ	离开
+Let them choose	ឱ្យពួកគេជ្រើសរើស	由对方选择
+Level label	ឈ្មោះកម្រិត	层级名称
+Line	បន្ទាត់	明细行
+Lines	បន្ទាត់	明细行
+Location	ទីតាំង	地点
+Logged	បានកត់ត្រា	已记录
+Login account	គណនីចូលប្រើ	登录账户
+Login accounts	គណនីចូលប្រើ	登录账户
+Lost reason	មូលហេតុបាត់បង់	丢单原因
+Main	ចម្បង	主要
+Main menu	ម៉ឺនុយចម្បង	主菜单
+Make personal	ប្តូរទៅផ្ទាល់ខ្លួន	设为个人
+Mapping	ការផ្គូផ្គង	映射
+Margin	ប្រាក់ចំណេញ	利润
+Mark all as read	សម្គាល់ទាំងអស់ថាបានអាន	全部标为已读
+Mark all read	សម្គាល់ទាំងអស់ថាបានអាន	全部标为已读
+Mark as completed	សម្គាល់ថាបានបញ្ចប់	标记为已完成
+Mark as stuck	សម្គាល់ថាជាប់គាំង	标记为受阻
+Mark expired	សម្គាល់ថាផុតកំណត់	标记为已过期
+Mark lost	សម្គាល់ថាបាត់បង់	标记为丢单
+Mark read	សម្គាល់ថាបានអាន	标为已读
+Marked as read.	បានសម្គាល់ថាបានអាន។	已标为已读。
+Marked as stuck	បានសម្គាល់ថាជាប់គាំង	已标记为受阻
+Matched by	ផ្គូផ្គងតាម	匹配依据
+Matching rows	ជួរដែលត្រូវគ្នា	匹配行
+Meeting register	បញ្ជីកិច្ចប្រជុំ	会议登记表
+Member to remove	សមាជិកត្រូវដកចេញ	要移除的成员
+Message delivery	ការផ្ញើសារ	消息投递
+Migration	ការផ្ទេរទិន្នន័យ	数据迁移
+Mini App	កម្មវិធីតូច	小程序
+Mobile	ទូរសព្ទចល័ត	手机
+Module	ម៉ូឌុល	模块
+Modules	ម៉ូឌុល	模块
+Month closed	បានបិទខែ	月份已关闭
+Move down	ផ្លាស់ចុះក្រោម	下移
+Move up	ផ្លាស់ឡើងលើ	上移
+Navigation	ការរុករក	导航
+Needed by	ត្រូវការត្រឹម	需要完成日期
+Needs attention	ត្រូវការយកចិត្តទុកដាក់	需要关注
+Net	សុទ្ធ	净额
+Newer	ថ្មីជាង	较新
+Older	ចាស់ជាង	较早
+Newest first	ថ្មីបំផុតមុន	最新优先
+Oldest first	ចាស់បំផុតមុន	最早优先
+Next 30 days	៣០ ថ្ងៃបន្ទាប់	未来 30 天
+Next	បន្ទាប់	下一个
+Previous	មុន	上一个
+Next approver	អ្នកអនុម័តបន្ទាប់	下一位审批人
+Next check	ការពិនិត្យបន្ទាប់	下次检查
+No date field	គ្មានវាលកាលបរិច្ឆេទ	无日期字段
+No extra rule.	គ្មានច្បាប់បន្ថែម។	无额外规则。
+No items to show.	គ្មានធាតុបង្ហាញ។	暂无可显示的项目。
+No matches.	គ្មានលទ្ធផលត្រូវគ្នា។	无匹配结果。
+No one assigned	មិនទាន់ចាត់តាំងនរណាម្នាក់	尚未分配人员
+No tasks here	គ្មានកិច្ចការនៅទីនេះ	这里暂无任务
+Nobody	គ្មាននរណាម្នាក់	无人
+Nobody chosen	មិនទាន់ជ្រើសរើសនរណាម្នាក់	尚未选择人员
+None yet.	មិនទាន់មាន។	暂无。
+Not a date.	មិនមែនកាលបរិច្ឆេទ។	不是有效日期。
+Not accepted yet	មិនទាន់ទទួលយក	尚未接受
+Not approved	មិនទាន់អនុម័ត	未批准
+Not available	មិនអាចប្រើបាន	不可用
+Not configured	មិនទាន់កំណត់	未配置
+Not created	មិនទាន់បង្កើត	未创建
+Not found	រកមិនឃើញ	未找到
+Not imported	មិនទាន់នាំចូល	未导入
+Not in effect	មិនទាន់មានប្រសិទ្ធភាព	未生效
+Not invoiced yet	មិនទាន់ចេញវិក្កយបត្រ	尚未开票
+Not linked	មិនទាន់ភ្ជាប់	未关联
+Not mapped	មិនទាន់ផ្គូផ្គង	未映射
+Not reached	មិនទាន់ដល់	尚未到达
+Not running	មិនកំពុងដំណើរការ	未运行
+Not saved	មិនទាន់រក្សាទុក	未保存
+Not sent	មិនទាន់ផ្ញើ	未发送
+Not set	មិនទាន់កំណត់	未设置
+Not set up yet	មិនទាន់រៀបចំ	尚未设置
+Not shared	មិនទាន់ចែករំលែក	未共享
+Not signed in yet	មិនទាន់ចូលប្រើ	尚未登录
+Not yet	មិនទាន់	尚未
+Nothing planned	មិនទាន់មានផែនការ	暂无安排
+On Hold	កំពុងរង់ចាំ	暂缓
+On time	ទាន់ពេល	按时
+On weekdays	នៅថ្ងៃចន្ទដល់សុក្រ	工作日
+Online	អនឡាញ	在线
+Only mine	តែរបស់ខ្ញុំ	仅我的
+Operational owner	អ្នកទទួលបន្ទុកប្រតិបត្តិការ	业务负责人
+Operations	ប្រតិបត្តិការ	业务运营
+Operators	អ្នកប្រតិបត្តិការ	操作员
+Orange	ទឹកក្រូច	橙色
+Order value	តម្លៃបញ្ជាទិញ	订单金额
+Organizer	អ្នករៀបចំ	组织者
+Origin	ប្រភពដើម	起始地
+Other	ផ្សេងទៀត	其他
+Overrides	ការកំណត់ជំនួស	覆盖设置
+Overview	ទិដ្ឋភាពទូទៅ	概览
+Owned workspaces	កន្លែងការងារដែលខ្លួនជាម្ចាស់	我拥有的工作区
+Owner grant	សិទ្ធិដែលម្ចាស់ផ្តល់	所有者授权
+Ownership	ភាពជាម្ចាស់	所有权
+Page	ទំព័រ	页
+Pages	ទំព័រ	页
+Paid	បានបង់	已付款
+Participants only	សម្រាប់តែអ្នកចូលរួម	仅参与者
+Partner	ដៃគូ	合作伙伴
+Partners	ដៃគូ	合作伙伴
+Pass it to	ប្រគល់ឱ្យ	移交给
+Pass on	ប្រគល់បន្ត	转交
+Paused	បានផ្អាក	已暂停
+Payee	អ្នកទទួលប្រាក់	收款人
+Payment terms	លក្ខខណ្ឌទូទាត់	付款条件
+Payout reference	លេខយោងការបង់ប្រាក់	付款参考号
+Per container	ក្នុងមួយកុងតឺន័រ	每箱
+Per shipment	ក្នុងមួយការដឹកជញ្ជូន	每票货物
+Percentage (%)	ភាគរយ (%)	百分比 (%)
+Period	រយៈពេល	期间
+Photo or document	រូបថត ឬឯកសារ	照片或文档
+Pink	ផ្កាឈូក	粉色
+Please try again.	សូមព្យាយាមម្តងទៀត។	请重试。
+Please wait…	សូមរង់ចាំ…	请稍候…
+Prefix	បុព្វបទ	前缀
+Pricing	ការកំណត់តម្លៃ	定价
+Probability	ប្រូបាប៊ីលីតេ	成功概率
+Processing…	កំពុងដំណើរការ…	正在处理…
+Progress note	កំណត់ចំណាំវឌ្ឍនភាព	进度备注
+Proposed due date	ថ្ងៃកំណត់ដែលស្នើ	建议截止日期
+Protected	ត្រូវបានការពារ	受保护
+Purple	ស្វាយ	紫色
+Qty	បរិមាណ	数量
+Rate basis	មូលដ្ឋានអត្រាតម្លៃ	计价基础
+Rate card	តារាងអត្រាតម្លៃ	价目表
+Rating	ការវាយតម្លៃ	评级
+Recent changes	ការផ្លាស់ប្តូរថ្មីៗ	最近更改
+Recent runs	ការដំណើរការថ្មីៗ	最近运行
+Reconnecting	កំពុងភ្ជាប់ឡើងវិញ	正在重新连接
+Recorded work	ការងារដែលបានកត់ត្រា	已记录的工作
+Red	ក្រហម	红色
+Reference list	បញ្ជីយោង	参考列表
+Reference lists	បញ្ជីយោង	参考列表
+Register	បញ្ជីចុះឈ្មោះ	登记表
+Related	ពាក់ព័ន្ធ	相关
+Remaining	នៅសល់	剩余
+Reopened	បានបើកឡើងវិញ	已重新打开
+Repeat every	ធ្វើម្តងទៀតរៀងរាល់	重复间隔
+Repeat interval	ចន្លោះពេលធ្វើម្តងទៀត	重复间隔
+Repeat schedule	កាលវិភាគធ្វើម្តងទៀត	重复计划
+Repeat until	ធ្វើម្តងទៀតរហូតដល់	重复至
+Repeats	ធ្វើម្តងទៀត	重复
+Reporting branch	សាខារចនាសម្ព័ន្ធរាយការណ៍	汇报分支
+Requested role	តួនាទីដែលស្នើ	申请角色
+Requested to	ស្នើទៅ	请求对象
+Rev.	កំណែ	修订
+Revoked	បានដកហូត	已撤销
+Rows per page	ចំនួនជួរក្នុងមួយទំព័រ	每页行数
+Rows to import	ជួរដែលត្រូវនាំចូល	要导入的行
+Runs	ដំណើរការ	运行记录
+Salesman	បុគ្គលិកលក់	销售人员
+Schedule	កាលវិភាគ	日程
+Scope of services	វិសាលភាពសេវាកម្ម	服务范围
+See all	មើលទាំងអស់	查看全部
+Select shown	ជ្រើសអ្វីដែលកំពុងបង្ហាញ	选择已显示项
+Selling	ការលក់	销售
+Send for approval	ផ្ញើសុំអនុម័ត	提交审批
+Send to Telegram	ផ្ញើទៅ Telegram	发送到 Telegram
+Sending method	វិធីផ្ញើ	发送方式
+Sending option	ជម្រើសផ្ញើ	发送选项
+Sent to me	ផ្ញើមកខ្ញុំ	发给我的
+Series	ស៊េរី	系列
+Set up by	រៀបចំដោយ	设置人
+Set-up steps	ជំហានរៀបចំ	设置步骤
+Settlement date	ថ្ងៃទូទាត់	结算日期
+Share live	ចែករំលែកទិន្នន័យផ្ទាល់	实时共享
+Shared with me	បានចែករំលែកមកខ្ញុំ	与我共享
+Shared with you	បានចែករំលែកជាមួយអ្នក	与你共享
+Shipment	ការដឹកជញ្ជូន	货运
+Short title	ចំណងជើងខ្លី	简短标题
+Show in my view	បង្ហាញក្នុងទិដ្ឋភាពរបស់ខ្ញុំ	在我的视图中显示
+Show them	បង្ហាញពួកវា	显示
+Showing	កំពុងបង្ហាញ	显示
+Signed in	បានចូលប្រើ	已登录
+Signed in as	ចូលប្រើជាឈ្មោះ	当前登录用户
+Signing in…	កំពុងចូលប្រើ…	正在登录…
+Since	ចាប់តាំងពី	自
+Single photo	រូបថតមួយ	单张照片
+Skip them	រំលងពួកវា	跳过
+Skip to content	រំលងទៅខ្លឹមសារ	跳转到内容
+Skipped	បានរំលង	已跳过
+Slide	ស្លាយ	幻灯片
+Sort ascending	តម្រៀបឡើង	升序排列
+Sort descending	តម្រៀបចុះ	降序排列
+Sorted by	តម្រៀបតាម	排序依据
+Source from	ប្រភពពី	数据来源
+Staff identity	អត្តសញ្ញាណបុគ្គលិក	员工身份
+Start / due time	ម៉ោងចាប់ផ្តើម / កំណត់	开始／截止时间
+Start from	ចាប់ផ្តើមពី	从此开始
+Start sync	ចាប់ផ្តើមធ្វើសមកាលកម្ម	开始同步
+Start work	ចាប់ផ្តើមការងារ	开始工作
+Starting now	ចាប់ផ្តើមឥឡូវនេះ	现在开始
+Starting status	ស្ថានភាពចាប់ផ្តើម	初始状态
+Steps of work	ជំហានការងារ	工作步骤
+Still connected.	នៅតែភ្ជាប់។	仍已连接。
+Still open	នៅមិនទាន់បញ្ចប់	仍未完成
+Still stuck	នៅតែជាប់គាំង	仍受阻
+Stop reminders	បញ្ឈប់ការរំលឹក	停止提醒
+Strict	តឹងរឹង	严格
+Stuck since	ជាប់គាំងចាប់ពី	受阻始于
+Subject	ប្រធានបទ	主题
+Suffix	បច្ច័យ	后缀
+Support	គាំទ្រ	支持
+Supporting	ជួយគាំទ្រ	协助
+Suspended	បានផ្អាក	已暂停
+Switch company	ប្តូរក្រុមហ៊ុន	切换公司
+Sync now	ធ្វើសមកាលកម្មឥឡូវនេះ	立即同步
+Syncing	កំពុងធ្វើសមកាលកម្ម	正在同步
+System	ប្រព័ន្ធ	系统
+Take back	ដកត្រឡប់	收回
+Tap	ចុច	点击
+Tap to select	ចុចដើម្បីជ្រើស	点击选择
+Target audience	ក្រុមគោលដៅ	目标受众
+Task Management	ការគ្រប់គ្រងកិច្ចការ	任务管理
+Task register	បញ្ជីកិច្ចការ	任务登记表
+Task view	ទិដ្ឋភាពកិច្ចការ	任务视图
+Task visibility	ភាពមើលឃើញកិច្ចការ	任务可见性
+Tasks by status	កិច្ចការតាមស្ថានភាព	按状态分类的任务
+Tasks to show	កិច្ចការត្រូវបង្ហាញ	要显示的任务
+Tasks you support	កិច្ចការដែលអ្នកជួយ	你协助的任务
+Teal	បៃតងខៀវ	青绿色
+Team profile	ព័ត៌មានក្រុម	团队资料
+Technical details	ព័ត៌មានបច្ចេកទេស	技术详情
+Telegram is on	Telegram កំពុងបើក	Telegram 已启用
+Terms / route	លក្ខខណ្ឌ / ផ្លូវ	条款／路线
+Text to look for	អត្ថបទត្រូវស្វែងរក	要查找的文字
+The row is	ជួរនេះគឺ	该行是
+This quarter	ត្រីមាសនេះ	本季度
+This year	ឆ្នាំនេះ	今年
+Through	រហូតដល់	至
+Through date	កាលបរិច្ឆេទបញ្ចប់	截至日期
+Through today	រហូតដល់ថ្ងៃនេះ	截至今天
+Time logged	ពេលវេលាដែលបានកត់ត្រា	已记录工时
+Time recorded	ពេលវេលាដែលបានកត់ត្រា	已记录时间
+Title label	ឈ្មោះចំណងជើង	标题标签
+Title template	គំរូចំណងជើង	标题模板
+To add	ត្រូវបន្ថែម	待添加
+To update	ត្រូវធ្វើបច្ចុប្បន្នភាព	待更新
+Toggle Sidebar	បង្ហាញ / លាក់របារចំហៀង	展开／收起侧栏
+Toggle navigation	បង្ហាញ / លាក់ម៉ឺនុយ	展开／收起导航
+Token	ថូខិន	令牌
+Total of	សរុបនៃ	合计
+Tree	ទម្រង់មែកធាង	树形图
+Try again	ព្យាយាមម្តងទៀត	重试
+Type of request	ប្រភេទសំណើ	请求类型
+Unable to save.	មិនអាចរក្សាទុក។	无法保存。
+Unassigned	មិនទាន់ចាត់តាំង	未分配
+Undo my change	បោះបង់ការកែប្រែរបស់ខ្ញុំ	撤销我的更改
+Unpaid	មិនទាន់បង់	未付款
+Unspecified	មិនបានបញ្ជាក់	未指定
+Until	រហូតដល់	直到
+Updating…	កំពុងធ្វើបច្ចុប្បន្នភាព…	正在更新…
+Uploaded	បានផ្ទុកឡើង	已上传
+Uploaded by	ផ្ទុកឡើងដោយ	上传人
+Uploading	កំពុងផ្ទុកឡើង	正在上传
+Use my code	ប្រើលេខកូដរបស់ខ្ញុំ	使用我的代码
+Used by	ប្រើដោយ	使用者
+Used by formulas	ប្រើក្នុងរូបមន្ត	用于公式
+Valid formula	រូបមន្តត្រឹមត្រូវ	有效公式
+Valid until	មានសុពលភាពដល់	有效期至
+Validity	សុពលភាព	有效期
+Vary	ខុសគ្នា	不一致
+Verify and close	ផ្ទៀងផ្ទាត់ និងបិទ	核实并关闭
+Visible to	មើលឃើញដោយ	可见范围
+Volume	មាឌ	体积
+Waiting	កំពុងរង់ចាំ	等待中
+Waiting for	កំពុងរង់ចាំ	等待
+Waiting for me	កំពុងរង់ចាំខ្ញុំ	等待我处理
+Waiting for you	កំពុងរង់ចាំអ្នក	等待你处理
+What do you need?	តើអ្នកត្រូវការអ្វី?	你需要什么？
+What is missing	អ្វីដែលខ្វះ	缺少的内容
+When	ពេលណា	何时
+When and where	ពេលវេលា និងទីកន្លែង	时间和地点
+When is it due?	តើដល់កំណត់ពេលណា?	何时截止？
+Where	ទីកន្លែង	地点
+Who	នរណា	谁
+Who can open it	អ្នកដែលអាចបើកវា	谁可以打开
+Who can see it	អ្នកដែលអាចមើលវា	谁可以查看
+Who does it	អ្នកអនុវត្ត	执行人
+Who should do it?	តើនរណាគួរធ្វើវា?	由谁执行？
+Whole company	ក្រុមហ៊ុនទាំងមូល	全公司
+Why	មូលហេតុ	原因
+Work	ការងារ	工作
+Work date	ថ្ងៃធ្វើការ	工作日期
+Work item	ធាតុការងារ	工作事项
+Work notes	កំណត់ចំណាំការងារ	工作备注
+Work resumed	ការងារបានបន្ត	工作已恢复
+Workflow state	ស្ថានភាពដំណើរការ	流程状态
+Working calendar	ប្រតិទិនការងារ	工作日历
+Workload by user	បន្ទុកការងារតាមអ្នកប្រើ	按用户分类的工作量
+Yellow	លឿង	黄色
+You	អ្នក	你
+Zoom	ពង្រីក / បង្រួម	缩放
+Zoom in	ពង្រីក	放大
+Zoom out	បង្រួម	缩小

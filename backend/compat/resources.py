@@ -7,6 +7,7 @@ the URL. Changes still go through POST /api/command, which applies the workflow 
 List responses: {"count", "page", "page_size", "results"}; `?page=` (from 1) and `?page_size=` (1–200, default 50),
 `?q=` searches the main text fields, and each resource accepts a few exact-match filters (listed in RESOURCES).
 """
+from core.i18n import msg as _message
 from django.http import JsonResponse
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -67,7 +68,7 @@ DETAIL = {'tasks': task_detail, 'workspaces': workspace_detail, 'meetings': meet
 def require(user, resource):
     needed = RESOURCES[resource][2]
     if needed and not access.can(user, needed):
-        fail('You do not have permission to view this.', 403)
+        fail(_message('You do not have permission to view this.'), 403)
 
 
 class IndexView(APIView):
@@ -76,13 +77,13 @@ class IndexView(APIView):
         return Response({'resources': {name: base + name + '/' for name, spec in RESOURCES.items()
                                        if not spec[2] or access.can(request.user, spec[2])},
                          'organization': base + 'organization/' if access.can(request.user, 'tasks.organization') else None,
-                         'changes': 'POST /api/command {"action", "data"} — the same commands and rules as the app'})
+                         'changes': _message('POST /api/command {"action", "data"} — the same commands and rules as the app')})
 
 
 class ListView(APIView):
     def get(self, request, resource):
         if resource not in RESOURCES:
-            return JsonResponse({'error': 'Route not found.'}, status=404)
+            return JsonResponse({'error': _message('Route not found.')}, status=404)
         require(request.user, resource)
         key, _, _, filters, searched = RESOURCES[resource]
         s = visible_state(request.user)
@@ -96,7 +97,7 @@ class ListView(APIView):
         if q:
             found = [r for r in found if any(q in text_of(r.get(f)) for f in searched)]
         page = integer(p.get('page') or 1, 1, 1_000_000, 'page')
-        size = integer(p.get('page_size') or 50, 1, 200, 'page size')
+        size = integer(p.get('page_size') or 50, 1, 200, _message('page size'))
         part = found[(page - 1) * size:page * size]
         if resource == 'workspaces':
             part = [workspace_detail(s, w) for w in part]
@@ -106,13 +107,13 @@ class ListView(APIView):
 class DetailView(APIView):
     def get(self, request, resource, key):
         if resource not in RESOURCES:
-            return JsonResponse({'error': 'Route not found.'}, status=404)
+            return JsonResponse({'error': _message('Route not found.')}, status=404)
         require(request.user, resource)
         state_key, id_field = RESOURCES[resource][0], RESOURCES[resource][1]
         s = visible_state(request.user)
         found = next((r for r in s.get(state_key) or [] if str(r.get(id_field)) == key), None)
         if found is None:
-            fail('Not found.', 404)
+            fail(_message('Not found.'), 404)
         return Response(DETAIL[resource](s, found) if resource in DETAIL else found)
 
 

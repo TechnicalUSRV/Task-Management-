@@ -19,6 +19,7 @@ edit it, for Can Edit), the recipient must still be active and within the issuer
 Group's own row and column rules for the recipient still apply. People who can open the source Group themselves read it
 with their own rights instead.
 """
+from core.i18n import msg as _message
 import uuid
 
 from accounts.models import User
@@ -58,8 +59,8 @@ class LiveData:
     def manager(self, key, actor):
         b, caps = self.g.open_board(key, actor)
         self.g.archived_check(b)
-        self.g.need(caps, 'share', 'Managing Live Data requires group-management access.')
-        self.g.need(caps, 'export', 'Sharing Live Data requires Groups export permission.')
+        self.g.need(caps, 'share', _message('Managing Live Data requires group-management access.'))
+        self.g.need(caps, 'export', _message('Sharing Live Data requires Groups export permission.'))
         return b, caps
 
     def recipient_allowed(self, b, issuer, recipient, edit=False):
@@ -90,36 +91,36 @@ class LiveData:
         b, caps = self.manager(d.get('group_id'), actor)
         recipient = text(d.get('recipient_id'), 'Recipient', 60, True)
         if recipient == actor:
-            fail('Choose someone else to share Live Data with.')
+            fail(_message('Choose someone else to share Live Data with.'))
         old = BoardLiveShare.objects.filter(board_id=b['id'], recipient_id=recipient).first()
         if old:
             self.g.tasks.check_version({'version': old.version}, d.get('expected_version'))
         active = d.get('active', True)
         if not isinstance(active, bool):
-            fail('Choose whether this Live Data share is active.')
+            fail(_message('Choose whether this Live Data share is active.'))
         if not old and not active:
-            fail('Live Data share not found.', 404)
+            fail(_message('Live Data share not found.'), 404)
         wanted = d.get('columns', [])
         if not isinstance(wanted, list) or len(wanted) > dm.GROUP_LIMITS['columns'] or any(
                 not isinstance(x, dict) or not isinstance(x.get('column_id'), str) or x.get('permission') not in LEVEL for x in wanted):
-            fail('Choose the columns to share and Viewer or Can Edit for each.')
+            fail(_message('Choose the columns to share and Viewer or Can Edit for each.'))
         perms = {}
         for x in wanted:
             perms[x['column_id']] = x['permission']
         if active:
             if not perms:
-                fail('Choose at least one column to share live.')
+                fail(_message('Choose at least one column to share live.'))
             by_id = {c['id']: c for c in self.shareable(b, actor, caps)}
             if any(k not in by_id for k in perms):
-                fail('Choose visible data columns. Attachments and other Live Data columns cannot be shared live.', 409)
+                fail(_message('Choose visible data columns. Attachments and other Live Data columns cannot be shared live.'), 409)
             selected = dm.visible_columns(list(by_id.values()), lambda c: c['id'] in perms)
             if {c['id'] for c in selected} != set(perms):
-                fail('Include every column a shared formula uses.', 422)
+                fail(_message('Include every column a shared formula uses.'), 422)
             for k, p in perms.items():
                 if p == 'EDIT' and (by_id[k]['type'] not in EDITABLE or not caps['editRows']):
-                    fail(f"“{by_id[k]['name']}” can be shared as Viewer only: {'formulas and people are calculated or chosen in the source group' if by_id[k]['type'] not in EDITABLE else 'you cannot edit this group'}.", 422)
+                    fail(_message('“{p0}” can be shared as Viewer only: {p1}.', p0=by_id[k]['name'], p1='formulas and people are calculated or chosen in the source group' if by_id[k]['type'] not in EDITABLE else 'you cannot edit this group'), 422)
             if not self.recipient_allowed(b, actor, recipient, edit='EDIT' in perms.values()):
-                fail('This recipient is outside your permitted collaboration scope, or their role cannot use (or edit) Groups.', 403)
+                fail(_message('This recipient is outside your permitted collaboration scope, or their role cannot use (or edit) Groups.'), 403)
         at = self.g.now()
         share = old or BoardLiveShare(id=uuid.uuid4().hex, board_id=b['id'], recipient_id=recipient, created_by_id=actor, created_at=at)
         share.active, share.updated_by_id, share.updated_at = active, actor, at
@@ -130,11 +131,11 @@ class LiveData:
             BoardLiveColumn.objects.filter(share_id=share.id).delete()
             BoardLiveColumn.objects.bulk_create(BoardLiveColumn(share_id=share.id, column_id=k, permission=p) for k, p in perms.items())
         edit = sum(1 for p in perms.values() if p == 'EDIT')
-        self.g.record(actor, b, 'Live Data share updated' if active else 'Live Data share revoked',
-                      f"{self.g.name_of(recipient)} · {len(perms)} {'column' if len(perms) == 1 else 'columns'}{f' · {edit} can edit' if edit else ''}" if active
+        self.g.record(actor, b, _message('Live Data share updated') if active else _message('Live Data share revoked'),
+                      f"{self.g.name_of(recipient)} · {len(perms)} {'column' if len(perms) == 1 else 'columns'}{_message(' · {p0} can edit', p0=edit) if edit else ''}" if active
                       else self.g.name_of(recipient))
         self._views = {}
-        return {'id': share.id, 'type': 'tm_group_live_share', 'message': 'Live Data share saved.' if active else 'Live Data share revoked.'}
+        return {'id': share.id, 'type': 'tm_group_live_share', 'message': _message('Live Data share saved.') if active else _message('Live Data share revoked.')}
 
     # ------------------------------------------------------------ what one person may reach in a source Group
     def view(self, board_id, staff):
@@ -274,38 +275,38 @@ class LiveData:
         st = col.get('settings') or {}
         v = self.view(st.get('source_group_id'), staff)
         if not v:
-            fail('This Live Data is no longer shared with you.', 403)
+            fail(_message('This Live Data is no longer shared with you.'), 403)
         key = next((x for x in v['columns'] if x['id'] == st.get('source_key_id')), None)
         local_key = next((x for x in self.g.columns_of(local_row['board_id']) if x['id'] == st.get('key_column_id')), None)
         if not key or not local_key or not v['perms'].get(key['id']):
-            fail('This Live Data column lost its connection. Ask the source group’s owner to share it again.', 409)
+            fail(_message('This Live Data column lost its connection. Ask the source group’s owner to share it again.'), 409)
         k = key_text(local_key, local_row['values'].get(local_key['id']), self.g.name_of)
         found = [sr for sr in self.source_rows(v, self.g.name_of) if k is not None and key_text(key, self.cell(key, sr), self.g.name_of) == k]
         if not found:
-            fail(f"No shared record matches this row’s “{local_key['name']}”. Fill it in first, or add the source records.", 409)
+            fail(_message('No shared record matches this row’s “{p0}”. Fill it in first, or add the source records.', p0=local_key['name']), 409)
         if len(found) > 1:
-            fail(f"Several shared records match this row’s “{local_key['name']}”, so the change can’t be placed. Ask the source group’s owner to make the key unique.", 409)
+            fail(_message('Several shared records match this row’s “{p0}”, so the change can’t be placed. Ask the source group’s owner to make the key unique.', p0=local_key['name']), 409)
         return v, found[0]
 
     # ------------------------------------------------------------ writing a shared cell
     def write(self, actor, board_id, row_id, col_id, value, expected, via='live'):
         v = self.view(board_id, actor)
         if not v or col_id not in v['perms']:
-            fail('Live Data not found.', 404)
+            fail(_message('Live Data not found.'), 404)
         if v['perms'][col_id] != 'EDIT':
-            fail('You can view this Live Data but not change it (Viewer).', 403)
+            fail(_message('You can view this Live Data but not change it (Viewer).'), 403)
         b = v['board']
         self.g.archived_check(b)
         found = BoardRow.objects.filter(id=row_id, board_id=b['id']).first()
         if not found or not v['rowOk'](found.id):
-            fail('This shared record was deleted or is no longer shared with you. Reload.', 404)
+            fail(_message('This shared record was deleted or is no longer shared with you. Reload.'), 404)
         col = next(c for c in v['columns'] if c['id'] == col_id)
         values = js.loads(found.values_json, {})
         current = values.get(col_id)
         was = None if expected == '' else expected
         if not js.same(current, was):
             shown = dm.cell_text(col, current, self.g.name_of) or 'empty'
-            fail(f"Someone changed “{col['name']}” in the source to “{shown}” while you were editing. Your change was not saved: check the new value and try again.",
+            fail(_message('Someone changed “{p0}” in the source to “{p1}” while you were editing. Your change was not saved: check the new value and try again.', p0=col['name'], p1=shown),
                  409, {'code': 'cell_conflict', 'column': col_id, 'current': current})
         r = dm.clean_cell(col, value, current=current)
         if not r['ok']:
@@ -323,7 +324,7 @@ class LiveData:
         at = self.g.now()
         update(BoardRow, found.id, {'values_json': data, 'version': found.version + 1, 'updated_by': actor, 'updated_at': at})
         self.g.touch(b)
-        self.g.record(actor, b, 'Live Data edited', f"{found.id} · {col['name']}")
+        self.g.record(actor, b, _message('Live Data edited'), f"{found.id} · {col['name']}")
         self.history(b['id'], found.id, [col], {col_id: current}, {col_id: nxt.get(col_id)}, actor, 'EDIT', via, v['shares'].get(col_id, ''))
         self._views = {}
         return True
@@ -332,12 +333,12 @@ class LiveData:
         """tm.group.live.update: change one shared cell from the Live Data panel (no local Group needed)."""
         share = BoardLiveShare.objects.filter(id=text(d.get('share_id'), 'Live Data share', 60, True), recipient_id=actor, active=True).first()
         if not share:
-            fail('Live Data not found.', 404)
+            fail(_message('Live Data not found.'), 404)
         if 'expected' not in d:
-            fail('Send the value you started from, so changes by others are not overwritten.', 400)
+            fail(_message('Send the value you started from, so changes by others are not overwritten.'), 400)
         changed = self.write(actor, share.board_id, text(d.get('row_id'), 'Row', 60, True), text(d.get('column_id'), 'Column', 60, True),
                              d.get('value'), d.get('expected'))
-        return {'id': d['row_id'], 'type': 'tm_group_live', 'message': 'Saved to the source group.' if changed else 'No change.', 'unchanged': not changed}
+        return {'id': d['row_id'], 'type': 'tm_group_live', 'message': _message('Saved to the source group.') if changed else _message('No change.'), 'unchanged': not changed}
 
     # ------------------------------------------------------------ edit history
     def shared_columns(self, board_id):
@@ -364,7 +365,7 @@ class LiveData:
         with Can Edit see their columns' history (for rows they may see). Filter by days, person and column."""
         b = self.g.board_row(str(key or '')[:60])
         if not b:
-            fail('Group not found.', 404)
+            fail(_message('Group not found.'), 404)
         caps = self.g.caps_for(b, staff)
         if caps['view'] and caps['share'] and caps['export']:
             columns, row_ok = None, (lambda _row: True)
@@ -373,7 +374,7 @@ class LiveData:
             v = self.view(b['id'], staff)
             columns = {c for c, perm in (v or {}).get('perms', {}).items() if perm == 'EDIT'} if v else set()
             if not columns:
-                fail('Only people who can edit this Live Data (or manage its group) can see its history.', 403)
+                fail(_message('Only people who can edit this Live Data (or manage its group) can see its history.'), 403)
             row_ok = v['rowOk']
             readable = [c for c in v['columns'] if c['id'] in v['perms']]
         # Records are named by the first column this reader may see (for example the item), never by a hidden one.
@@ -393,7 +394,7 @@ class LiveData:
             if p.get('to'):
                 q = q.filter(created_at__lt=_start_of_day(_next_day(str(p['to'])[:10]), zone))
         except ValueError:
-            fail('Enter valid dates (YYYY-MM-DD).', 400)
+            fail(_message('Enter valid dates (YYYY-MM-DD).'), 400)
         by_id = {c['id']: c for c in self.g.columns_of(b['id'])}
         items = [x for x in q.order_by('-created_at', '-id') if row_ok(x.row_ref)]
         offset = max(0, js.parse_int(p.get('offset')) or 0)
@@ -423,7 +424,7 @@ class LiveData:
         """Live Data shared with this person, for adding a Live Data column to the Group `destination`."""
         self.g.remember_lookups()
         _, caps = self.g.open_board(destination, actor)
-        self.g.need(caps, 'structure', 'Adding a Live Data column needs “Can manage” access to this group.')
+        self.g.need(caps, 'structure', _message('Adding a Live Data column needs “Can manage” access to this group.'))
         found = []
         for share in BoardLiveShare.objects.filter(recipient_id=actor, active=True).exclude(board_id=destination).order_by('created_at'):
             v = self.view(share.board_id, actor)
@@ -442,7 +443,7 @@ class LiveData:
         share = BoardLiveShare.objects.filter(id=str(share_id or '')[:60], recipient_id=actor, active=True).first()
         v = self.view(share.board_id, actor) if share else None
         if not v or share.id not in v['shares'].values():
-            fail('Live Data not found.', 404)
+            fail(_message('Live Data not found.'), 404)
         cols = [c for c in v['columns'] if v['shares'].get(c['id']) == share.id]
         rows = self.source_rows(v, self.g.name_of)
         offset = max(0, js.parse_int(p.get('offset')) or 0)
@@ -459,16 +460,16 @@ class LiveData:
         share = BoardLiveShare.objects.filter(id=str(given.get('share_id') or '')[:60], recipient_id=actor, active=True).first()
         v = self.view(share.board_id, actor) if share else None
         if not v:
-            fail('Choose Live Data that is shared with you.', 404)
+            fail(_message('Choose Live Data that is shared with you.'), 404)
         if v['board']['id'] == b['id']:
-            fail('A group cannot show Live Data from itself.', 422)
+            fail(_message('A group cannot show Live Data from itself.'), 422)
         source = next((c for c in v['columns'] if c['id'] == given.get('source_column_id') and c['id'] in v['perms']), None)
         key = next((c for c in v['columns'] if c['id'] == given.get('source_key_id') and c['id'] in v['perms']), None)
         local_key = next((c for c in s['columns'] if c['id'] == given.get('key_column_id')), None)
         if not source or not key:
-            fail('Choose a shared column and a shared column to match records by.', 422)
+            fail(_message('Choose a shared column and a shared column to match records by.'), 422)
         if not local_key or local_key['type'] not in KEY_TYPES:
-            fail('Choose one of this group’s Text, Number, Date or Status columns to match records by.', 422)
+            fail(_message('Choose one of this group’s Text, Number, Date or Status columns to match records by.'), 422)
         return {'share_id': share.id, 'source_group_id': v['board']['id'], 'source_column_id': source['id'], 'source_key_id': key['id'],
                 'key_column_id': local_key['id'], 'source': {'type': source['type'], 'settings': source.get('settings') or {}, 'name': source['name']}}
 
@@ -476,18 +477,18 @@ class LiveData:
         """tm.group.live.rows: add a row (with its match key) for every shared record that no row of this group matches."""
         b, caps = self.g.open_board(d.get('group_id'), actor)
         self.g.archived_check(b)
-        self.g.need(caps, 'addRows', 'You can’t add records to this group.')
+        self.g.need(caps, 'addRows', _message('You can’t add records to this group.'))
         all_ = self.g.columns_of(b['id'])
         s = self.g.sight(b, actor, caps, all_)
         col = next((c for c in s['columns'] if c['id'] == d.get('column_id') and c['type'] == 'LINKED'), None)
         if not col or not s['link_access'].get(col['id']):
-            fail('Live Data column not found.', 404)
+            fail(_message('Live Data column not found.'), 404)
         st = col['settings']
         v = self.view(st['source_group_id'], actor)
         key = next((x for x in v['columns'] if x['id'] == st['source_key_id']), None)
         local_key = next((x for x in all_ if x['id'] == st['key_column_id']), None)
         if not key or not local_key:
-            fail('This Live Data column lost its connection.', 409)
+            fail(_message('This Live Data column lost its connection.'), 409)
         have = {key_text(local_key, r['values'].get(local_key['id']), self.g.name_of) for r in self.g.rows_of(b['id'])}
         labels = dm.status_labels(local_key) if local_key['type'] == 'STATUS' else []
         added, seen = 0, set()
@@ -504,15 +505,15 @@ class LiveData:
             self.g.row_add({'group_id': b['id'], 'values': {local_key['id']: value}}, actor)
             added += 1
         return {'id': b['id'], 'type': 'tm_group', 'added': added,
-                'message': f"{added} {'record' if added == 1 else 'records'} added." if added else 'Every shared record already has a row.'}
+                'message': f"{added} {'record' if added == 1 else 'records'} added." if added else _message('Every shared record already has a row.')}
 
     # ------------------------------------------------------------ protecting the connections
     def column_in_use(self, b, col):
         """Why a column can't change type or be deleted now (a live-shared source column, or a Live Data match key)."""
         n = BoardLiveColumn.objects.filter(column_id=col['id'], share__active=True).values('share__recipient_id').distinct().count()
         if n:
-            return f"“{col['name']}” is shared as Live Data with {n} {'person' if n == 1 else 'people'}. Change or revoke that Live Data share first."
+            return _message('“{p0}” is shared as Live Data with {p1} {p2}. Change or revoke that Live Data share first.', p0=col['name'], p1=n, p2='person' if n == 1 else 'people')
         keyed = [c['name'] for c in self.g.columns_of(b['id']) if c['type'] == 'LINKED' and (c.get('settings') or {}).get('key_column_id') == col['id']]
         if keyed:
-            return f"“{col['name']}” matches the records of the Live Data column {', '.join('“' + x + '”' for x in keyed)}. Delete or change that column first."
+            return _message('“{p0}” matches the records of the Live Data column {p1}. Delete or change that column first.', p0=col['name'], p1=', '.join('“' + x + '”' for x in keyed))
         return None

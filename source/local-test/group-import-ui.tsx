@@ -1,3 +1,4 @@
+import { uiText, useLanguage, dynamicLabels } from "./i18n";
 import { InternalImportSource } from './group-sharing-ui';
 // V5.5 Groups · Import data from Excel, in eight steps: upload, worksheets, header rows, rows and columns, mapping,
 // check (the server works out exactly what would happen, nothing is saved), import, and the result. The server checks
@@ -13,7 +14,7 @@ import { fileToBase64 } from './media';
 import { plural } from './format';
 import { Alert, CheckboxField, Field, Picker, useConfirm } from './ui-kit';
 
-const STEPS = ['Upload', 'Worksheets', 'Header rows', 'Rows and columns', 'Mapping', 'Check', 'Import', 'Result'];
+const STEPS = dynamicLabels(["Upload", "Worksheets", "Header rows", "Rows and columns", "Mapping", "Check", "Import", "Result"], { 0: () => uiText("Upload"), 1: () => uiText("Worksheets"), 2: () => uiText("Header rows"), 3: () => uiText("Rows and columns"), 4: () => uiText("Mapping"), 5: () => uiText("Check"), 6: () => uiText("Import"), 7: () => uiText("Result") });
 const IMPORTABLE = ['TEXT', 'NUMBER', 'DATE', 'STATUS', 'IN_CHARGE', 'SUPPORT'];
 const colLetter = (i: number) => { let s = '', n = i + 1; while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
 type Mapping = { target?: string; new?: { name: string; type: string }; skip?: boolean };
@@ -52,6 +53,7 @@ function parseRows(text: string): number[] | null | 'error' {
 }
 
 export function ImportWizard({ groupId, groupName, columns, canCreateColumns, onClose, onDone }: { groupId: string; groupName: string; columns: Row[]; canCreateColumns: boolean; onClose: () => void; onDone: () => void }) {
+  useLanguage();
   const [sourceKind, setSourceKind] = useState('file');
   const [step, setStep] = useState(0), [busy, setBusy] = useState(''), [error, setError] = useState('');
   const [imp, setImp] = useState<Row | null>(null), [chosen, setChosen] = useState<number[]>([]), [plans, setPlans] = useState<Record<number, SheetPlan>>({});
@@ -66,8 +68,8 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
   // ---------------------------------------------------------------- 1. upload
   const upload = async (file: File) => {
     setError('');
-    if (!/\.xlsx$/i.test(file.name)) { setError(/\.(xls|csv|xlsm|xlsb|ods)$/i.test(file.name) ? `“${file.name}” is not an Excel workbook (.xlsx). Save it as “Excel Workbook (*.xlsx)” and choose it again.` : 'Choose an Excel workbook (.xlsx).'); return; }
-    if (file.size > GROUP_LIMITS.importBytes) { setError(`Choose a file of up to ${GROUP_LIMITS.importBytes / 1048576} MB.`); return; }
+    if (!/\.xlsx$/i.test(file.name)) { setError(/\.(xls|csv|xlsm|xlsb|ods)$/i.test(file.name) ? uiText("“{p0}” is not an Excel workbook (.xlsx). Save it as “Excel Workbook (*.xlsx)” and choose it again.", { p0: file.name }) : uiText("Choose an Excel workbook (.xlsx).")); return; }
+    if (file.size > GROUP_LIMITS.importBytes) { setError(uiText("Choose a file of up to {p0} MB.", { p0: GROUP_LIMITS.importBytes / 1048576 })); return; }
     setBusy(`Reading ${file.name}…`);
     try {
       const r = await groupCommand('tm.group.import.upload', { group_id: groupId, name: file.name, base64: await fileToBase64(file) });
@@ -115,15 +117,15 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
   });
   const check = async () => {
     setError('');
-    for (const i of chosen) if (parseRows(plan(i).rows) === 'error') { setError(`“${sheets[i].name}”: write rows like 2-50, 75, 80-90 (or leave empty for all rows).`); setStep(3); return; }
-    setBusy('Checking every row…');
+    for (const i of chosen) if (parseRows(plan(i).rows) === 'error') { setError(uiText("“{p0}”: write rows like 2-50, 75, 80-90 (or leave empty for all rows).", { p0: sheets[i].name })); setStep(3); return; }
+    setBusy(uiText("Checking every row…"));
     try { const r = await groupPost('/api/tasks/group/import/preview', { import_id: imp!.id, plan: body() }); setPreview(r); setStep(5); }
     catch (e) { setError((e as Error).message); } finally { setBusy(''); }
   };
   const commit = async () => {
     if (!preview) return;
     const t = preview.totals;
-    if (mode === 'update' && t.update > 0 && !(await confirm({ title: `Change ${t.update} existing ${plural(t.update, 'row')}?`, description: 'Their values are replaced by the values in the file for the columns you mapped. Rows not in the file are not changed.', confirmLabel: `Update ${t.update} ${plural(t.update, 'row')}`, tone: 'danger' }))) return;
+    if (mode === 'update' && t.update > 0 && !(await confirm({ title: uiText("Change {p0} existing {p1}?", { p0: t.update, p1: plural(t.update, 'row') }), description: uiText("Their values are replaced by the values in the file for the columns you mapped. Rows not in the file are not changed."), confirmLabel: `Update ${t.update} ${plural(t.update, 'row')}`, tone: 'danger' }))) return;
     setStep(6); setBusy(`Importing ${t.add + t.update} ${plural(t.add + t.update, 'row')}…`); setError('');
     try {
       const r = await groupCommand('tm.group.import.commit', { import_id: imp!.id, plan: body(), expected: { add: t.add, update: t.update }, confirm_update: mode === 'update' && t.update > 0 });
@@ -137,88 +139,88 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
 
   const canNext = step === 1 ? chosen.length > 0 : step === 2 || step === 3 ? true : step === 4 ? chosen.every(i => plan(i).cols.some(src => { const m = plan(i).map[src]; return !!m && !m.skip; })) && (mode === 'append' || chosen.every(i => plan(i).key !== null)) : false;
   const next = () => { setError(''); if (step === 3) toMapping(); else if (step === 4) void check(); else setStep(step + 1); };
-  const sheetTabs = (render: (s: Row, p: SheetPlan) => ReactNode) => chosen.map(i => <section key={i} className="import-sheet" aria-label={`Worksheet ${sheets[i].name}`}><h3 className="text-section">{sheets[i].name}</h3>{render(sheets[i], plan(i))}</section>);
+  const sheetTabs = (render: (s: Row, p: SheetPlan) => ReactNode) => chosen.map(i => <section key={i} className="import-sheet" aria-label={uiText("Worksheet {p0}", { p0: sheets[i].name })}><h3 className="text-section">{sheets[i].name}</h3>{render(sheets[i], plan(i))}</section>);
 
   return (
     <Dialog open onOpenChange={o => { if (!o && !busy) onClose(); }}>
       <DialogContent className="dialog-xl import-dialog" onInteractOutside={e => e.preventDefault()}>
-        <DialogHeader><DialogTitle><FileSpreadsheet aria-hidden="true" className="inline-icon" />Import data into “{groupName}”</DialogTitle>
-          <DialogDescription>{imp ? `${imp.file_name} · ${sheets.length} ${plural(sheets.length, 'worksheet')}` : 'From an Excel workbook (.xlsx). Nothing is saved until you confirm.'}</DialogDescription></DialogHeader>
-        <ol className="wizard-steps" aria-label="Import steps">
-          {STEPS.map((s, i) => imp?.internal && i > 0 && i < 4 ? null : <li key={s} className={i === step ? 'is-current' : i < step ? 'is-done' : ''} aria-current={i === step ? 'step' : undefined}><span className="wizard-dot num" aria-hidden="true">{i < step ? <Check /> : imp?.internal && i >= 4 ? i - 2 : i + 1}</span><span className="wizard-label">{i === 0 ? 'Source' : s}</span></li>)}
+        <DialogHeader><DialogTitle><FileSpreadsheet aria-hidden="true" className="inline-icon" />{uiText("Import data into “")}{groupName}”</DialogTitle>
+          <DialogDescription>{imp ? uiText("{p0} · {p1} {p2}", { p0: imp.file_name, p1: sheets.length, p2: plural(sheets.length, 'worksheet') }) : uiText("From an Excel workbook (.xlsx). Nothing is saved until you confirm.")}</DialogDescription></DialogHeader>
+        <ol className="wizard-steps" aria-label={uiText("Import steps")}>
+          {STEPS.map((s, i) => imp?.internal && i > 0 && i < 4 ? null : <li key={s} className={i === step ? 'is-current' : i < step ? 'is-done' : ''} aria-current={i === step ? 'step' : undefined}><span className="wizard-dot num" aria-hidden="true">{i < step ? <Check /> : imp?.internal && i >= 4 ? i - 2 : i + 1}</span><span className="wizard-label">{i === 0 ? uiText("Source") : s}</span></li>)}
         </ol>
         <div className="dialog-body stack import-body">
-          {error && <Alert tone="danger" title="Check this" live>{error}</Alert>}
+          {error && <Alert tone="danger" title={uiText("Check this")} live>{error}</Alert>}
           {busy && <p className="import-busy" role="status"><Loader2 className="spin" aria-hidden="true" />{busy}</p>}
 
-          {step === 0 && <><Picker label="Import source" value={sourceKind} allowNone={false} options={[["file", "Excel file (.xlsx)"], ["group", "Another Group / shared data"]]} onChange={setSourceKind} />{sourceKind === 'group' && <InternalImportSource groupId={groupId} onReady={internalReady} />}</>}
+          {step === 0 && <><Picker label={uiText("Import source")} value={sourceKind} allowNone={false} options={[["file", uiText("Excel file (.xlsx)")], ["group", uiText("Another Group / shared data")]]} onChange={setSourceKind} />{sourceKind === 'group' && <InternalImportSource groupId={groupId} onReady={internalReady} />}</>}
           {step === 0 && sourceKind === 'file' && <div className="import-drop">
             <Upload aria-hidden="true" />
-            <p><strong>Choose an Excel workbook</strong> (.xlsx, up to {GROUP_LIMITS.importBytes / 1048576} MB). Every worksheet is read; you choose which to import next.</p>
-            <input ref={fileRef} type="file" aria-label="Excel workbook to import" tabIndex={-1} accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} />
-            <Button onClick={() => fileRef.current?.click()} disabled={!!busy}><Upload />Choose file</Button>
-            <p className="muted small">Excel formulas are not calculated: their saved results are imported. Group formula columns keep calculating themselves.</p>
+            <p><strong>{uiText("Choose an Excel workbook")}</strong> {uiText("(.xlsx, up to ")}{GROUP_LIMITS.importBytes / 1048576} {uiText("MB). Every worksheet is read; you choose which to import next.")}</p>
+            <input ref={fileRef} type="file" aria-label={uiText("Excel workbook to import")} tabIndex={-1} accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void upload(f); }} />
+            <Button onClick={() => fileRef.current?.click()} disabled={!!busy}><Upload />{uiText("Choose file")}</Button>
+            <p className="muted small">{uiText("Excel formulas are not calculated: their saved results are imported. Group formula columns keep calculating themselves.")}</p>
           </div>}
 
           {step === 1 && <>
-            <div className="row-between"><p className="small">Choose the worksheets to import. Each one is mapped on its own.</p>
-              <Button size="xs" variant="ghost" onClick={() => setChosen(chosen.length === sheets.length ? [] : sheets.map(s => s.index))}>{chosen.length === sheets.length ? 'Clear all' : 'Select all'}</Button></div>
+            <div className="row-between"><p className="small">{uiText("Choose the worksheets to import. Each one is mapped on its own.")}</p>
+              <Button size="xs" variant="ghost" onClick={() => setChosen(chosen.length === sheets.length ? [] : sheets.map(s => s.index))}>{chosen.length === sheets.length ? uiText("Clear all") : uiText("Select all")}</Button></div>
             <ul className="import-sheets">{sheets.map(s => <li key={s.index}>
-              <CheckboxField label={<><strong>{s.name}</strong>{s.hidden ? ' (hidden in Excel)' : ''}</>} checked={chosen.includes(s.index)} onChange={v => setChosen(c => v ? [...c, s.index].sort((a, b) => a - b) : c.filter(x => x !== s.index))}
-                description={`${s.filled_rows.toLocaleString('en-US')} filled ${plural(s.filled_rows, 'row')} · ${s.columns} ${plural(s.columns, 'column')}${s.truncated ? ' · only the first 20,000 rows were read' : ''}${s.formulas_without_results ? ` · ${s.formulas_without_results} ${plural(s.formulas_without_results, 'formula')} without a saved result` : ''}`} />
+              <CheckboxField label={<><strong>{s.name}</strong>{s.hidden ? uiText(" (hidden in Excel)") : ''}</>} checked={chosen.includes(s.index)} onChange={v => setChosen(c => v ? [...c, s.index].sort((a, b) => a - b) : c.filter(x => x !== s.index))}
+                description={uiText("{p0} filled {p1} · {p2} {p3}{p4}{p5}", { p0: s.filled_rows.toLocaleString('en-US'), p1: plural(s.filled_rows, 'row'), p2: s.columns, p3: plural(s.columns, 'column'), p4: s.truncated ? ' · only the first 20,000 rows were read' : '', p5: s.formulas_without_results ? ` · ${s.formulas_without_results} ${plural(s.formulas_without_results, 'formula')} without a saved result` : '' })} />
               <PreviewTable sheet={s} headerRow={0} rows={5} />
             </li>)}</ul>
           </>}
 
           {step === 2 && sheetTabs((s, p) => <>
-            <Picker label="Header row" value={String(p.header_row)} allowNone={false} options={s.preview.map((r: string[], i: number) => [String(i + 1), `Row ${i + 1}: ${r.filter(Boolean).slice(0, 4).join(' · ').slice(0, 70) || '(empty)'}`])}
-              onChange={v => setPlan(s.index, { header_row: Number(v), cols: headersOf(s, Number(v)).map((_, i) => i).filter(i => s.preview.some((r: string[]) => String(r[i] || '').trim())), map: {}, key: null })} hint="The row with the column names. Data starts on the next row." />
+            <Picker label={uiText("Header row")} value={String(p.header_row)} allowNone={false} options={s.preview.map((r: string[], i: number) => [String(i + 1), `Row ${i + 1}: ${r.filter(Boolean).slice(0, 4).join(' · ').slice(0, 70) || uiText("(empty)")}`])}
+              onChange={v => setPlan(s.index, { header_row: Number(v), cols: headersOf(s, Number(v)).map((_, i) => i).filter(i => s.preview.some((r: string[]) => String(r[i] || '').trim())), map: {}, key: null })} hint={uiText("The row with the column names. Data starts on the next row.")} />
             <PreviewTable sheet={s} headerRow={p.header_row} rows={8} />
           </>)}
 
           {step === 3 && sheetTabs((s, p) => { const heads = headersOf(s, p.header_row); return <>
-            <Field label="Rows to import" value={p.rows} onChange={v => setPlan(s.index, { rows: v })} placeholder={`All rows (${p.header_row + 1} to the end)`} hint={`Leave empty for every row after the header, or write sheet row numbers such as ${p.header_row + 1}-50, 75, 80-90. Empty rows are skipped.`}
-              error={parseRows(p.rows) === 'error' ? 'Write rows like 2-50, 75, 80-90.' : undefined} />
-            <fieldset className="import-cols"><legend className="field-label">Columns to import <Button type="button" size="xs" variant="link" onClick={() => setPlan(s.index, { cols: p.cols.length === heads.length ? [] : heads.map((_, i) => i) })}>{p.cols.length === heads.length ? 'Clear all' : 'Select all'}</Button></legend>
+            <Field label={uiText("Rows to import")} value={p.rows} onChange={v => setPlan(s.index, { rows: v })} placeholder={uiText("All rows ({p0} to the end)", { p0: p.header_row + 1 })} hint={uiText("Leave empty for every row after the header, or write sheet row numbers such as {p0}-50, 75, 80-90. Empty rows are skipped.", { p0: p.header_row + 1 })}
+              error={parseRows(p.rows) === 'error' ? uiText("Write rows like 2-50, 75, 80-90.") : undefined} />
+            <fieldset className="import-cols"><legend className="field-label">{uiText("Columns to import ")}<Button type="button" size="xs" variant="link" onClick={() => setPlan(s.index, { cols: p.cols.length === heads.length ? [] : heads.map((_, i) => i) })}>{p.cols.length === heads.length ? uiText("Clear all") : uiText("Select all")}</Button></legend>
               {heads.map((h, i) => <CheckboxField key={i} label={<><span className="muted num">{colLetter(i)}</span> {h}</>} checked={p.cols.includes(i)} onChange={v => setPlan(s.index, { cols: v ? [...p.cols, i].sort((a, b) => a - b) : p.cols.filter(x => x !== i) })} />)}
             </fieldset>
           </>; })}
 
           {step === 4 && <>
-            <fieldset className="choice-cards is-two import-mode"><legend className="field-label">What to do with the rows</legend>
-              <label className={`choice-card${mode === 'append' ? ' is-checked' : ''}`}><input type="radio" name="imp-mode" checked={mode === 'append'} onChange={() => { setMode('append'); setPreview(null); }} /><span className="cell-stack"><span className="cell-title">Add them as new rows</span><small>The usual choice. Existing rows are not touched.</small></span></label>
-              <label className={`choice-card${mode === 'update' ? ' is-checked' : ''}`}><input type="radio" name="imp-mode" checked={mode === 'update'} onChange={() => { setMode('update'); setPreview(null); }} /><span className="cell-stack"><span className="cell-title">Update matching rows</span><small>Choose a key column (for example an order number) that identifies each row.</small></span></label>
+            <fieldset className="choice-cards is-two import-mode"><legend className="field-label">{uiText("What to do with the rows")}</legend>
+              <label className={`choice-card${mode === 'append' ? " is-checked" : ''}`}><input type="radio" name="imp-mode" checked={mode === 'append'} onChange={() => { setMode('append'); setPreview(null); }} /><span className="cell-stack"><span className="cell-title">{uiText("Add them as new rows")}</span><small>{uiText("The usual choice. Existing rows are not touched.")}</small></span></label>
+              <label className={`choice-card${mode === 'update' ? " is-checked" : ''}`}><input type="radio" name="imp-mode" checked={mode === 'update'} onChange={() => { setMode('update'); setPreview(null); }} /><span className="cell-stack"><span className="cell-title">Update matching rows</span><small>{uiText("Choose a key column (for example an order number) that identifies each row.")}</small></span></label>
             </fieldset>
-            {mode === 'update' && <Picker label="Rows in the file that match no row" value={unmatched} allowNone={false} options={[['add', 'Add them as new rows'], ['skip', 'Skip them']]} onChange={v => { setUnmatched(v as 'add' | 'skip'); setPreview(null); }} />}
+            {mode === 'update' && <Picker label={uiText("Rows in the file that match no row")} value={unmatched} allowNone={false} options={[['add', uiText("Add them as new rows")], ['skip', uiText("Skip them")]]} onChange={v => { setUnmatched(v as 'add' | 'skip'); setPreview(null); }} />}
             {sheetTabs((s, p) => { const heads = headersOf(s, p.header_row); return <>
-              <table className="map-table"><thead><tr><th scope="col">Excel column</th><th scope="col">Goes into</th>{mode === 'update' && <th scope="col">Key</th>}</tr></thead>
+              <table className="map-table"><thead><tr><th scope="col">{uiText("Excel column")}</th><th scope="col">{uiText("Goes into")}</th>{mode === 'update' && <th scope="col">{uiText("Key")}</th>}</tr></thead>
                 <tbody>{p.cols.map(src => { const m = p.map[src] || { skip: true }, value = m.skip ? '__skip' : m.new ? '__new' : m.target!; const keyable = !!m.target && ['TEXT', 'NUMBER', 'DATE'].includes(targets.find(c => c.id === m.target)?.type || '');
                   return <tr key={src}>
                     <th scope="row"><span className="muted num">{colLetter(src)}</span> {heads[src]}</th>
                     <td><div className="map-target">
-                      <Picker label={`Where “${heads[src]}” goes`} hideLabel value={value} allowNone={false} options={[...targets.map(c => [c.id, `${c.name} · ${COLUMN_TYPES[c.type as keyof typeof COLUMN_TYPES]}`] as [string, string]), ...(canCreateColumns ? [['__new', 'A new column…'] as [string, string]] : []), ['__skip', 'Don’t import']]}
+                      <Picker label={uiText("Where “{p0}” goes", { p0: heads[src] })} hideLabel value={value} allowNone={false} options={[...targets.map(c => [c.id, `${c.name} · ${COLUMN_TYPES[c.type as keyof typeof COLUMN_TYPES]}`] as [string, string]), ...(canCreateColumns ? [['__new', uiText("A new column…")] as [string, string]] : []), ['__skip', uiText("Don’t import")]]}
                         onChange={v => setPlan(s.index, { map: { ...p.map, [src]: v === '__skip' ? { skip: true } : v === '__new' ? { new: { name: heads[src], type: guessType(s, p.header_row, src) } } : { target: v } }, key: p.key === src && (v === '__skip' || v === '__new') ? null : p.key })} />
-                      {m.new && <><Field label="New column name" hideLabel value={m.new.name} onChange={v => setPlan(s.index, { map: { ...p.map, [src]: { new: { ...m.new!, name: v } } } })} />
-                        <Picker label="New column type" hideLabel value={m.new.type} allowNone={false} options={IMPORTABLE.map(t => [t, COLUMN_TYPES[t as keyof typeof COLUMN_TYPES]])} onChange={v => setPlan(s.index, { map: { ...p.map, [src]: { new: { ...m.new!, type: v } } } })} /></>}
+                      {m.new && <><Field label={uiText("New column name")} hideLabel value={m.new.name} onChange={v => setPlan(s.index, { map: { ...p.map, [src]: { new: { ...m.new!, name: v } } } })} />
+                        <Picker label={uiText("New column type")} hideLabel value={m.new.type} allowNone={false} options={IMPORTABLE.map(t => [t, COLUMN_TYPES[t as keyof typeof COLUMN_TYPES]])} onChange={v => setPlan(s.index, { map: { ...p.map, [src]: { new: { ...m.new!, type: v } } } })} /></>}
                     </div></td>
-                    {mode === 'update' && <td>{keyable ? <input type="radio" name={`key-${s.index}`} aria-label={`Use “${heads[src]}” as the key`} checked={p.key === src} onChange={() => setPlan(s.index, { key: src })} /> : null}</td>}
+                    {mode === 'update' && <td>{keyable ? <input type="radio" name={`key-${s.index}`} aria-label={uiText("Use “{p0}” as the key", { p0: heads[src] })} checked={p.key === src} onChange={() => setPlan(s.index, { key: src })} /> : null}</td>}
                   </tr>; })}</tbody></table>
-              {mode === 'update' && p.key === null && <p className="field-error">Choose the key column for this worksheet (an existing Text, Number or Date column).</p>}
+              {mode === 'update' && p.key === null && <p className="field-error">{uiText("Choose the key column for this worksheet (an existing Text, Number or Date column).")}</p>}
             </>; })}
-            {targets.some(c => c.type === 'STATUS') && <CheckboxField label="Add status labels the file uses that a column doesn’t have yet" checked={createLabels} onChange={v => { setCreateLabels(v); setPreview(null); }} description="Off: those rows are reported instead." />}
-            <p className="muted small">People are matched by staff ID, Task Controlling Management email or a name only one person has. Formula columns can’t be imported into.</p>
+            {targets.some(c => c.type === 'STATUS') && <CheckboxField label={uiText("Add status labels the file uses that a column doesn’t have yet")} checked={createLabels} onChange={v => { setCreateLabels(v); setPreview(null); }} description={uiText("Off: those rows are reported instead.")} />}
+            <p className="muted small">{uiText("People are matched by staff ID, Task Controlling Management email or a name only one person has. Formula columns can’t be imported into.")}</p>
           </>}
 
           {step === 5 && preview && <ImportPreview preview={preview} people={people} onPerson={(text, id) => { setPeople(s => ({ ...s, [text]: id })); }} />}
-          {step === 6 && !busy && error && <p className="muted small">Nothing was imported.</p>}
+          {step === 6 && !busy && error && <p className="muted small">{uiText("Nothing was imported.")}</p>}
           {step === 7 && result && <ImportResult result={result} />}
         </div>
         <div className="dialog-footer">
-          {step > 0 && step < 6 && <div className="footer-start"><Button type="button" variant="ghost" disabled={!!busy} onClick={() => { setError(''); setStep(imp?.internal && step === 4 ? 0 : step === 5 ? 4 : step - 1); }}><ChevronLeft />Back</Button></div>}
-          <Button type="button" variant="outline" disabled={!!busy && step !== 0} onClick={onClose}>{step === 7 ? 'Close' : 'Cancel'}</Button>
-          {step >= 1 && step <= 4 && <Button type="button" disabled={!canNext || !!busy} onClick={next}>{step === 4 ? 'Check the import' : 'Next'}<ChevronRight /></Button>}
-          {step === 5 && preview && (preview.unresolved?.length ? <Button type="button" disabled={!!busy || preview.unresolved.some((u: Row) => !people[u.text])} onClick={() => void check()}>Check again</Button>
-            : <Button type="button" disabled={!!busy || preview.already || !(preview.totals.add + preview.totals.update)} onClick={() => void commit()}>Import {(preview.totals.add + preview.totals.update).toLocaleString('en-US')} {plural(preview.totals.add + preview.totals.update, 'row')}</Button>)}
+          {step > 0 && step < 6 && <div className="footer-start"><Button type="button" variant="ghost" disabled={!!busy} onClick={() => { setError(''); setStep(imp?.internal && step === 4 ? 0 : step === 5 ? 4 : step - 1); }}><ChevronLeft />{uiText("Back")}</Button></div>}
+          <Button type="button" variant="outline" disabled={!!busy && step !== 0} onClick={onClose}>{step === 7 ? uiText("Close") : uiText("Cancel")}</Button>
+          {step >= 1 && step <= 4 && <Button type="button" disabled={!canNext || !!busy} onClick={next}>{step === 4 ? uiText("Check the import") : uiText("Next")}<ChevronRight /></Button>}
+          {step === 5 && preview && (preview.unresolved?.length ? <Button type="button" disabled={!!busy || preview.unresolved.some((u: Row) => !people[u.text])} onClick={() => void check()}>{uiText("Check again")}</Button>
+            : <Button type="button" disabled={!!busy || preview.already || !(preview.totals.add + preview.totals.update)} onClick={() => void commit()}>{uiText("Import ")}{(preview.totals.add + preview.totals.update).toLocaleString('en-US')} {plural(preview.totals.add + preview.totals.update, 'row')}</Button>)}
         </div>
       </DialogContent>
     </Dialog>
@@ -226,57 +228,62 @@ export function ImportWizard({ groupId, groupName, columns, canCreateColumns, on
 }
 
 function PreviewTable({ sheet, headerRow, rows }: { sheet: Row; headerRow: number; rows: number }) {
+  useLanguage();
   const width = Math.min(12, sheet.preview[0]?.length || 0), start = headerRow ? Math.max(0, headerRow - 2) : 0, list: string[][] = sheet.preview.slice(start, start + rows);
-  if (!width) return <p className="muted small">This worksheet is empty.</p>;
+  if (!width) return <p className="muted small">{uiText("This worksheet is empty.")}</p>;
   return (
-    <div className="import-preview" role="region" aria-label={`First rows of ${sheet.name}`} tabIndex={0}>
-      <table><thead><tr><th scope="col"><span className="sr-only">Row</span></th>{Array.from({ length: width }, (_, i) => <th key={i} scope="col">{colLetter(i)}</th>)}</tr></thead>
+    <div className="import-preview" role="region" aria-label={uiText("First rows of {p0}", { p0: sheet.name })} tabIndex={0}>
+      <table><thead><tr><th scope="col"><span className="sr-only">{uiText("Row")}</span></th>{Array.from({ length: width }, (_, i) => <th key={i} scope="col">{colLetter(i)}</th>)}</tr></thead>
         <tbody>{list.map((r, n) => <tr key={n} className={start + n + 1 === headerRow ? 'is-header' : undefined}><th scope="row" className="num">{start + n + 1}</th>{Array.from({ length: width }, (_, i) => <td key={i}>{r[i]}</td>)}</tr>)}</tbody></table>
     </div>
   );
 }
 
 function ImportPreview({ preview, people, onPerson }: { preview: Row; people: Record<string, string>; onPerson: (text: string, id: string) => void }) {
-  if (preview.already) return <Alert tone="info" title="This file was already imported">{preview.result?.added} rows were added then. Upload the file again to import it once more.</Alert>;
+  useLanguage();
+  if (preview.already) return <Alert tone="info" title={uiText("This file was already imported")}>{preview.result?.added} {uiText("rows were added then. Upload the file again to import it once more.")}</Alert>;
   const t = preview.totals;
   return (
     <div className="stack">
       <div className="import-totals">
-        <Stat label="To add" value={t.add} tone="success" /><Stat label="To update" value={t.update} /><Stat label="Skipped" value={t.skipped} detail="empty or not matched" /><Stat label="Can’t import" value={t.failed} tone={t.failed ? 'danger' : undefined} />
+        <Stat label={uiText("To add")} value={t.add} tone="success" /><Stat label={uiText("To update")} value={t.update} /><Stat label={uiText("Skipped")} value={t.skipped} detail="empty or not matched" /><Stat label={uiText("Can’t import")} value={t.failed} tone={t.failed ? 'danger' : undefined} />
       </div>
-      {preview.new_columns?.length > 0 && <Alert tone="info" title={`${preview.new_columns.length} new ${plural(preview.new_columns.length, 'column')}`}>{preview.new_columns.map((c: Row) => `${c.name} (${COLUMN_TYPES[c.type as keyof typeof COLUMN_TYPES]})`).join(', ')}</Alert>}
-      {preview.new_labels?.length > 0 && <Alert tone="info" title="New status labels">{preview.new_labels.map((x: Row) => `${x.column}: ${x.labels.join(', ')}`).join(' · ')}</Alert>}
-      {preview.unresolved?.length > 0 && <Alert tone="warning" title="Choose who is meant">
-        <ul className="import-people">{preview.unresolved.map((u: Row) => <li key={u.text}><span>“{u.text}”</span><Picker label={`Who is “${u.text}”`} hideLabel value={people[u.text] || ''} none="Choose…" options={u.candidates.map((c: Row) => [c.id, `${c.name}${c.department ? ` · ${c.department}` : ''}`])} onChange={v => onPerson(u.text, v)} /></li>)}</ul>
+      {preview.new_columns?.length > 0 && <Alert tone="info" title={uiText("{p0} new {p1}", { p0: preview.new_columns.length, p1: plural(preview.new_columns.length, 'column') })}>{preview.new_columns.map((c: Row) => `${c.name} (${COLUMN_TYPES[c.type as keyof typeof COLUMN_TYPES]})`).join(', ')}</Alert>}
+      {preview.new_labels?.length > 0 && <Alert tone="info" title={uiText("New status labels")}>{preview.new_labels.map((x: Row) => `${x.column}: ${x.labels.join(', ')}`).join(' · ')}</Alert>}
+      {preview.unresolved?.length > 0 && <Alert tone="warning" title={uiText("Choose who is meant")}>
+        <ul className="import-people">{preview.unresolved.map((u: Row) => <li key={u.text}><span>“{u.text}”</span><Picker label={uiText("Who is “{p0}”", { p0: u.text })} hideLabel value={people[u.text] || ''} none={uiText("Choose…")} options={u.candidates.map((c: Row) => [c.id, `${c.name}${c.department ? ` · ${c.department}` : ''}`])} onChange={v => onPerson(u.text, v)} /></li>)}</ul>
       </Alert>}
-      {preview.sheets.map((s: Row) => <section key={s.index} className="import-sheet" aria-label={`Worksheet ${s.name}`}>
-        <h3 className="text-section">{s.name} <span className="muted small">· {s.selected} {plural(s.selected, 'row')} chosen · {s.add} to add{s.update ? ` · ${s.update} to update` : ''}{s.skipped_blank ? ` · ${s.skipped_blank} empty` : ''}{s.skipped_unmatched ? ` · ${s.skipped_unmatched} not matched` : ''}{s.failed ? ` · ${s.failed} can’t import` : ''}</span></h3>
-        {s.errors.length > 0 && <ProblemList title="Rows that can’t be imported" items={s.errors} tone="danger" />}
-        {s.warnings.length > 0 && <ProblemList title="Warnings" items={s.warnings} tone="warning" />}
-        {s.sample.length > 0 && <details className="disclosure"><summary>Examples of what will be saved</summary><div className="disclosure-body"><ul className="import-sample">{s.sample.map((x: Row, i: number) => <li key={i}><span className="muted num">Row {x.row} · {x.action === 'add' ? 'add' : 'update'}</span> {Object.entries(x.values).map(([k, v]) => `${k}: ${v}`).join(' · ')}</li>)}</ul></div></details>}
+      {preview.sheets.map((s: Row) => <section key={s.index} className="import-sheet" aria-label={uiText("Worksheet {p0}", { p0: s.name })}>
+        <h3 className="text-section">{s.name} <span className="muted small">· {s.selected} {plural(s.selected, 'row')} {uiText("chosen · ")}{s.add} {uiText("to add")}{s.update ? uiText(" · {p0} to update", { p0: s.update }) : ''}{s.skipped_blank ? uiText(" · {p0} empty", { p0: s.skipped_blank }) : ''}{s.skipped_unmatched ? uiText(" · {p0} not matched", { p0: s.skipped_unmatched }) : ''}{s.failed ? uiText(" · {p0} can’t import", { p0: s.failed }) : ''}</span></h3>
+        {s.errors.length > 0 && <ProblemList title={uiText("Rows that can’t be imported")} items={s.errors} tone="danger" />}
+        {s.warnings.length > 0 && <ProblemList title={uiText("Warnings")} items={s.warnings} tone="warning" />}
+        {s.sample.length > 0 && <details className="disclosure"><summary>{uiText("Examples of what will be saved")}</summary><div className="disclosure-body"><ul className="import-sample">{s.sample.map((x: Row, i: number) => <li key={i}><span className="muted num">{uiText("Row ")}{x.row} · {x.action === 'add' ? 'add' : 'update'}</span> {Object.entries(x.values).map(([k, v]) => `${k}: ${v}`).join(' · ')}</li>)}</ul></div></details>}
       </section>)}
     </div>
   );
 }
 function Stat({ label, value, detail, tone }: { label: string; value: number; detail?: string; tone?: 'success' | 'danger' }) {
+  useLanguage();
   return <div className={`import-stat${tone ? ` is-${tone}` : ''}`}><span className="import-stat-value num">{value.toLocaleString('en-US')}</span><span className="import-stat-label">{label}</span>{detail && <small className="muted">{detail}</small>}</div>;
 }
 function ProblemList({ title, items, tone }: { title: string; items: Row[]; tone: 'danger' | 'warning' }) {
+  useLanguage();
   return (
     <div className={`problem-list is-${tone}`}>
       <p className="text-label"><AlertTriangle aria-hidden="true" className="inline-icon" />{title} · {items.length}{items.length >= 300 ? '+' : ''} {plural(items.length, 'problem')}</p>
-      <ul>{items.slice(0, 100).map((e, i) => <li key={i}>{e.row ? <span className="num">Row {e.row}</span> : null}{e.column ? <span> · {e.column}</span> : null}{e.value ? <span className="muted"> · “{e.value}”</span> : null}: {e.message}</li>)}</ul>
-      {items.length > 100 && <p className="muted small">And {items.length - 100} more. Correct the file and upload it again to see the rest.</p>}
+      <ul>{items.slice(0, 100).map((e, i) => <li key={i}>{e.row ? <span className="num">{uiText("Row ")}{e.row}</span> : null}{e.column ? <span> · {e.column}</span> : null}{e.value ? <span className="muted"> · “{e.value}”</span> : null}: {e.message}</li>)}</ul>
+      {items.length > 100 && <p className="muted small">{uiText("And ")}{items.length - 100} {uiText("more. Correct the file and upload it again to see the rest.")}</p>}
     </div>
   );
 }
 function ImportResult({ result }: { result: Row }) {
+  useLanguage();
   return (
     <div className="stack">
-      <Alert tone={result.failed ? 'warning' : 'success'} icon={CheckCircle2} title={result.already ? 'Already imported' : 'Import finished'}>{result.message}</Alert>
-      {result.added !== undefined && <div className="import-totals"><Stat label="Added" value={result.added} tone="success" /><Stat label="Updated" value={result.updated} /><Stat label="Skipped" value={result.skipped} /><Stat label="Not imported" value={result.failed} tone={result.failed ? 'danger' : undefined} /></div>}
-      {result.created_columns?.length > 0 && <p className="small">New columns: {result.created_columns.map((c: Row) => c.name).join(', ')}.</p>}
-      {(result.sheets || []).filter((s: Row) => s.errors?.length).map((s: Row) => <ProblemList key={s.name} title={`${s.name}: rows not imported`} items={s.errors} tone="danger" />)}
+      <Alert tone={result.failed ? 'warning' : 'success'} icon={CheckCircle2} title={result.already ? uiText("Already imported") : uiText("Import finished")}>{result.message}</Alert>
+      {result.added !== undefined && <div className="import-totals"><Stat label={uiText("Added")} value={result.added} tone="success" /><Stat label={uiText("Updated")} value={result.updated} /><Stat label={uiText("Skipped")} value={result.skipped} /><Stat label={uiText("Not imported")} value={result.failed} tone={result.failed ? 'danger' : undefined} /></div>}
+      {result.created_columns?.length > 0 && <p className="small">{uiText("New columns: ")}{result.created_columns.map((c: Row) => c.name).join(', ')}.</p>}
+      {(result.sheets || []).filter((s: Row) => s.errors?.length).map((s: Row) => <ProblemList key={s.name} title={uiText("{p0}: rows not imported", { p0: s.name })} items={s.errors} tone="danger" />)}
     </div>
   );
 }

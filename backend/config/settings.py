@@ -70,6 +70,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'core.middleware.CompanyScopeMiddleware',
     'core.middleware.SecurityHeadersMiddleware',
+    'core.language_http.LanguageMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -143,7 +144,7 @@ STATIC_URL = '/static/'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['accounts.authentication.SessionTokenAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
-    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_RENDERER_CLASSES': ['core.language_http.AccountJSONRenderer'],
     'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
     'EXCEPTION_HANDLER': 'core.errors.exception_handler',
     'UNAUTHENTICATED_USER': None,

@@ -1,3 +1,4 @@
+import { uiText } from "../../local-test/i18n";
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"

@@ -1,3 +1,4 @@
+import { uiText, dynamicLabels } from "./i18n";
 // Shared display formatting. One place decides how money, dates, durations and
 // missing values look, so every table, card and report reads the same way.
 
@@ -5,7 +6,7 @@ export const MISSING = '—';
 // V5.5: times are shown in the signed-in person's time zone (their own, else the company's, else Cambodia's). The
 // screens set it once the data is loaded (setDisplayZone); dates without a time (due dates) are never converted.
 let TZ = 'Asia/Phnom_Penh';
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = dynamicLabels(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], { 0: () => uiText("Jan"), 1: () => uiText("Feb"), 2: () => uiText("Mar"), 3: () => uiText("Apr"), 4: () => uiText("May"), 5: () => uiText("Jun"), 6: () => uiText("Jul"), 7: () => uiText("Aug"), 8: () => uiText("Sep"), 9: () => uiText("Oct"), 10: () => uiText("Nov"), 11: () => uiText("Dec") });
 
 /** Null, undefined and empty strings are "missing"; zero is a real value. */
 export const isMissing = (value: unknown) => value === null || value === undefined || value === '' || (typeof value === 'number' && Number.isNaN(value));
@@ -41,7 +42,7 @@ export function formatMoneyCompact(cents: unknown, currency = 'USD'): string | n
 
 const numberFormatter = new Intl.NumberFormat('en-US');
 /** Picks the singular or plural noun: plural(1, 'task') → 'task', plural(3, 'task') → 'tasks'. */
-export const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
+export const plural = (n: number, one: string, many = `${one}s`) => uiText(n === 1 ? one : many);
 
 export function formatNumber(value: unknown, digits?: number): string | null {
   if (isMissing(value)) return null;
@@ -73,7 +74,7 @@ export function setDisplayZone(zone: string | null | undefined) {
 }
 export const displayZone = () => TZ;
 /** “Phnom Penh time”, “UTC”. */
-export const zoneName = (zone = TZ) => (zone === 'UTC' ? 'UTC' : `${zone.split('/').pop()!.replace(/_/g, ' ')} time`);
+export const zoneName = (zone = TZ) => (zone === 'UTC' ? 'UTC' : uiText('{p0} time', { p0: zone.split('/').pop()!.replace(/_/g, ' ') }));
 /** The current offset of a zone, “UTC+7”. */
 export function zoneOffset(zone: string): string {
   try { return (new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || '').replace('GMT', 'UTC'); } catch { return ''; }
@@ -161,7 +162,7 @@ export function formatRelative(value: unknown, now = new Date()): string | null 
   const s = String(value);
   if (!Number.isFinite(Date.parse(s))) return s;
   const minutes = Math.round((now.getTime() - Date.parse(s)) / 60000);
-  if (minutes >= 0 && minutes < 1) return 'Just now';
+  if (minutes >= 0 && minutes < 1) return uiText("Just now");
   if (minutes >= 0 && minutes < 60) return `${minutes} min ago`;
   const days = daysBetween(localDate(s), localDate(now));
   if (days === 0) return `Today, ${formatTime(s)}`;
@@ -180,7 +181,7 @@ export function humanize(value: unknown): string {
 
 /** Range label for filters and KPI periods. */
 export function formatRange(from?: string, to?: string) {
-  if (!from && !to) return 'All dates';
+  if (!from && !to) return uiText("All dates");
   if (from && to) {
     if (from === to) return formatDate(from) as string;
     const [fy, fm] = from.split('-'), [ty, tm] = to.split('-');

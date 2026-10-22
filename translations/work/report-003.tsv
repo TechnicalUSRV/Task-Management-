@@ -1,0 +1,53 @@
+Invalid filters.	តម្រងមិនត្រឹមត្រូវ។	筛选条件无效。
+Unknown task report.	មិនស្គាល់របាយការណ៍កិច្ចការនេះ។	未知任务报告。
+Page {p0} of {p1}	ទំព័រ {p0} នៃ {p1}	第 {p0} 页，共 {p1} 页
+Meeting start	ពេលចាប់ផ្តើមប្រជុំ	会议开始时间
+Customer since	ជាអតិថិជនតាំងពី	成为客户的日期
+ · waiting for review	 · កំពុងរង់ចាំពិនិត្យ	 · 等待审核
+{p0} records | {p1} sources | {p2} | Generated {p3} UTC	{p0} ទិន្នន័យ | {p1} ប្រភព | {p2} | បង្កើតនៅ {p3} UTC	{p0} 条记录 | {p1} 个来源 | {p2} | 生成于 {p3} UTC
+{p0} day{p1} past due	ហួសកំណត់ {p0} ថ្ងៃ	逾期 {p0} 天
+Your role has no report data sources.	តួនាទីរបស់អ្នកមិនមានប្រភពទិន្នន័យសម្រាប់របាយការណ៍ទេ។	你的角色没有可用的报告数据源。
+Your account cannot view 	គណនីរបស់អ្នកមិនអាចមើល 	你的账户无权查看 
+Workspace performance	លទ្ធផលការងារតាមកន្លែងការងារ	工作区绩效
+Unknown report data source: 	មិនស្គាល់ប្រភពទិន្នន័យរបាយការណ៍៖ 	未知报告数据源：
+Unknown report column.	មិនស្គាល់ជួរឈររបាយការណ៍។	未知报告列。
+Unable to load report.	មិនអាចផ្ទុករបាយការណ៍។	无法加载报告。
+Timesheet detail	លម្អិតតារាងម៉ោងការងារ	工时表明细
+The report end date must be on or after its start date.	កាលបរិច្ឆេទបញ្ចប់របាយការណ៍ត្រូវនៅថ្ងៃចាប់ផ្តើម ឬក្រោយនោះ។	报告结束日期必须等于或晚于开始日期。
+Tasks · Employee profiles	កិច្ចការ · ព័ត៌មានបុគ្គលិក	任务 · 员工资料
+Stuck since {p0}{p1}{p2}	ជាប់គាំងចាប់ពី {p0}{p1}{p2}	自 {p0}{p1}{p2} 起受阻
+Start UTC	ចាប់ផ្តើម UTC	开始时间 UTC
+Report unavailable	មិនអាចប្រើរបាយការណ៍នេះ	报告不可用
+No records match these filters.	គ្មានទិន្នន័យត្រូវនឹងតម្រងទាំងនេះ។	没有符合筛选条件的记录。
+More than 5,000 rows match. Narrow your filters before generating this report.	មានជួរទិន្នន័យលើស ៥,០០០ ជួរ។ សូមកំណត់តម្រងឱ្យចង្អៀតមុនបង្កើតរបាយការណ៍។	匹配记录超过 5,000 行，请缩小筛选范围后再生成报告。
+Monthly tasks in progress	កិច្ចការកំពុងដំណើរការប្រចាំខែ	每月进行中的任务
+Monthly stuck tasks	កិច្ចការជាប់គាំងប្រចាំខែ	每月受阻任务
+Monthly overdue tasks	កិច្ចការហួសកំណត់ប្រចាំខែ	每月逾期任务
+Meeting notes	កំណត់ចំណាំប្រជុំ	会议记录
+Logged H:MM	បានកត់ត្រា H:MM	已记录 H:MM
+Export permission is required for 	ត្រូវការសិទ្ធិនាំចេញសម្រាប់ 	导出以下内容需要权限：
+Estimated H:MM	បានប៉ាន់ស្មាន H:MM	预估 H:MM
+Enter valid report dates.	សូមបញ្ចូលកាលបរិច្ឆេទរបាយការណ៍ត្រឹមត្រូវ។	请输入有效的报告日期。
+End date must be on or after start date.	កាលបរិច្ឆេទបញ្ចប់ត្រូវនៅថ្ងៃចាប់ផ្តើម ឬក្រោយនោះ។	结束日期必须等于或晚于开始日期。
+End UTC	បញ្ចប់ UTC	结束时间 UTC
+ETA or issue date	ពេលរំពឹងមកដល់ ឬថ្ងៃចេញ	预计到达或签发日期
+Department note: 	កំណត់ចំណាំផ្នែក៖ 	部门备注：
+Dates use Cambodia time; meeting timestamps labeled UTC use UTC. Shared assignments count once for each assignee. Generated 	កាលបរិច្ឆេទប្រើម៉ោងកម្ពុជា; ម៉ោងប្រជុំដែលសម្គាល់ UTC ប្រើម៉ោង UTC។ កិច្ចការដែលចែករំលែករាប់ម្តងសម្រាប់អ្នកទទួលបន្ទុកម្នាក់ៗ។ បង្កើតនៅ 	日期使用柬埔寨时间；标有 UTC 的会议时间使用 UTC。共享任务按每位被分配人分别计数。生成于 
+Date field: {p0} | {p1} records	វាលកាលបរិច្ឆេទ៖ {p0} | {p1} ទិន្នន័យ	日期字段：{p0} | {p1} 条记录
+Completed {p0}{p1}	បានបញ្ចប់ {p0}{p1}	已完成 {p0}{p1}
+Completed {p0} day{p1} late	បានបញ្ចប់យឺត {p0} ថ្ងៃ	逾期 {p0} 天完成
+Authorized company report	របាយការណ៍ក្រុមហ៊ុនដែលមានសិទ្ធិ	经授权的公司报告
+Amounts are totaled within each data source. Do not add different lifecycle stages together; the same transaction can appear in several sources.	ទឹកប្រាក់ត្រូវបានបូកសរុបក្នុងប្រភពទិន្នន័យនីមួយៗ។ កុំបូកដំណាក់កាលខុសគ្នាជាមួយគ្នា ព្រោះប្រតិបត្តិការដូចគ្នាអាចបង្ហាញក្នុងប្រភពជាច្រើន។	金额按各数据源分别汇总。不要合计不同流程阶段；同一笔交易可能出现在多个数据源中。
+(continued)	(បន្ត)	（续）
+ - columns {p0}/{p1}	 - ជួរឈរ {p0}/{p1}	 - 第 {p0}/{p1} 组列
+Use your browser's Print command and select Save as PDF for selectable text.	ប្រើពាក្យបញ្ជា បោះពុម្ព របស់កម្មវិធីរុករក ហើយជ្រើស រក្សាទុកជាឯកសារ PDF ដើម្បីបានអត្ថបទដែលអាចជ្រើសបាន។	使用浏览器的打印命令，并选择“另存为 PDF”，即可保存可选择的文字。
+{p0} records | Generated {p1} | {p2}	{p0} ទិន្នន័យ | បង្កើតនៅ {p1} | {p2}	{p0} 条记录 | 生成于 {p1} | {p2}
+{p0} records | Date: {p1}	{p0} ទិន្នន័យ | ថ្ងៃ៖ {p1}	{p0} 条记录 | 日期：{p1}
+Amounts are totaled per source, not across lifecycle stages.	ទឹកប្រាក់ត្រូវបានបូកតាមប្រភពនីមួយៗ មិនបូកឆ្លងដំណាក់កាលដំណើរការទេ។	金额按数据源分别汇总，不跨流程阶段合计。
+All dates and values in the selected sources	កាលបរិច្ឆេទ និងតម្លៃទាំងអស់ក្នុងប្រភពដែលបានជ្រើស	所选数据源的所有日期和数值
+Title / description	ចំណងជើង / ការពិពណ៌នា	标题／说明
+User / owner / assignee	អ្នកប្រើ / ម្ចាស់ / អ្នកទទួលបន្ទុក	用户／所有者／被分配人
+Amount / balance	ទឹកប្រាក់ / សមតុល្យ	金额／余额
+Time (H:MM)	ម៉ោង (H:MM)	时间 (H:MM)
+Notes / details	កំណត់ចំណាំ / លម្អិត	备注／详情
+Date (Cambodia)	ថ្ងៃ (កម្ពុជា)	日期（柬埔寨）

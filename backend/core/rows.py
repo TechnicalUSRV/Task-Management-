@@ -3,6 +3,7 @@
 Keys are the database column names (owner_id, org_level, …), datetimes are ISO strings ending in Z, and booleans are
 0/1 — exactly what the SQLite service returned — so the frontend and the ported rules see identical data.
 """
+from core.i18n import msg as _message
 from datetime import date, datetime
 
 from .validation import iso
@@ -43,7 +44,7 @@ def db_values(model, data):
     for column, value in data.items():
         field = columns.get(column)
         if field is None:
-            raise KeyError(f'{model._meta.db_table} has no column {column}')
+            raise KeyError(_message('{p0} has no column {p1}', p0=model._meta.db_table, p1=column))
         if isinstance(field, m.BooleanField) and value is not None:
             value = bool(value)
         out[field.attname] = value

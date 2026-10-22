@@ -1,3 +1,4 @@
+import { uiText, useLanguage } from "../i18n";
 import { useId, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
@@ -6,10 +7,11 @@ import { cn } from '@/lib/utils';
 export type Crumb = { label: ReactNode; href?: string };
 
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
+  useLanguage();
   // A single crumb would only repeat the page title, so the trail starts at two levels.
   if (items.length < 2) return null;
   return (
-    <nav aria-label="Breadcrumb" className="breadcrumbs">
+    <nav aria-label={uiText("Breadcrumb")} className="breadcrumbs">
       <ol>
         {items.map((c, i) => {
           const last = i === items.length - 1;
@@ -32,6 +34,7 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
 export function PageHeader({ crumbs, title, badge, description, meta, actions, children, className }: {
   crumbs?: Crumb[]; title: ReactNode; badge?: ReactNode; description?: ReactNode; meta?: ReactNode; actions?: ReactNode; children?: ReactNode; className?: string;
 }) {
+  useLanguage();
   return (
     <header className={cn('page-header', className)}>
       {crumbs && <Breadcrumbs items={crumbs} />}
@@ -53,6 +56,7 @@ export function PageHeader({ crumbs, title, badge, description, meta, actions, c
 
 /** Route-level tabs (each tab is an address). */
 export function SectionTabs({ items, active, label, className }: { items: { id: string; label: ReactNode; href: string; count?: number; icon?: LucideIcon }[]; active: string; label: string; className?: string }) {
+  useLanguage();
   return (
     <nav className={cn('section-tabs', className)} aria-label={label}>
       <div className="section-tabs-track">
@@ -72,6 +76,7 @@ export function SectionTabs({ items, active, label, className }: { items: { id: 
 export function Segmented<T extends string>({ value, onChange, options, label, size = 'md', className }: {
   value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode; icon?: LucideIcon; count?: number; hideLabel?: boolean }[]; label: string; size?: 'sm' | 'md'; className?: string;
 }) {
+  useLanguage();
   return (
     <div role="group" aria-label={label} className={cn('segmented', `segmented-${size}`, className)}>
       {options.map(o => (
@@ -89,6 +94,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
 export function Card({ title, description, actions, children, footer, className, bodyClassName, flush, id, headingLevel = 2 }: {
   title?: ReactNode; description?: ReactNode; actions?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; bodyClassName?: string; flush?: boolean; id?: string; headingLevel?: 2 | 3;
 }) {
+  useLanguage();
   const headingId = useId();
   const H = headingLevel === 3 ? 'h3' : 'h2';
   return (
@@ -110,6 +116,7 @@ export function Card({ title, description, actions, children, footer, className,
 
 /** A labelled region inside a page without its own surface. */
 export function Section({ title, description, actions, children, className }: { title?: ReactNode; description?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+  useLanguage();
   const id = useId();
   return (
     <section className={cn('section', className)} aria-labelledby={title ? id : undefined}>
@@ -120,5 +127,6 @@ export function Section({ title, description, actions, children, className }: { 
 }
 
 export function Toolbar({ children, className }: { children: ReactNode; className?: string }) {
+  useLanguage();
   return <div className={cn('toolbar', className)}>{children}</div>;
 }

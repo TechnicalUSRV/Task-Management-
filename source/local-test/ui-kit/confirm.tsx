@@ -1,3 +1,4 @@
+import { uiText, useLanguage } from "../i18n";
 import { createContext, useCallback, useContext, useId, useRef, useState, type ReactNode } from 'react';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -22,6 +23,7 @@ const ConfirmContext = createContext<(o: ConfirmOptions) => Promise<ConfirmResul
 
 /** Accessible replacement for window.confirm / window.prompt. */
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  useLanguage();
   const [state, setState] = useState<{ options: ConfirmOptions; resolve: (r: ConfirmResult) => void } | null>(null);
   const [reason, setReason] = useState(''), [error, setError] = useState('');
   const settled = useRef(false);
@@ -33,7 +35,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   const o = state?.options;
   const danger = o?.tone === 'danger';
   const accept = () => {
-    if (o?.reason?.required && !reason.trim()) { setError(`Enter ${o.reason.label.toLowerCase()}.`); return; }
+    if (o?.reason?.required && !reason.trim()) { setError(uiText("Enter {p0}.", { p0: o.reason.label.toLowerCase() })); return; }
     finish({ reason: reason.trim() });
   };
   return (
@@ -46,9 +48,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <span className={cn('confirm-icon', danger ? 'tone-danger' : 'tone-info')} aria-hidden="true">{danger ? <AlertTriangle /> : <HelpCircle />}</span>
               <div className="confirm-text">
                 <AlertDialogTitle>{o.title}</AlertDialogTitle>
-                {o.description ? <AlertDialogDescription>{o.description}</AlertDialogDescription> : <AlertDialogDescription className="sr-only">Confirm or cancel this action.</AlertDialogDescription>}
+                {o.description ? <AlertDialogDescription>{o.description}</AlertDialogDescription> : <AlertDialogDescription className="sr-only">{uiText("Confirm or cancel this action.")}</AlertDialogDescription>}
                 {o.reason && (
-                  <div className={cn('field confirm-reason', error && 'has-error')}>
+                  <div className={cn("field confirm-reason", error && 'has-error')}>
                     <label htmlFor={reasonId} className="field-label">{o.reason.label}{o.reason.required && <span className="field-required" aria-hidden="true">*</span>}</label>
                     {o.reason.singleLine
                       ? <Input id={reasonId} autoFocus autoComplete="off" inputMode={o.reason.inputMode} value={reason} aria-required={o.reason.required || undefined} placeholder={o.reason.placeholder} aria-invalid={!!error || undefined} aria-describedby={error ? `${reasonId}-e` : undefined} onChange={e => { setReason(e.target.value); setError(''); }} />
@@ -59,8 +61,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="confirm-footer">
-              <AlertDialogCancel asChild><Button variant="outline">{o.cancelLabel || 'Cancel'}</Button></AlertDialogCancel>
-              <Button variant={danger ? 'destructive' : 'default'} onClick={accept} autoFocus={!o.reason}>{o.confirmLabel || 'Confirm'}</Button>
+              <AlertDialogCancel asChild><Button variant="outline">{o.cancelLabel || uiText("Cancel")}</Button></AlertDialogCancel>
+              <Button variant={danger ? 'destructive' : 'default'} onClick={accept} autoFocus={!o.reason}>{o.confirmLabel || uiText("Confirm")}</Button>
             </div>
           </AlertDialogContent>
         )}

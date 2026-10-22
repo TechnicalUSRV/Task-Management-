@@ -1,4 +1,5 @@
 """Cookie session authentication for DRF, with the V5.7.7 Origin check on every state-changing request."""
+from core.i18n import msg as _message
 from django.conf import settings
 from rest_framework.authentication import BaseAuthentication
 
@@ -13,10 +14,10 @@ def check_origin(request):
     """Writes must come from the app's own page (V5.7.7 server.mjs); a missing or foreign Origin is refused."""
     if request.method in SAFE:
         return
-    origin = request.headers.get('Origin', '')
+    origin = request.headers.get(_message('Origin'), '')
     own = f'{request.scheme}://{request.get_host()}'
     if not origin or (origin != own and origin not in settings.TRUSTED_ORIGINS):
-        raise InputError('This local action requires the app’s own page.', 403)
+        raise InputError(_message('This local action requires the app’s own page.'), 403)
 
 
 class SessionTokenAuthentication(BaseAuthentication):
@@ -27,4 +28,4 @@ class SessionTokenAuthentication(BaseAuthentication):
         return (user, None)
 
     def authenticate_header(self, request):
-        return 'Session'
+        return _message('Session')

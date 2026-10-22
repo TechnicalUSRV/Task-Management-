@@ -1,3 +1,4 @@
+import { uiText, useLanguage } from "../i18n";
 import { useCallback, useId, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, CalendarDays, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ type ShellProps = { label: ReactNode; required?: boolean; hint?: ReactNode; erro
 
 /** Label + control + hint/error, wired together for assistive technology. */
 export function FieldShell({ label, required, hint, error, wide, className, hideLabel, fieldKey, children }: ShellProps & { children: (ids: { id: string; describedBy?: string }) => ReactNode }) {
+  useLanguage();
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined, errorId = error ? `${id}-error` : undefined;
   const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined;
@@ -37,6 +39,7 @@ export type FieldProps = ShellProps & {
 
 /** Text-like input. type="textarea" renders a multi-line field. */
 export function Field({ label, value, onChange, type = 'text', required = false, wide = false, disabled = false, hint, error, placeholder, min, max, step, rows = 3, autoComplete, inputMode, maxLength, readOnly, onBlur, className, hideLabel, fieldKey }: FieldProps) {
+  useLanguage();
   return (
     <FieldShell label={label} required={required} hint={hint} error={error} wide={wide} className={className} hideLabel={hideLabel} fieldKey={fieldKey}>
       {({ id, describedBy }) => type === 'textarea'
@@ -50,6 +53,7 @@ export function Field({ label, value, onChange, type = 'text', required = false,
 
 /** Password input with a show/hide toggle. Never pre-filled from stored data. */
 export function PasswordField({ label, value, onChange, required, hint, error, wide, className, fieldKey, autoComplete = 'current-password', disabled }: ShellProps & { value: string; onChange: (v: string) => void; autoComplete?: string; disabled?: boolean }) {
+  useLanguage();
   const [show, setShow] = useState(false);
   return (
     <FieldShell label={label} required={required} hint={hint} error={error} wide={wide} className={className} fieldKey={fieldKey}>
@@ -57,7 +61,7 @@ export function PasswordField({ label, value, onChange, required, hint, error, w
         <div className="password-field">
           <Input id={id} type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} required={required} disabled={disabled} autoComplete={autoComplete}
             maxLength={200} aria-invalid={!!error || undefined} aria-describedby={describedBy} spellCheck={false} autoCapitalize="off" />
-          <button type="button" className="password-toggle" aria-label={show ? 'Hide password' : 'Show password'} aria-pressed={show} disabled={disabled} onClick={() => setShow(!show)}>
+          <button type="button" className="password-toggle" aria-label={show ? uiText("Hide password") : uiText("Show password")} aria-pressed={show} disabled={disabled} onClick={() => setShow(!show)}>
             {show ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
           </button>
         </div>
@@ -70,6 +74,7 @@ export type PickerProps = ShellProps & { value: unknown; onChange: (v: string) =
 
 /** Single choice from a list. `none` is the unselected option (placeholder). */
 export function Picker({ label, value, onChange, options, none = 'Select…', disabled = false, required, hint, error, wide, className, hideLabel, allowNone = true, fieldKey }: PickerProps) {
+  useLanguage();
   const current = value !== undefined && value !== null && value !== '' ? String(value) : '__none__';
   const known = current === '__none__' || options.some(([v]) => v === current);
   return (
@@ -93,6 +98,7 @@ export function Picker({ label, value, onChange, options, none = 'Select…', di
 }
 
 export function CheckboxField({ label, checked, onChange, description, disabled, error, className }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void; description?: ReactNode; disabled?: boolean; error?: string; className?: string }) {
+  useLanguage();
   const id = useId();
   return (
     <div className={cn('check-field', error && 'has-error', className)}>
@@ -107,6 +113,7 @@ export function CheckboxField({ label, checked, onChange, description, disabled,
 }
 
 export function SwitchField({ label, checked, onChange, description, disabled, className }: { label: ReactNode; checked: boolean; onChange: (v: boolean) => void; description?: ReactNode; disabled?: boolean; className?: string }) {
+  useLanguage();
   const id = useId();
   return (
     <div className={cn('switch-field', disabled && 'is-disabled', className)}>
@@ -122,6 +129,7 @@ export function SwitchField({ label, checked, onChange, description, disabled, c
 /** V5.6.8: an icon button that opens the browser's date picker, for screens that already show the chosen date in words
  *  (a visible date field would show mm/dd/yyyy, which reads as another date in Cambodia). */
 export function DatePickerButton({ value, onChange, label = 'Go to date', className }: { value: string; onChange: (v: string) => void; label?: string; className?: string }) {
+  useLanguage();
   const ref = useRef<HTMLInputElement>(null);
   const open = () => { const el = ref.current; if (!el) return; try { el.showPicker(); } catch { el.focus(); el.click(); } };
   return (
@@ -134,6 +142,7 @@ export function DatePickerButton({ value, onChange, label = 'Go to date', classN
 
 /** Groups related fields under a short heading. */
 export function FormSection({ title, description, children, className, columns = 2 }: { title?: ReactNode; description?: ReactNode; children: ReactNode; className?: string; columns?: 1 | 2 | 3 }) {
+  useLanguage();
   const id = useId();
   return (
     <fieldset className={cn('form-section', className)} aria-labelledby={title ? id : undefined}>
@@ -189,7 +198,7 @@ export function useFormErrors() {
     for (const f of specs.current) if (f.required && isBlank(f.value)) next[f.key] = f.type === 'select' ? `Select ${f.label.replace(/\s*\*$/, '').toLowerCase()}.` : `Enter ${f.label.replace(/\s*\*$/, '').toLowerCase()}.`;
     setErrors(next);
     if (Object.keys(next).length) {
-      setFormError(Object.keys(next).length === 1 ? 'Complete the highlighted field.' : `Complete the ${Object.keys(next).length} highlighted fields.`);
+      setFormError(Object.keys(next).length === 1 ? uiText("Complete the highlighted field.") : `Complete the ${Object.keys(next).length} highlighted fields.`);
       requestAnimationFrame(() => (document.querySelector('.dialog-surface .has-error input, .dialog-surface .has-error textarea, .dialog-surface .has-error button, .has-error input, .has-error textarea, .has-error [role=combobox]') as HTMLElement | null)?.focus());
       return false;
     }

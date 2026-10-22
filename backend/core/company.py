@@ -3,6 +3,7 @@
 The Company settings page (Administration → Company settings) edits the company details and time zone, the approval
 chain and the reference lists. Staff references are the `staff` table; the other kinds live in `reference_items`.
 """
+from core.i18n import msg as _message
 import re
 from zoneinfo import available_timezones
 
@@ -27,38 +28,38 @@ def save_settings(d, actor):
         active_staff(a)
     email = text(d.get('email'), 'Email', 200)
     if email and not EMAIL.match(email):
-        fail('Enter a valid company email address.')
+        fail(_message('Enter a valid company email address.'))
     current = Company.objects.filter(id=1).first()
     zone = (current.timezone if current else '') if 'timezone' not in d else text(d['timezone'], 'Company time zone', 64)
     if zone and zone not in ZONES:
-        fail('Choose a valid company time zone (for example Asia/Phnom_Penh).')
+        fail(_message('Choose a valid company time zone (for example Asia/Phnom_Penh).'))
     values = {'name': text(d.get('name'), 'Company name', 200, True), 'address': text(d.get('address'), 'Address'),
               'phone': text(d.get('phone'), 'Phone', 50), 'email': email, 'tax_id': text(d.get('tax_id'), 'Tax ID', 50), 'timezone': zone}
     Company.objects.filter(id=1).update(**values)
     ApprovalStep.objects.all().delete()
     for i, a in enumerate(approvers):
         ApprovalStep.objects.create(step=i + 1, approver_id=a)
-    AccessAudit.objects.create(actor_id=actor, action='Company and future approval chain updated', target_id='1',
+    AccessAudit.objects.create(actor_id=actor, action=_message('Company and future approval chain updated'), target_id='1',
                                detail=values['name'], created_at=timezone.now())
-    return {'message': 'Settings saved. Submitted requests keep their original approval chain.'}
+    return {'message': _message('Settings saved. Submitted requests keep their original approval chain.')}
 
 
 def save_lookup(d, actor):
-    kind = choice(d.get('kind'), ['staff', *REFERENCE_KINDS], 'lookup type')
+    kind = choice(d.get('kind'), ['staff', *REFERENCE_KINDS], _message('lookup type'))
     staff = kind == 'staff'
     key = d.get('id') or (next_id('staff', 'STAFF') if staff else next_id('reference', 'REF'))
     if d.get('id'):
         exists = Staff.objects.filter(id=key).exists() if staff else ReferenceItem.objects.filter(id=key, kind=kind).exists()
         if not exists:
-            fail('Lookup not found.', 404)
+            fail(_message('Lookup not found.'), 404)
     name, unit = text(d.get('name'), 'Name', 200, True), text(d.get('unit'), 'Unit', 30)
     account_name = User.objects.filter(staff_id=key).values_list('username', flat=True).first() if staff else None
     if account_name and name != account_name:
-        fail('Display names come from usernames. Use Administration → User accounts to manage another user’s username.', 403)
+        fail(_message('Display names come from usernames. Use Administration → User accounts to manage another user’s username.'), 403)
     taken = (Staff.objects.filter(name=name).exclude(id=key) if staff
              else ReferenceItem.objects.filter(kind=kind, name=name).exclude(id=key)).exists()
     if taken:
-        fail(f'“{name}” is already used for another {kind.replace("_", " ")} reference.', 409)
+        fail(_message('“{p0}” is already used for another {p1} reference.', p0=name, p1=kind.replace("_", " ")), 409)
     if staff:
         if d.get('id'):
             Staff.objects.filter(id=key).update(name=name, active=True)
@@ -68,7 +69,7 @@ def save_lookup(d, actor):
         ReferenceItem.objects.filter(id=key).update(name=name, unit=unit, active=True)
     else:
         ReferenceItem.objects.create(id=key, kind=kind, name=name, unit=unit, active=True)
-    return {'message': 'Reference saved.'}
+    return {'message': _message('Reference saved.')}
 
 
 def lookups():

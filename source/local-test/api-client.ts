@@ -1,3 +1,4 @@
+import { getLanguage, getLanguageRevision, receiveLanguage } from './i18n';
 // Every request and download keeps the company in its URL. Separate tabs cannot
 // silently send a write to whichever company was selected most recently.
 export const currentCompany=()=>typeof window==='undefined'?'default':/^\/c\/([a-zA-Z0-9_-]+)(?:\/|$)/.exec(window.location.pathname)?.[1]||'default';
@@ -7,7 +8,11 @@ export const currentCompany=()=>typeof window==='undefined'?'default':/^\/c\/([a
 export const API_BASE=(import.meta.env?.VITE_API_BASE_URL||'').trim().replace(/\/+$/,'');
 export const apiPath=(path:string)=>path.startsWith('/api/')?`${API_BASE}/c/${currentCompany()}${path}`:path;
 // A separate API origin needs the session cookie sent along (the API answers only origins it trusts).
-export const apiFetch=(url:string,options?:RequestInit)=>fetch(apiPath(url),{credentials:API_BASE?'include':'same-origin',...options});
+export const apiFetch=async(url:string,options?:RequestInit)=>{
+  const revision=getLanguageRevision(), headers=new Headers(options?.headers); headers.set('X-App-Language',getLanguage());
+  const response=await fetch(apiPath(url),{credentials:API_BASE?'include':'same-origin',...options,headers});
+  receiveLanguage(response,revision); return response;
+};
 export const openCompany=(id:string)=>{window.location.href=`/c/${encodeURIComponent(id)}/`;};
 
 /** crypto.randomUUID() requires a secure context (HTTPS or localhost).  Office LAN

@@ -4,6 +4,7 @@ Routing is unchanged: a governed workspace — or any new workspace once Organiz
 created as PERSONAL / PUBLIC / ORGANIZATIONAL — is saved by organization governance. Otherwise the original V5.4 rules
 apply: owners and workspace managers (Workspace Delete) change owner and members; members may edit the details.
 """
+from core.i18n import msg as _message
 from django.utils import timezone
 
 from accounts import services as access
@@ -17,7 +18,7 @@ from organization.models import Profile
 
 from .models import COLORS, Workspace, WorkspaceMember
 
-NOT_FOUND = 'Task Management record not found.'
+NOT_FOUND = _message('Task Management record not found.')
 
 
 def find_workspace(key):
@@ -32,7 +33,7 @@ def active_profile(staff_id):
     active_staff(staff_id)
     p = Profile.objects.filter(staff_id=staff_id).first()
     if p and not p.active:
-        fail('Choose an active team member.')
+        fail(_message('Choose an active team member.'))
     return p
 
 
@@ -63,7 +64,7 @@ def save(gov, d, actor):
 def save_legacy(gov, d, actor):
     old = find_workspace(d['id']) if d.get('id') else None
     if old and d.get('expected_version') != old['version']:
-        fail('This record changed. Refresh it before saving again.', 409)
+        fail(_message('This record changed. Refresh it before saving again.'), 409)
     if d.get('member_ids') is not None and not isinstance(d.get('member_ids'), list):
         fail('Select workspace members.')
     owner = active_staff(d.get('owner_id')).id
@@ -73,24 +74,24 @@ def save_legacy(gov, d, actor):
             fail(NOT_FOUND, 404)
         manager = old['owner_id'] == actor or access.can_staff(actor, 'tasks.workspace', 'delete')
         if not manager and not is_member(old['id'], actor):
-            fail('Only members of this workspace, its owner and workspace managers can change it.', 403)
+            fail(_message('Only members of this workspace, its owner and workspace managers can change it.'), 403)
         if not manager:
             current = {old['owner_id'], *WorkspaceMember.objects.filter(workspace_id=old['id']).values_list('staff_id', flat=True)}
             if owner != old['owner_id'] or set(members) != current:
-                fail('Only the workspace’s owner or a workspace manager can change its owner or members.', 403)
+                fail(_message('Only the workspace’s owner or a workspace manager can change its owner or members.'), 403)
     key = old['id'] if old else None
     if old:
         for staff in WorkspaceMember.objects.filter(workspace_id=key).exclude(staff_id__in=members).values_list('staff_id', flat=True):
             if any(open_work(key, staff) for open_work in hooks.MEMBER_OPEN_WORK):
-                fail('Reassign open work before removing this workspace member.')
+                fail(_message('Reassign open work before removing this workspace member.'))
     name = text(d.get('name'), 'Workspace name', 200, True)
     values = {'name': name, 'description': text(d.get('description'), 'Description', 5000),
               'department': text(d.get('department'), 'Department', 150), 'owner_id': owner,
-              'color': choice(d.get('color') or 'BLUE', COLORS, 'workspace color'),
+              'color': choice(d.get('color') or 'BLUE', COLORS, _message('workspace color')),
               'status': (old or {}).get('status') or 'ACTIVE', 'version': old['version'] + 1 if old else 0,
               'updated_at': timezone.now()}
     if any(n.lower() == name.lower() for n in Workspace.objects.exclude(id=key or '').values_list('name', flat=True)):
-        fail('A workspace with this name already exists. Choose a different name.', 409)
+        fail(_message('A workspace with this name already exists. Choose a different name.'), 409)
     if old:
         Workspace.objects.filter(id=key).update(**values)
     else:
@@ -99,7 +100,7 @@ def save_legacy(gov, d, actor):
     WorkspaceMember.objects.filter(workspace_id=key).delete()
     WorkspaceMember.objects.bulk_create(WorkspaceMember(workspace_id=key, staff_id=s) for s in members)
     gov.invalidate()
-    log(actor, 'workspace', key, key, 'Workspace updated' if old else 'Workspace created', name)
+    log(actor, 'workspace', key, key, _message('Workspace updated') if old else _message('Workspace created'), name)
     return {'id': key, 'type': 'tm_workspace'}
 
 
@@ -109,15 +110,15 @@ def archive(gov, d, actor):
     if not gov.can_view_workspace(actor, w):
         fail(NOT_FOUND, 404)
     if gov.governed(w) and not gov.can_manage_workspace(actor, w):
-        fail('Workspace management authority is required.', 403)
+        fail(_message('Workspace management authority is required.'), 403)
     if d.get('expected_version') != w['version']:
-        fail('This record changed. Refresh it before saving again.', 409)
-    status = choice(d.get('status'), ['ACTIVE', 'ARCHIVED'], 'workspace status')
+        fail(_message('This record changed. Refresh it before saving again.'), 409)
+    status = choice(d.get('status'), ['ACTIVE', 'ARCHIVED'], _message('workspace status'))
     if status == 'ARCHIVED' and any(open_work(w['id']) for open_work in hooks.WORKSPACE_OPEN_WORK):
-        fail('Complete or cancel open tasks and meetings before archiving this workspace.')
+        fail(_message('Complete or cancel open tasks and meetings before archiving this workspace.'))
     Workspace.objects.filter(id=w['id']).update(status=status, version=w['version'] + 1, updated_at=timezone.now())
     gov.invalidate()
-    log(actor, 'workspace', w['id'], w['id'], f'Workspace {status.lower()}')
+    log(actor, 'workspace', w['id'], w['id'], _message('Workspace {p0}', p0=status.lower()))
     return {'id': w['id'], 'type': 'tm_workspace'}
 
 
@@ -132,6 +133,6 @@ def handle(gov, action, d, actor):
         return save(gov, d, actor)
     if action == 'tm.workspace.archive':
         return archive(gov, d, actor)
-    fail('Unknown Task Management action.', 404)
+    fail(_message('Unknown Task Management action.'), 404)
 
 

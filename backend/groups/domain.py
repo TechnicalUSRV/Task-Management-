@@ -4,6 +4,7 @@ The React screens run the same rules from group-domain.mjs for previews; the ser
 Values follow V5.7.7: null, numbers (15 significant digits), 'YYYY-MM-DD' dates, status label IDs, staff IDs, lists of
 staff IDs, lists of file descriptions, or formula results ({'error': '#DIV/0!'} for errors).
 """
+from core.i18n import msg as _message
 import math
 import re
 import unicodedata
@@ -11,17 +12,17 @@ from datetime import datetime
 
 from . import js
 
-COLUMN_TYPES = {'TEXT': 'Text', 'DATE': 'Date', 'NUMBER': 'Number', 'STATUS': 'Status', 'IN_CHARGE': 'In Charge', 'SUPPORT': 'Support',
-                'FORMULA': 'Formula', 'ATTACHMENT': 'Attachment', 'LINKED': 'Live Data'}
-STATUS_COLORS = {'GRAY': 'Gray', 'BLUE': 'Blue', 'GREEN': 'Green', 'ORANGE': 'Orange', 'RED': 'Red', 'PURPLE': 'Purple', 'TEAL': 'Teal',
-                 'PINK': 'Pink', 'YELLOW': 'Yellow'}
-DEFAULT_STATUS_LABELS = [('Not Started', 'GRAY'), ('In Progress', 'BLUE'), ('On Hold', 'ORANGE'), ('Done', 'GREEN')]
+COLUMN_TYPES = {'TEXT': _message('Text'), 'DATE': _message('Date'), 'NUMBER': _message('Number'), 'STATUS': _message('Status'), 'IN_CHARGE': _message('In Charge'), 'SUPPORT': _message('Support'),
+                'FORMULA': _message('Formula'), 'ATTACHMENT': _message('Attachment'), 'LINKED': _message('Live Data')}
+STATUS_COLORS = {'GRAY': _message('Gray'), 'BLUE': _message('Blue'), 'GREEN': _message('Green'), 'ORANGE': _message('Orange'), 'RED': _message('Red'), 'PURPLE': _message('Purple'), 'TEAL': _message('Teal'),
+                 'PINK': _message('Pink'), 'YELLOW': _message('Yellow')}
+DEFAULT_STATUS_LABELS = [(_message('Not Started'), 'GRAY'), (_message('In Progress'), 'BLUE'), (_message('On Hold'), 'ORANGE'), (_message('Done'), 'GREEN')]
 GROUP_LIMITS = {'columns': 60, 'rows': 5000, 'text': 10000, 'name': 80, 'description': 2000, 'labels': 40, 'label': 40, 'people': 50, 'formula': 1000,
                 'shared': 200, 'rowChars': 100000, 'groupChars': 10000000, 'groups': 200,
                 'note': 4000, 'notesPerRow': 2000, 'page': 200, 'principals': 100, 'bulk': 5000, 'importBytes': 5 * 1024 * 1024, 'width': [60, 800],
                 'files': 20, 'fileBytes': 30 * 1024 * 1024, 'groupFileBytes': 250 * 1024 * 1024, 'rownumWidth': [64, 240]}
 LEVELS = {'VIEW': 1, 'EDIT': 2, 'MANAGE': 3, 'OWNER': 4}
-LEVEL_LABELS = {'VIEW': 'Can view', 'EDIT': 'Can edit records', 'MANAGE': 'Can manage', 'OWNER': 'Owner'}
+LEVEL_LABELS = {'VIEW': _message('Can view'), 'EDIT': _message('Can edit records'), 'MANAGE': _message('Can manage'), 'OWNER': _message('Owner')}
 
 
 class Undefined:
@@ -191,15 +192,15 @@ def name_key(v):
 def column_name_error(name, columns=(), self_id=None):
     n = clean_name(name)
     if not n:
-        return 'Enter a column name.'
+        return _message('Enter a column name.')
     if js.length(n) > GROUP_LIMITS['name']:
-        return f"Use at most {GROUP_LIMITS['name']} characters for a column name."
+        return _message('Use at most {p0} characters for a column name.', p0=GROUP_LIMITS['name'])
     if re.search(r'[{}]', n):
-        return 'Column names can’t contain { or } (they mark column names in formulas).'
+        return _message('Column names can’t contain { or } (they mark column names in formulas).')
     if n.startswith('#') or n.startswith('='):
-        return 'Column names can’t start with # or =.'
+        return _message('Column names can’t start with # or =.')
     if any(c['id'] != self_id and name_key(c['name']) == name_key(n) for c in columns):
-        return f'This group already has a column named “{n}”. Column names must be unique so formulas know which one you mean.'
+        return _message('This group already has a column named “{p0}”. Column names must be unique so formulas know which one you mean.', p0=n)
     return None
 
 
@@ -220,15 +221,15 @@ def parse_number(raw):
     if js.is_number(raw):
         if math.isfinite(raw) and abs(raw) <= 1e15:
             return {'ok': True, 'value': tidy(raw)}
-        return {'ok': False, 'error': 'Enter a number between -1,000,000,000,000,000 and 1,000,000,000,000,000.'}
+        return {'ok': False, 'error': _message('Enter a number between -1,000,000,000,000,000 and 1,000,000,000,000,000.')}
     text = js.to_js_string(raw)
     if js.length(text) > 100:
-        return {'ok': False, 'error': 'This number is too long. Enter at most 15 significant digits.'}
+        return {'ok': False, 'error': _message('This number is too long. Enter at most 15 significant digits.')}
     s = _NUMBER_STRIP.sub('', text)
     if not s:
         return {'ok': True, 'value': None}
     if not _NUMBER_TEXT.match(s):
-        return {'ok': False, 'error': f'“{text[:40]}” isn’t a number. Use digits, an optional minus sign and a decimal point, for example -12.5.'}
+        return {'ok': False, 'error': _message('“{p0}” isn’t a number. Use digits, an optional minus sign and a decimal point, for example -12.5.', p0=text[:40])}
     return parse_number(js.num(float(s)))
 
 
@@ -246,7 +247,7 @@ def parse_day(raw):
         except ValueError:
             valid = False
     if not valid or not 1900 <= int(s[:4]) <= 2200:
-        return {'ok': False, 'error': 'Enter a valid date (YYYY-MM-DD).'}
+        return {'ok': False, 'error': _message('Enter a valid date (YYYY-MM-DD).')}
     return {'ok': True, 'value': s}
 
 
@@ -257,8 +258,8 @@ def clean_text(raw):
     if raw is None:
         return {'ok': True, 'value': None}
     if not isinstance(raw, str) and not js.is_number(raw):
-        return {'ok': False, 'error': 'Enter text.'}
-    limit = f"Use at most {js.locale(GROUP_LIMITS['text'])} characters in a cell."
+        return {'ok': False, 'error': _message('Enter text.')}
+    limit = _message('Use at most {p0} characters in a cell.', p0=js.locale(GROUP_LIMITS['text']))
     text = js.to_js_string(raw)
     if js.length(text) > GROUP_LIMITS['text'] * 2:
         return {'ok': False, 'error': limit}
@@ -282,9 +283,9 @@ def clean_cell(col, value, eligible=None, current=None):
     """Checks a value typed for a cell. eligible: staff IDs that may be chosen now; current: the value already in the cell."""
     t = col['type']
     if t == 'LINKED':
-        return {'ok': False, 'error': 'This Live Data cell belongs to another group: change it in the table, where its source is updated.'}
+        return {'ok': False, 'error': _message('This Live Data cell belongs to another group: change it in the table, where its source is updated.')}
     if t == 'FORMULA':
-        return {'ok': False, 'error': 'Formula results are calculated for each row; they can’t be typed in.'}
+        return {'ok': False, 'error': _message('Formula results are calculated for each row; they can’t be typed in.')}
     if t == 'ATTACHMENT':
         if value is None or value == '' or (isinstance(value, list) and not value):
             return {'ok': True, 'value': None}
@@ -294,7 +295,7 @@ def clean_cell(col, value, eligible=None, current=None):
             return x if isinstance(x, str) else x.get('id') if isinstance(x, dict) else None
         ids_had = [h.get('id') for h in had if isinstance(h, dict)]
         if not isinstance(value, list) or any(key(x) not in ids_had for x in value):
-            return {'ok': False, 'error': 'Add files with the Upload button in the cell.'}
+            return {'ok': False, 'error': _message('Add files with the Upload button in the cell.')}
         ids = {key(x) for x in value}
         return {'ok': True, 'value': [h for h in had if h.get('id') in ids]}
     if t == 'TEXT':
@@ -310,7 +311,7 @@ def clean_cell(col, value, eligible=None, current=None):
         found = next((l for l in labels if l.get('id') == value), None) or next((l for l in labels if name_key(l.get('name')) == name_key(value)), None)
         if found:
             return {'ok': True, 'value': found['id']}
-        return {'ok': False, 'error': f"Choose one of this column’s labels: {', '.join(l.get('name', '') for l in labels)}."}
+        return {'ok': False, 'error': _message('Choose one of this column’s labels: {p0}.', p0=', '.join(l.get('name', '') for l in labels))}
 
     def allowed(staff):
         return isinstance(staff, str) and (eligible is None or staff in eligible)
@@ -318,23 +319,23 @@ def clean_cell(col, value, eligible=None, current=None):
         if value is None or value == '':
             return {'ok': True, 'value': None}
         if not isinstance(value, str):
-            return {'ok': False, 'error': 'Choose one person.'}
+            return {'ok': False, 'error': _message('Choose one person.')}
         if value == current or allowed(value):
             return {'ok': True, 'value': value}
-        return {'ok': False, 'error': 'Choose an active member who can see this group.'}
+        return {'ok': False, 'error': _message('Choose an active member who can see this group.')}
     if t == 'SUPPORT':
         if value is None or value == '':
             return {'ok': True, 'value': None}
         if not isinstance(value, list) or any(not isinstance(x, str) for x in value):
-            return {'ok': False, 'error': 'Choose the supporting people.'}
+            return {'ok': False, 'error': _message('Choose the supporting people.')}
         people = list(dict.fromkeys(value))
         had = set(current) if isinstance(current, list) else set()
         if len(people) > GROUP_LIMITS['people']:
-            return {'ok': False, 'error': f"Choose up to {GROUP_LIMITS['people']} people."}
+            return {'ok': False, 'error': _message('Choose up to {p0} people.', p0=GROUP_LIMITS['people'])}
         if any(x not in had and not allowed(x) for x in people):
-            return {'ok': False, 'error': 'Choose active members who can see this group.'}
+            return {'ok': False, 'error': _message('Choose active members who can see this group.')}
         return {'ok': True, 'value': people or None}
-    return {'ok': False, 'error': 'Unknown column type.'}
+    return {'ok': False, 'error': _message('Unknown column type.')}
 
 
 def format_number(n, decimals=None):
@@ -423,7 +424,7 @@ FORMULA_FUNCTIONS = {
     'MIN': {'min': 1, 'max': 255, 'usage': 'MIN(value, value, …)'},
     'MAX': {'min': 1, 'max': 255, 'usage': 'MAX(value, value, …)'},
     'ROUND': {'min': 1, 'max': 2, 'usage': 'ROUND(value, decimals)'},
-    'IF': {'min': 2, 'max': 3, 'usage': 'IF(condition, value if true, value if false)'},
+    'IF': {'min': 2, 'max': 3, 'usage': _message('IF(condition, value if true, value if false)')},
 }
 OPERATORS = ['<>', '<=', '>=', '=', '<', '>', '+', '-', '*', '/', '(', ')', ',']
 
@@ -450,22 +451,22 @@ def tokenize(src):
         if ch == '{':
             end = src.find('}', i + 1)
             if end < 0:
-                _bad('A column name is missing its closing brace }.')
+                _bad(_message('A column name is missing its closing brace }.'))
             name = src[i + 1:end]
             if '{' in name:
-                _bad('A column name is missing its closing brace }.')
+                _bad(_message('A column name is missing its closing brace }.'))
             if not js.trim(name):
-                _bad('Put a column name inside the braces, for example {Quantity}.')
+                _bad(_message('Put a column name inside the braces, for example {Quantity}.'))
             tokens.append({'t': 'ref', 'v': name, 'start': i, 'end': end + 1})
             i = end + 1
             continue
         if ch == '}':
-            _bad('There is a } without a matching {.')
+            _bad(_message('There is a } without a matching {.'))
         m = _NUM_TOKEN.match(src, i)
         if m:
             v = float(m.group(0))
             if not math.isfinite(v):
-                _bad(f'{m.group(0)} is too large.')
+                _bad(_message('{p0} is too large.', p0=m.group(0)))
             tokens.append({'t': 'num', 'v': js.num(v), 'raw': m.group(0)})
             i += len(m.group(0))
             continue
@@ -481,20 +482,20 @@ def tokenize(src):
             i += len(op)
             continue
         if ch in ('"', '“', '”', "'"):
-            _bad('Text in quotes isn’t supported in formulas. Use numbers and column names.')
+            _bad(_message('Text in quotes isn’t supported in formulas. Use numbers and column names.'))
         if ch == '^':
-            _bad('The ^ operator isn’t supported. Multiply instead, for example {Rate} * {Rate}.')
+            _bad(_message('The ^ operator isn’t supported. Multiply instead, for example {Rate} * {Rate}.'))
         if ch == '%':
-            _bad('The % sign isn’t supported. Divide by 100 instead, for example {Rate} / 100.')
+            _bad(_message('The % sign isn’t supported. Divide by 100 instead, for example {Rate} / 100.'))
         if ch == '&':
-            _bad('Joining text with & isn’t supported.')
+            _bad(_message('Joining text with & isn’t supported.'))
         if ch == ';':
-            _bad('Separate the values in a function with commas, for example SUM({A}, {B}).')
+            _bad(_message('Separate the values in a function with commas, for example SUM({A}, {B}).'))
         if ch == '!' and src[i + 1:i + 2] == '=':
-            _bad('Use <> for “not equal”.')
+            _bad(_message('Use <> for “not equal”.'))
         if ch == '=' and src[i + 1:i + 2] == '=':
-            _bad('Use a single = to compare values.')
-        _bad(f'“{ch}” isn’t allowed in a formula.')
+            _bad(_message('Use a single = to compare values.'))
+        _bad(_message('“{p0}” isn’t allowed in a formula.', p0=ch))
     return tokens
 
 
@@ -518,7 +519,7 @@ def parse_tokens(tokens):
 
     def expr(depth):
         if depth > 40:
-            _bad('This formula is nested too deeply.')
+            _bad(_message('This formula is nested too deeply.'))
         return comparison(depth)
 
     def comparison(d):
@@ -558,8 +559,8 @@ def parse_tokens(tokens):
         tk = tokens[p[0]] if p[0] < len(tokens) else None
         p[0] += 1
         if not tk:
-            _bad(f'The formula ends after “{_show(before)}”. Add a number, column or function.' if before
-                 else 'Enter a formula, for example ={Quantity} * {Unit Price}.')
+            _bad(_message('The formula ends after “{p0}”. Add a number, column or function.', p0=_show(before)) if before
+                 else _message('Enter a formula, for example ={Quantity} * {Unit Price}.'))
         if tk['t'] == 'num':
             return {'k': 'num', 'v': tk['v']}
         if tk['t'] == 'bool':
@@ -569,44 +570,44 @@ def parse_tokens(tokens):
         if tk['t'] == 'name':
             if not is_op('('):
                 f = FORMULA_FUNCTIONS.get(tk['v'])
-                _bad(f"{tk['v']} needs its values in brackets, for example {f['usage']}." if f else
-                     f"“{tk['raw']}” isn’t a column or a function. Put column names in braces, for example {{{tk['raw']}}}.")
+                _bad(_message('{p0} needs its values in brackets, for example {p1}.', p0=tk['v'], p1=f['usage']) if f else
+                     _message('“{p0}” isn’t a column or a function. Put column names in braces, for example {{p1}}.', p0=tk['raw'], p1=tk['raw']))
             f = FORMULA_FUNCTIONS.get(tk['v'])
             if not f:
-                _bad(f"{tk['v']} isn’t supported. Use SUM, AVERAGE, MIN, MAX, ROUND or IF.")
+                _bad(_message('{p0} isn’t supported. Use SUM, AVERAGE, MIN, MAX, ROUND or IF.', p0=tk['v']))
             p[0] += 1
             args = []
             if not is_op(')'):
                 while True:
                     if is_op(',') or is_op(')'):
-                        _bad(f"A value is missing in {tk['v']}( ).")
+                        _bad(_message('A value is missing in {p0}( ).', p0=tk['v']))
                     args.append(expr(d + 1))
                     if is_op(','):
                         p[0] += 1
                         continue
                     break
             if not is_op(')'):
-                _bad(f"{tk['v']}( is missing its closing ).")
+                _bad(_message('{p0}( is missing its closing ).', p0=tk['v']))
             p[0] += 1
             if len(args) < f['min'] or len(args) > f['max']:
-                count = f['min'] if f['min'] == f['max'] else f"{f['min']} to {'many' if f['max'] == 255 else f['max']}"
-                _bad(f"{tk['v']} takes {count} value{'' if f['max'] == 1 else 's'}: {f['usage']}.")
+                count = f['min'] if f['min'] == f['max'] else _message('{p0} to {p1}', p0=f['min'], p1='many' if f['max'] == 255 else f['max'])
+                _bad(_message('{p0} takes {p1} value{p2}: {p3}.', p0=tk['v'], p1=count, p2='' if f['max'] == 1 else 's', p3=f['usage']))
             return {'k': 'fn', 'name': tk['v'], 'args': args}
         if tk.get('v') == '(':
             if is_op(')'):
-                _bad('There is nothing between ( and ).')
+                _bad(_message('There is nothing between ( and ).'))
             e = expr(d + 1)
             if not is_op(')'):
-                _bad('A ( is missing its closing ).')
+                _bad(_message('A ( is missing its closing ).'))
             p[0] += 1
             return e
-        _bad(f'Expected a number, column or function after “{_show(before)}”, not “{_show(tk)}”.' if before
-             else f'A formula can’t start with “{_show(tk)}”.')
+        _bad(_message('Expected a number, column or function after “{p0}”, not “{p1}”.', p0=_show(before), p1=_show(tk)) if before
+             else _message('A formula can’t start with “{p0}”.', p0=_show(tk)))
 
     ast = expr(0)
     if p[0] < len(tokens):
         tk = tokens[p[0]]
-        _bad('There is a ) without a matching (.' if tk.get('v') == ')' else f'Expected an operator such as + or * before “{_show(tk)}”.')
+        _bad(_message('There is a ) without a matching (.') if tk.get('v') == ')' else _message('Expected an operator such as + or * before “{p0}”.', p0=_show(tk)))
     return ast
 
 
@@ -627,13 +628,13 @@ def compile_formula(text, columns, self_id=None):
     try:
         raw = js.trim('' if text is None else js.to_js_string(text))
         if js.length(raw) > GROUP_LIMITS['formula']:
-            _bad(f"Use at most {GROUP_LIMITS['formula']} characters in a formula.")
+            _bad(_message('Use at most {p0} characters in a formula.', p0=GROUP_LIMITS['formula']))
         src = _strip_equals(raw)
         if not js.trim(src):
-            _bad('Enter a formula, for example ={Quantity} * {Unit Price}.')
+            _bad(_message('Enter a formula, for example ={Quantity} * {Unit Price}.'))
         tokens = tokenize(src)
         if len(tokens) > 400:
-            _bad('This formula is too long.')
+            _bad(_message('This formula is too long.'))
         parse_tokens(tokens)
         by_id = {c['id']: c for c in columns}
         by_name = {name_key(c['name']): c for c in columns}
@@ -641,11 +642,11 @@ def compile_formula(text, columns, self_id=None):
         for tk in (x for x in tokens if x['t'] == 'ref'):
             col = by_id.get(tk['v'][1:]) if tk['v'].startswith('#') else by_name.get(name_key(tk['v']))
             if not col:
-                _bad(f"There’s no column named {{{clean_name(tk['v'])}}}. Check the spelling, or insert the column from the list.")
+                _bad(_message('There’s no column named {{p0}}. Check the spelling, or insert the column from the list.', p0=clean_name(tk['v'])))
             if col['id'] == self_id:
-                _bad(f"A formula can’t use its own column ({{{col['name']}}}).")
+                _bad(_message('A formula can’t use its own column ({{p0}}).', p0=col['name']))
             if not numeric(col):
-                _bad(f"{{{col['name']}}} is a {COLUMN_TYPES[col['type']]} column. Formulas can use Number and Formula columns only.")
+                _bad(_message('{{p0}} is a {p1} column. Formulas can use Number and Formula columns only.', p0=col['name'], p1=COLUMN_TYPES[col['type']]))
             if col['id'] not in refs:
                 refs.append(col['id'])
             canonical += src[at:tk['start']] + '{#' + col['id'] + '}'
@@ -654,7 +655,7 @@ def compile_formula(text, columns, self_id=None):
         if self_id:
             loop = formula_cycle(columns, self_id, refs)
             if loop:
-                _bad(f"This would make a loop: {' → '.join((by_id.get(x) or {}).get('name') or x for x in loop)}. A formula can’t depend on itself.")
+                _bad(_message('This would make a loop: {p0}. A formula can’t depend on itself.', p0=' → '.join((by_id.get(x) or {}).get('name') or x for x in loop)))
         return {'ok': True, 'canonical': canonical, 'display': formula_display(canonical, columns), 'refs': refs}
     except FormulaError as e:
         return {'ok': False, 'error': str(e)}
@@ -666,7 +667,7 @@ def formula_display(canonical, columns):
     try:
         for tk in (x for x in tokenize(src) if x['t'] == 'ref'):
             c = by_id.get(tk['v'][1:]) if tk['v'].startswith('#') else None
-            shown = '{' + c['name'] + '}' if c else '{deleted column}' if tk['v'].startswith('#') else '{' + tk['v'] + '}'
+            shown = '{' + c['name'] + '}' if c else _message('{deleted column}') if tk['v'].startswith('#') else '{' + tk['v'] + '}'
             out += src[at:tk['start']] + shown
             at = tk['end']
     except FormulaError:

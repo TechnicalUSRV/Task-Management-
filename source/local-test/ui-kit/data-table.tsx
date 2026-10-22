@@ -1,3 +1,4 @@
+import { uiText, useLanguage } from "../i18n";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -68,6 +69,7 @@ export function DataTable<T extends Row>({
   rowClassName?: (row: T) => string | undefined;
   itemName?: string;
 }) {
+  useLanguage();
   const keyOf = (r: T, i: number) => (rowKey ? rowKey(r, i) : String(r.id ?? i));
   const [view, setView] = useViewState<View>(stateKey ? `table:${stateKey}` : undefined, { sort: defaultSort, page: 0, pageSize: initialPageSize || 25, resetKey });
   const page = view.resetKey === resetKey ? view.page : 0;
@@ -115,7 +117,7 @@ export function DataTable<T extends Row>({
   }, [visible.length, columns.length]);
 
   if (!rows.length) {
-    return <div className={cn('table-empty', className)}>{filtered ? (noResults ?? <NoResults onClear={onClearFilters} compact />) : (empty ?? <EmptyState title={`No ${itemName} yet`} compact />)}</div>;
+    return <div className={cn('table-empty', className)}>{filtered ? (noResults ?? <NoResults onClear={onClearFilters} compact />) : (empty ?? <EmptyState title={uiText("No {p0} yet", { p0: itemName })} compact />)}</div>;
   }
 
   const primaryIndex = Math.max(0, columns.findIndex(c => c.primary));
@@ -130,10 +132,10 @@ export function DataTable<T extends Row>({
       <div
         ref={wrapRef}
         className={cn('table-wrap', edges.left && 'edge-left', edges.right && 'edge-right')}
-        style={{ maxHeight: maxHeight ?? (visible.length > 14 ? 'min(72vh, 780px)' : undefined) }}
+        style={{ maxHeight: maxHeight ?? (visible.length > 14 ? "min(72vh, 780px)" : undefined) }}
         tabIndex={edges.left || edges.right ? 0 : undefined}
         role={edges.left || edges.right ? 'region' : undefined}
-        aria-label={edges.left || edges.right ? `${caption || 'Table'} (scrolls horizontally)` : undefined}
+        aria-label={edges.left || edges.right ? uiText("{p0} (scrolls horizontally)", { p0: caption || 'Table' }) : undefined}
       >
         <table className={cn('data-table', dense && 'is-dense', selection && 'has-select')}>
           {caption && <caption className="sr-only">{caption}</caption>}
@@ -141,7 +143,7 @@ export function DataTable<T extends Row>({
             <tr>
               {selection && (
                 <th className="col-select" scope="col">
-                  <Checkbox aria-label={allOnPage ? 'Deselect rows on this page' : 'Select rows on this page'} checked={allOnPage ? true : someOnPage ? 'indeterminate' : false}
+                  <Checkbox aria-label={allOnPage ? uiText("Deselect rows on this page") : uiText("Select rows on this page")} checked={allOnPage ? true : someOnPage ? 'indeterminate' : false}
                     onCheckedChange={v => selection.onChange(v ? [...new Set([...selection.selected, ...pageIds])] : selection.selected.filter(id => !pageIds.includes(id)))} />
                 </th>
               )}
@@ -170,7 +172,7 @@ export function DataTable<T extends Row>({
                 <tr
                   key={id}
                   className={cn(onRowClick && 'is-clickable', isSelected && 'is-selected', rowClassName?.(r))}
-                  onClick={onRowClick ? e => { if ((e.target as HTMLElement).closest('button,a,input,select,textarea,label,[role=checkbox],[data-no-row-click]')) return; onRowClick(r); } : undefined}
+                  onClick={onRowClick ? e => { if ((e.target as HTMLElement).closest("button,a,input,select,textarea,label,[role=checkbox],[data-no-row-click]")) return; onRowClick(r); } : undefined}
                 >
                   {selection && (
                     <td className="col-select">
@@ -206,18 +208,18 @@ export function DataTable<T extends Row>({
       {!showAll && sorted.length > Math.min(...pageSizes) && (
         <div className="table-footer">
           <span className="table-count" aria-live="polite">
-            Showing <strong>{start + 1}–{Math.min(start + size, sorted.length)}</strong> of <strong>{sorted.length.toLocaleString('en-US')}</strong> {itemName}
+            {uiText("Showing ")}<strong>{start + 1}–{Math.min(start + size, sorted.length)}</strong> {uiText("of ")}<strong>{sorted.length.toLocaleString('en-US')}</strong> {itemName}
           </span>
           <label className="page-size">
-            <span>Rows per page</span>
+            <span>{uiText("Rows per page")}</span>
             <select value={view.pageSize} onChange={e => setView(v => ({ ...v, pageSize: Number(e.target.value), page: 0, resetKey }))}>
               {pageSizes.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
           <div className="pager">
-            <Button variant="outline" size="icon-sm" aria-label="Previous page" disabled={current === 0} onClick={() => goTo(current - 1)}><ChevronLeft /></Button>
-            <span className="pager-text">Page {current + 1} of {pages}</span>
-            <Button variant="outline" size="icon-sm" aria-label="Next page" disabled={current >= pages - 1} onClick={() => goTo(current + 1)}><ChevronRight /></Button>
+            <Button variant="outline" size="icon-sm" aria-label={uiText("Previous page")} disabled={current === 0} onClick={() => goTo(current - 1)}><ChevronLeft /></Button>
+            <span className="pager-text">{uiText("Page ")}{current + 1} {uiText("of ")}{pages}</span>
+            <Button variant="outline" size="icon-sm" aria-label={uiText("Next page")} disabled={current >= pages - 1} onClick={() => goTo(current + 1)}><ChevronRight /></Button>
           </div>
         </div>
       )}

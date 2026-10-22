@@ -4,6 +4,7 @@ reports.mjs (CSV), task-reports.mjs (print page), dashboard.mjs, erp-sources.mjs
 Every report reads the person's scoped state (compat.state.scoped_state), so permissions and the Task Visibility Scope
 apply to reports, the dashboard and exports exactly as to the screens.
 """
+from core.i18n import msg as _message, render, current_language, text as translate_text
 import html
 import json
 import re
@@ -111,7 +112,7 @@ def enriched_tasks(s):
 def month_bounds(month=None):
     month = month or dm.task_today()[:7]
     if not isinstance(month, str) or not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', month):
-        raise report_error('Choose a valid month (YYYY-MM).')
+        raise report_error(_message('Choose a valid month (YYYY-MM).'))
     y, m = (int(x) for x in month.split('-'))
     following = f'{y + 1}-01' if m == 12 else f'{y}-{m + 1:02d}'
     return {'month': month, 'start': ms_of(f'{month}-01T00:00:00+07:00'), 'end': ms_of(f'{following}-01T00:00:00+07:00'),
@@ -180,24 +181,24 @@ def classify_month(t, line, b, now_ms):
     return out
 
 
-MONTHLY_REPORTS = {'monthly': 'Monthly task summary', 'monthly_completed': 'Monthly completed tasks', 'monthly_progress': 'Monthly tasks in progress',
-                   'monthly_stuck': 'Monthly stuck tasks', 'monthly_overdue': 'Monthly overdue tasks'}
-MONTHLY_CATEGORIES = [('completed', 'Completed', 'monthly_completed'), ('in_progress', 'In progress', 'monthly_progress'),
-                      ('stuck', 'Stuck', 'monthly_stuck'), ('overdue', 'Overdue', 'monthly_overdue')]
+MONTHLY_REPORTS = {'monthly': _message('Monthly task summary'), 'monthly_completed': _message('Monthly completed tasks'), 'monthly_progress': _message('Monthly tasks in progress'),
+                   'monthly_stuck': _message('Monthly stuck tasks'), 'monthly_overdue': _message('Monthly overdue tasks')}
+MONTHLY_CATEGORIES = [('completed', _message('Completed'), 'monthly_completed'), ('in_progress', _message('In progress'), 'monthly_progress'),
+                      ('stuck', _message('Stuck'), 'monthly_stuck'), ('overdue', _message('Overdue'), 'monthly_overdue')]
 MONTHLY_COLUMNS = {
-    'monthly': [['group', 'Category'], ['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                ['status', 'Status'], ['due_date', 'Due'], ['detail', 'Details']],
-    'monthly_completed': [['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                          ['supporters', 'Supporting'], ['due_date', 'Due'], ['completed_on', 'Completed'], ['on_time', 'On time']],
-    'monthly_progress': [['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                         ['supporters', 'Supporting'], ['status', 'Status'], ['progress', 'Progress %'], ['due_date', 'Due']],
-    'monthly_stuck': [['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                      ['stuck_since', 'Stuck since'], ['stuck_reason', 'Blocker'], ['still_stuck', 'Still stuck']],
-    'monthly_overdue': [['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                        ['due_date', 'Due'], ['status', 'Status'], ['days_overdue', 'Days overdue'], ['overdue_kind', 'Result']],
+    'monthly': [['group', _message('Category')], ['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                ['status', _message('Status')], ['due_date', _message('Due')], ['detail', _message('Details')]],
+    'monthly_completed': [['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                          ['supporters', _message('Supporting')], ['due_date', _message('Due')], ['completed_on', _message('Completed')], ['on_time', _message('On time')]],
+    'monthly_progress': [['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                         ['supporters', _message('Supporting')], ['status', _message('Status')], ['progress', _message('Progress %')], ['due_date', _message('Due')]],
+    'monthly_stuck': [['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                      ['stuck_since', _message('Stuck since')], ['stuck_reason', _message('Blocker')], ['still_stuck', _message('Still stuck')]],
+    'monthly_overdue': [['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                        ['due_date', _message('Due')], ['status', _message('Status')], ['days_overdue', _message('Days overdue')], ['overdue_kind', _message('Result')]],
 }
-TASK_REPORTS = {**MONTHLY_REPORTS, 'tasks': 'Task register', 'workload': 'Workload by user', 'time': 'Timesheet detail',
-                'workspace': 'Workspace performance', 'meetings': 'Meeting register'}
+TASK_REPORTS = {**MONTHLY_REPORTS, 'tasks': _message('Task register'), 'workload': _message('Workload by user'), 'time': _message('Timesheet detail'),
+                'workspace': _message('Workspace performance'), 'meetings': _message('Meeting register')}
 
 
 def namer(s):
@@ -229,23 +230,23 @@ def monthly_task_rows(s, f):
         if c['completed']:
             summary['completed'] += 1
             late = c['completed']['late']
-            rows.append({**base, 'category': 'completed', 'group': 'Completed', 'completed_on': c['completed']['day'], 'on_time': 'Late' if late else 'On time',
-                         'detail': f"Completed {c['completed']['day']}{' (after the due date)' if late else ''}"})
+            rows.append({**base, 'category': 'completed', 'group': _message('Completed'), 'completed_on': c['completed']['day'], 'on_time': _message('Late') if late else _message('On time'),
+                         'detail': _message('Completed {p0}{p1}', p0=c['completed']['day'], p1=' (after the due date)' if late else '')})
         if c['inProgress']:
             summary['in_progress'] += 1
-            rows.append({**base, 'category': 'in_progress', 'group': 'In progress',
-                         'detail': f"{c['progress']}% complete{' · waiting for review' if c['status'] == 'IN_REVIEW' else ''}"})
+            rows.append({**base, 'category': 'in_progress', 'group': _message('In progress'),
+                         'detail': f"{c['progress']}% complete{_message(' · waiting for review') if c['status'] == 'IN_REVIEW' else ''}"})
         if c['stuckInfo']:
             summary['stuck'] += 1
             info, since = c['stuckInfo'], dm.local_day(c['stuckInfo']['since'])
-            rows.append({**base, 'category': 'stuck', 'group': 'Stuck', 'stuck_since': since, 'stuck_reason': info['reason'],
-                         'still_stuck': 'Yes' if info['still'] else 'No',
-                         'detail': f"Stuck since {since}{': ' + info['reason'] if info['reason'] else ''}{'' if info['still'] else ' (resolved)'}"})
+            rows.append({**base, 'category': 'stuck', 'group': _message('Stuck'), 'stuck_since': since, 'stuck_reason': info['reason'],
+                         'still_stuck': _message('Yes') if info['still'] else _message('No'),
+                         'detail': _message('Stuck since {p0}{p1}{p2}', p0=since, p1=': ' + info['reason'] if info['reason'] else '', p2='' if info['still'] else ' (resolved)')})
         if c['overdue']:
             summary['overdue'] += 1
             days, late = c['overdue']['days'], c['overdue']['late_completion']
-            rows.append({**base, 'category': 'overdue', 'group': 'Overdue', 'days_overdue': days, 'overdue_kind': 'Completed late' if late else 'Still open',
-                         'detail': f"Completed {days} day{'' if days == 1 else 's'} late" if late else f"{days} day{'' if days == 1 else 's'} past due"})
+            rows.append({**base, 'category': 'overdue', 'group': _message('Overdue'), 'days_overdue': days, 'overdue_kind': _message('Completed late') if late else _message('Still open'),
+                         'detail': _message('Completed {p0} day{p1} late', p0=days, p1='' if days == 1 else 's') if late else _message('{p0} day{p1} past due', p0=days, p1='' if days == 1 else 's')})
     return b, rows, summary
 
 
@@ -253,12 +254,12 @@ def build_task_report(s, f=None):
     f = dict(f or {})
     report = f.get('report') or 'tasks'
     if report not in TASK_REPORTS:
-        raise report_error('Unknown task report.')
+        raise report_error(_message('Unknown task report.'))
     for key in ('from', 'to'):
         if f.get(key) and not valid_day(f[key]):
-            raise report_error('Enter valid report dates.')
+            raise report_error(_message('Enter valid report dates.'))
     if f.get('from') and f.get('to') and f['from'] > f['to']:
-        raise report_error('The report end date must be on or after its start date.')
+        raise report_error(_message('The report end date must be on or after its start date.'))
     name = namer(s)
     company = s.get('company') or {}
     if report in MONTHLY_REPORTS:
@@ -279,11 +280,11 @@ def build_task_report(s, f=None):
     if report == 'tasks':
         rows = [{**t, 'group': t['workspace'], 'pic': name(t['pic_id']), 'supporting': ', '.join(name(x) for x in t['supporters']),
                  'assigned_to': ', '.join(name(x) for x in t['assignees']), 'status': dm.TASK_STATUS[t['status']], 'state': dm.task_state_label(t),
-                 'logged': dm.format_minutes(t['logged_minutes']), 'estimate': dm.format_minutes(t['estimate_minutes']), 'overdue': 'Yes' if t['overdue'] else 'No'}
+                 'logged': dm.format_minutes(t['logged_minutes']), 'estimate': dm.format_minutes(t['estimate_minutes']), 'overdue': _message('Yes') if t['overdue'] else _message('No')}
                 for t in tasks if period(t['due_date']) and (not f.get('status') or t['status'] == f['status'])]
-        columns = [['id', 'Task'], ['title', 'Title'], ['workspace', 'Workspace'], ['department', 'Department'], ['pic', 'Person in charge'],
-                   ['supporting', 'Supporting'], ['start_date', 'Start'], ['due_date', 'Due'], ['status', 'Status'], ['state', 'Workflow state'],
-                   ['priority', 'Priority'], ['progress', 'Progress %'], ['estimate', 'Estimated H:MM'], ['logged', 'Logged H:MM'], ['overdue', 'Overdue']]
+        columns = [['id', _message('Task')], ['title', _message('Title')], ['workspace', _message('Workspace')], ['department', _message('Department')], ['pic', _message('Person in charge')],
+                   ['supporting', _message('Supporting')], ['start_date', _message('Start')], ['due_date', _message('Due')], ['status', _message('Status')], ['state', _message('Workflow state')],
+                   ['priority', _message('Priority')], ['progress', _message('Progress %')], ['estimate', _message('Estimated H:MM')], ['logged', _message('Logged H:MM')], ['overdue', _message('Overdue')]]
     elif report == 'time':
         by_id = {t['id']: t for t in s['tm_tasks']}
         options = {t['id']: t for t in s.get('tm_task_options') or []}
@@ -291,14 +292,14 @@ def build_task_report(s, f=None):
         for e in s['tm_timesheets']:
             if not period(e['work_date']) or (f.get('user') and e['staff_id'] != f['user']):
                 continue
-            t = by_id.get(e['task_id']) or options.get(e['task_id']) or {'workspace_id': e.get('workspace_id') or '', 'title': e.get('activity') or 'Independent work'}
+            t = by_id.get(e['task_id']) or options.get(e['task_id']) or {'workspace_id': e.get('workspace_id') or '', 'title': e.get('activity') or _message('Independent work')}
             w = workspaces.get(t['workspace_id'])
             r = {**e, 'workspace_id': t['workspace_id'], 'group': name(e['staff_id']), 'user': name(e['staff_id']), 'task': t['title'],
                  'workspace': w['name'] if w else UNDEFINED, 'duration': dm.format_minutes(e['minutes'])}
             if not f.get('workspace') or r['workspace_id'] == f['workspace']:
                 rows.append(r)
-        columns = [['work_date', 'Date'], ['user', 'User'], ['task_id', 'Task'], ['task', 'Title'], ['workspace', 'Workspace'], ['duration', 'H:MM'],
-                   ['minutes', 'Minutes'], ['notes', 'Notes']]
+        columns = [['work_date', _message('Date')], ['user', _message('User')], ['task_id', _message('Task')], ['task', _message('Title')], ['workspace', _message('Workspace')], ['duration', _message('H:MM')],
+                   ['minutes', _message('Minutes')], ['notes', _message('Notes')]]
     elif report == 'workload':
         scope = s.get('task_scope')
         limit = None
@@ -314,11 +315,11 @@ def build_task_report(s, f=None):
             entries = [e for e in s['tm_timesheets'] if e['staff_id'] == p['staff_id'] and period(e['work_date'])
                        and (not f.get('workspace') or (e.get('workspace_id') or (by_id.get(e['task_id']) or {}).get('workspace_id')) == f['workspace'])]
             total = sum(e['minutes'] for e in entries)
-            rows.append({'id': p['staff_id'], 'group': 'Team', 'user': name(p['staff_id']), 'tasks': len(own), 'in_charge': len([t for t in own if t['pic_id'] == p['staff_id']]),
+            rows.append({'id': p['staff_id'], 'group': _message('Team'), 'user': name(p['staff_id']), 'tasks': len(own), 'in_charge': len([t for t in own if t['pic_id'] == p['staff_id']]),
                          'open': len([t for t in own if t['status'] not in ('COMPLETED', 'CANCELLED')]), 'completed': len([t for t in own if t['status'] == 'COMPLETED']),
                          'stuck': len([t for t in own if t['stuck']]), 'overdue': len([t for t in own if t['overdue']]), 'minutes': total, 'logged': dm.format_minutes(total)})
-        columns = [['user', 'User'], ['tasks', 'Assigned tasks'], ['in_charge', 'In charge'], ['open', 'Open'], ['completed', 'Completed'], ['stuck', 'Stuck'],
-                   ['overdue', 'Overdue'], ['logged', 'Logged H:MM']]
+        columns = [['user', _message('User')], ['tasks', _message('Assigned tasks')], ['in_charge', _message('In charge')], ['open', _message('Open')], ['completed', _message('Completed')], ['stuck', _message('Stuck')],
+                   ['overdue', _message('Overdue')], ['logged', _message('Logged H:MM')]]
     elif report == 'workspace':
         rows = []
         for w in s['tm_workspaces']:
@@ -328,13 +329,13 @@ def build_task_report(s, f=None):
             eligible = [t for t in own if t['status'] != 'CANCELLED']
             ids = {t['id'] for t in own}
             total = sum(e['minutes'] for e in s['tm_timesheets'] if e['task_id'] in ids and period(e['work_date']) and (not f.get('user') or e['staff_id'] == f['user']))
-            rows.append({'id': w['id'], 'group': 'Workspaces', 'workspace': w['name'], 'department': w['department'], 'owner': name(w['owner_id']),
+            rows.append({'id': w['id'], 'group': _message('Workspaces'), 'workspace': w['name'], 'department': w['department'], 'owner': name(w['owner_id']),
                          'status': w['status'], 'tasks': len(own), 'completed': len([t for t in own if t['status'] == 'COMPLETED']),
                          'overdue': len([t for t in own if t['overdue']]),
                          'progress': js_round(sum(t['progress'] for t in eligible) / len(eligible)) if eligible else 0, 'minutes': total,
                          'logged': dm.format_minutes(total)})
-        columns = [['workspace', 'Workspace'], ['department', 'Department'], ['owner', 'Owner'], ['status', 'Status'], ['tasks', 'Tasks'],
-                   ['completed', 'Completed'], ['overdue', 'Overdue'], ['progress', 'Progress %'], ['logged', 'Logged H:MM']]
+        columns = [['workspace', _message('Workspace')], ['department', _message('Department')], ['owner', _message('Owner')], ['status', _message('Status')], ['tasks', _message('Tasks')],
+                   ['completed', _message('Completed')], ['overdue', _message('Overdue')], ['progress', _message('Progress %')], ['logged', _message('Logged H:MM')]]
     else:
         rows = []
         for m in s['tm_meetings']:
@@ -345,10 +346,10 @@ def build_task_report(s, f=None):
             if not period(dm.local_day(m['start_at'])) or (f.get('status') and m['status'] != f['status']):
                 continue
             w = workspaces.get(m['workspace_id'])
-            rows.append({**m, 'group': 'Meetings', 'workspace': w['name'] if w else UNDEFINED, 'organizer': name(m['organizer_id']),
+            rows.append({**m, 'group': _message('Meetings'), 'workspace': w['name'] if w else UNDEFINED, 'organizer': name(m['organizer_id']),
                          'date': dm.local_day(m['start_at']), 'attendees': ', '.join(name(a['staff_id']) for a in s['tm_attendees'] if a['meeting_id'] == m['id'])})
-        columns = [['id', 'Meeting'], ['title', 'Subject'], ['workspace', 'Workspace'], ['date', 'Date (Cambodia)'], ['start_at', 'Start UTC'],
-                   ['end_at', 'End UTC'], ['status', 'Status'], ['organizer', 'Organizer'], ['attendees', 'Attendees'], ['minutes_notes', 'Meeting notes']]
+        columns = [['id', _message('Meeting')], ['title', _message('Subject')], ['workspace', _message('Workspace')], ['date', _message('Date (Cambodia)')], ['start_at', _message('Start UTC')],
+                   ['end_at', _message('End UTC')], ['status', _message('Status')], ['organizer', _message('Organizer')], ['attendees', _message('Attendees')], ['minutes_notes', _message('Meeting notes')]]
     total = sum(int(js_number_or_zero(r.get('minutes'))) for r in rows)
     return strip({'id': report, 'title': TASK_REPORTS[report], 'company': company.get('name'), 'currency': company.get('currency'), 'columns': columns,
                   'rows': rows, 'totals': {'minutes': total}, 'groups': [], 'filters': f, 'generated_at': now_iso()})
@@ -388,6 +389,7 @@ def js_text(value):
 
 
 def report_csv(r):
+    r = render(r)
     def cell(x):
         text = js_text(x)
         if text[:1] in ('=', '+', '-', '@', '\t', '\r'):
@@ -398,40 +400,53 @@ def report_csv(r):
 
 
 def esc(value):
-    return html.escape(js_text(value), quote=True).replace('&#x27;', '&#39;')
+    return html.escape(js_text(render(value)), quote=True).replace('&#x27;', '&#39;')
+
+
+def report_font_faces():
+    from django.conf import settings
+    import re
+    from pathlib import Path
+    assets = Path(settings.BASE_DIR).parent / 'source/local-test/public/assets'
+    faces = []
+    for css in assets.glob('languages-*.css'):
+        content = css.read_text(encoding='utf-8')
+        for block in re.findall(r'@font-face\s*\{[^}]+\}', content):
+            faces.append(re.sub(r'url\(\s*["\']?(?:\./)?([^"\'()]+)["\']?\s*\)', lambda m: 'url("/assets/' + m[1].split('/')[-1] + '")', block))
+    return ''.join(faces)
 
 
 def task_report_html(r):
+    r = render(r)
     head = ''.join(f'<th>{esc(label)}</th>' for _, label in r['columns'])
     body = ''.join('<tr>' + ''.join(f'<td>{esc(row.get(k))}</td>' for k, _ in r['columns']) + '</tr>' for row in r['rows'])
     minutes = (r.get('totals') or {}).get('minutes')
     filters = json.dumps(r['filters'], separators=(',', ':'), ensure_ascii=False)
-    return ('<!doctype html><html lang="en"><meta charset="utf-8"><title>' + esc(r['title']) + '</title><style>body{font:13px Arial,sans-serif;color:#18283f;'
+    return ('<!doctype html><html lang="' + current_language() + '"><meta charset="utf-8"><title>' + esc(r['title']) + '</title><style>' + report_font_faces() + 'body{font:13px "Noto Sans Khmer Variable","Noto Sans SC Variable",Arial,sans-serif;line-height:1.8;color:#18283f;'
             'margin:30px}h1{font-size:24px}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px;'
             'vertical-align:top}th{background:#edf2f9}p,small{color:#546477}button{padding:10px}@media print{button{display:none}@page{size:landscape;'
-            'margin:12mm}}</style><button id="print">Print / Save as PDF</button><h1>' + esc(r['company']) + ' · ' + esc(r['title']) + '</h1><p>Filters: '
-            + esc(filters) + '</p><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table><p>' + str(len(r['rows'])) + ' rows'
-            + (f' · {dm.format_minutes(minutes)} logged (H:MM)' if minutes else '') + '</p><small>Dates use Cambodia time; meeting timestamps labeled UTC '
-            'use UTC. Shared assignments count once for each assignee. Generated ' + esc(r['generated_at']) + '.</small><script src="/print.js"></script></html>')
+            'margin:12mm}}</style><button id="print">' + esc(translate_text('Print / Save as PDF')) + '</button><h1>' + esc(r['company']) + ' · ' + esc(r['title']) + '</h1><p>' + esc(translate_text('Filters:')) + ' '
+            + esc(filters) + '</p><table><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table><p>' + str(len(r['rows'])) + ' ' + esc(translate_text('rows'))
+            + (f' · {dm.format_minutes(minutes)} logged (H:MM)' if minutes else '') + '</p><small>' + esc(translate_text('Dates use Cambodia time; meeting timestamps labeled UTC use UTC. Shared assignments count once for each assignee. Generated ')) + esc(r['generated_at']) + '.</small><script src="/print.js"></script></html>')
 
 
 # ---------------------------------------------------------------- data sources for the dashboard and custom reports (erp-sources.mjs)
 OPS_RESOURCES = ['ops.quotation', 'ops.po', 'ops.job', 'ops.dn', 'ops.pr']
 SOURCES = [
-    ('contacts', 'CRM · Contacts', 'Created date', ['crm.contacts']), ('leads', 'CRM · Leads', 'Created date', ['crm.leads']),
-    ('opportunities', 'CRM · Opportunities', 'Expected close date', ['crm.opportunities']), ('quotations', 'CRM · Quotations', 'Created date', ['crm.quotations']),
-    ('accounts', 'CRM · Business Accounts', 'Customer since', ['crm.accounts']), ('campaigns', 'CRM · Campaigns', 'Start date', ['crm.campaigns']),
-    ('crm_activities', 'CRM · Activities', 'Activity start', ['crm.activities']), ('documents', 'CRM · Document links', 'Created date', ['crm.documents']),
-    ('workspaces', 'Tasks · Workspaces', 'Created date', ['tasks.workspace']), ('staff', 'Tasks · Employee profiles', 'No date field', ['tasks.users']),
-    ('tasks', 'Tasks · Task register', 'Due date', ['tasks.tasks']), ('timesheets', 'Tasks · Time entries', 'Work date', ['tasks.timesheets']),
-    ('meetings', 'Tasks · Meetings', 'Meeting start', ['tasks.meetings']), ('ops_requests', 'Operations · Requests', 'Document date', OPS_RESOURCES),
-    ('shipments', 'Operations · Shipments', 'ETA or issue date', ['ops.job']), ('receivables', 'Finance · Receivables', 'Debit Note date', ['ops.finance']),
-    ('payables', 'Finance · Payables', 'Debit Note date', ['ops.finance']), ('users', 'Administration · User accounts', 'Created date', ['admin.users']),
+    ('contacts', _message('CRM · Contacts'), _message('Created date'), ['crm.contacts']), ('leads', _message('CRM · Leads'), _message('Created date'), ['crm.leads']),
+    ('opportunities', _message('CRM · Opportunities'), _message('Expected close date'), ['crm.opportunities']), ('quotations', _message('CRM · Quotations'), _message('Created date'), ['crm.quotations']),
+    ('accounts', _message('CRM · Business Accounts'), _message('Customer since'), ['crm.accounts']), ('campaigns', _message('CRM · Campaigns'), _message('Start date'), ['crm.campaigns']),
+    ('crm_activities', _message('CRM · Activities'), _message('Activity start'), ['crm.activities']), ('documents', _message(_message('CRM · Document links')), _message('Created date'), ['crm.documents']),
+    ('workspaces', _message('Tasks · Workspaces'), _message('Created date'), ['tasks.workspace']), ('staff', _message('Tasks · Employee profiles'), _message('No date field'), ['tasks.users']),
+    ('tasks', _message('Tasks · Task register'), _message('Due date'), ['tasks.tasks']), ('timesheets', _message('Tasks · Time entries'), _message('Work date'), ['tasks.timesheets']),
+    ('meetings', _message('Tasks · Meetings'), _message('Meeting start'), ['tasks.meetings']), ('ops_requests', _message('Operations · Requests'), _message('Document date'), OPS_RESOURCES),
+    ('shipments', _message('Operations · Shipments'), _message('ETA or issue date'), ['ops.job']), ('receivables', _message('Finance · Receivables'), _message('Debit Note date'), ['ops.finance']),
+    ('payables', _message('Finance · Payables'), _message('Debit Note date'), ['ops.finance']), ('users', _message('Administration · User accounts'), _message('Created date'), ['admin.users']),
 ]
 SOURCE_BY_ID = {x[0]: {'id': x[0], 'label': x[1], 'dateLabel': x[2], 'resources': x[3]} for x in SOURCES}
-FIELD_DEFS = {'id': 'Record', 'title': 'Title / description', 'client': 'Client', 'account_id': 'Business Account', 'opportunity': 'Opportunity',
-              'users': 'User / owner / assignee', 'department': 'Department', 'date': 'Date', 'status': 'Status', 'category': 'Category',
-              'amount_cents': 'Amount / balance', 'minutes': 'Time (H:MM)', 'notes': 'Notes / details'}
+FIELD_DEFS = {'id': _message('Record'), 'title': _message('Title / description'), 'client': _message('Client'), 'account_id': _message('Business Account'), 'opportunity': _message('Opportunity'),
+              'users': _message('User / owner / assignee'), 'department': _message('Department'), 'date': _message('Date'), 'status': _message('Status'), 'category': _message('Category'),
+              'amount_cents': _message('Amount / balance'), 'minutes': _message('Time (H:MM)'), 'notes': _message('Notes / details')}
 OPEN_TARGET = {'contact': 'crm.contacts', 'lead': 'crm.leads', 'opportunity': 'crm.opportunities', 'quotation': 'crm.quotations', 'campaign': 'crm.campaigns',
                'account': 'crm.accounts', 'activity': 'crm.activities', 'tm_workspace': 'tasks.workspace', 'tm_profile': 'tasks.users', 'tm_task': 'tasks.tasks',
                'tm_time': 'tasks.timesheets', 'tm_meeting': 'tasks.meetings', 'admin_user': 'admin.users'}
@@ -495,7 +510,7 @@ def read_source(key, s, c):
             out.append(c.row(r['id'], r['title'], r.get('contact_id'), people, {
                 'date': r['due_date'], 'status': r['status'], 'category': r['priority'], 'departments': departments, 'department': ', '.join(departments),
                 'opportunity_ids': ids, 'opportunity': opp,
-                'notes': '\n'.join(x for x in (r['description'], r['department_note'] and 'Department note: ' + r['department_note'],
+                'notes': '\n'.join(x for x in (r['description'], r['department_note'] and _message('Department note: ') + r['department_note'],
                                                r.get('stuck_at') and 'Stuck: ' + r['stuck_reason']) if x),
                 'progress': r['progress'], 'assignee': r['pic_id'], 'target': go('tm_task', r['id']), 'resource': 'tasks.tasks'}))
         return out
@@ -562,12 +577,12 @@ def authorized_records(user, ids, exporting=False, gov=None):
     for key in ids:
         d = SOURCE_BY_ID.get(key)
         if not d:
-            raise InputError('Unknown report data source: ' + str(key), 400)
+            raise InputError(_message('Unknown report data source: ') + str(key), 400)
         visible = [r for r in d['resources'] if allowed(perms, r)]
         if not visible:
-            raise InputError('Your account cannot view ' + d['label'] + '.', 403)
+            raise InputError(_message('Your account cannot view ') + d['label'] + '.', 403)
         if exporting and any(not allowed(perms, r, 'export') for r in visible):
-            raise InputError('Export permission is required for ' + d['label'] + '.', 403)
+            raise InputError(_message('Export permission is required for ') + d['label'] + '.', 403)
         for r in read_source(key, s, c):
             if not allowed(perms, r['resource']):
                 continue
@@ -579,7 +594,7 @@ def authorized_records(user, ids, exporting=False, gov=None):
 def validate_filters(f=None):
     f = f or {}
     if not isinstance(f, dict):
-        raise InputError('Invalid filters.', 400)
+        raise InputError(_message('Invalid filters.'), 400)
     out = {}
     for key in ('sources', 'clients', 'accounts', 'opportunities', 'users', 'statuses', 'departments', 'modules', 'fields', 'categories', 'assignees'):
         value = f.get(key)
@@ -590,10 +605,10 @@ def validate_filters(f=None):
     for key in ('from', 'to'):
         v = f.get(key) or ''
         if v and not valid_day(v):
-            raise InputError('Enter valid report dates.', 400)
+            raise InputError(_message('Enter valid report dates.'), 400)
         out[key] = v
     if out['from'] and out['to'] and out['from'] > out['to']:
-        raise InputError('End date must be on or after start date.', 400)
+        raise InputError(_message('End date must be on or after start date.'), 400)
     out['search'] = js_text(f.get('search') or '')[:200]
     return out
 
@@ -666,7 +681,7 @@ def build_dashboard(user, filters_input=None):
             elif widget['kind'] == 'bar':
                 group = widget['group']
                 labels = js_sorted(list(dict.fromkeys(r.get(group, UNDEFINED) for r in rows)))
-                widgets.append({**base, 'bars': [{'label': label or 'Unspecified', 'value': len([r for r in rows if r.get(group, UNDEFINED) == label]),
+                widgets.append({**base, 'bars': [{'label': label or _message('Unspecified'), 'value': len([r for r in rows if r.get(group, UNDEFINED) == label]),
                                                   'drill': {**drill, ('categories' if group == 'category' else 'statuses'): [label]}} for label in labels]})
             else:
                 ordered = sorted(rows, key=lambda r: r.get('date') or '9999')
@@ -688,17 +703,17 @@ def build_erp_report(user, input_=None, exporting=False):
     available = data_catalog(access.permissions(user))
     ids = filters['sources'] or [x['id'] for x in available]
     if not ids:
-        raise InputError('Your role has no report data sources.', 403)
+        raise InputError(_message('Your role has no report data sources.'), 403)
     rows, _ = authorized_records(user, ids, exporting)
     rows = filter_records(rows, filters)
     rows.sort(key=lambda r: r['id'])
     rows.sort(key=lambda r: js_text(r['date']), reverse=True)
     rows.sort(key=lambda r: r['source'])
     if len(rows) > 5000:
-        raise InputError('More than 5,000 rows match. Narrow your filters before generating this report.', 400)
+        raise InputError(_message('More than 5,000 rows match. Narrow your filters before generating this report.'), 400)
     fields = filters['fields'] or ['id', 'title', 'client', 'date', 'status', 'amount_cents']
     if any(k not in FIELD_DEFS for k in fields):
-        raise InputError('Unknown report column.', 400)
+        raise InputError(_message('Unknown report column.'), 400)
     sections = []
     for key in ids:
         listed = [r for r in rows if r['source'] == key]
@@ -706,7 +721,7 @@ def build_erp_report(user, input_=None, exporting=False):
                          'total_cents': sum(r.get('amount_cents') or 0 for r in listed) if any(r.get('amount_cents') is not None for r in listed) else None,
                          'total_minutes': sum(r.get('minutes') or 0 for r in listed) if any(r.get('minutes') is not None for r in listed) else None})
     current = company()
-    return strip({'id': 'custom-erp', 'title': js_text(input_.get('title') or 'Custom Task Controlling Management report')[:160],
+    return strip({'id': 'custom-erp', 'title': js_text(input_.get('title') or _message('Custom Task Controlling Management report'))[:160],
                   'company': current.name if current else None, 'currency': current.currency if current else None, 'generated_at': now_iso(),
                   'filters': filters, 'columns': [[k, FIELD_DEFS[k]] for k in fields], 'sections': sections, 'rows': rows, 'totals': {}, 'groups': [],
                   'source_count': len(sections)})
@@ -747,7 +762,7 @@ def display_value(row, key, currency):
 def source_records(user, input_=None):
     f = validate_filters(input_)
     if len(f['sources']) != 1:
-        raise InputError('Choose one data source.', 400)
+        raise InputError(_message('Choose one data source.'), 400)
     rows, _ = authorized_records(user, f['sources'])
     rows = filter_records(rows, f)
     d = SOURCE_BY_ID[f['sources'][0]]
@@ -778,7 +793,7 @@ def mini_state(user, media='', gov=None):
         'operational_access': s['operational_access'], 'tm_task_members': s.get('tm_task_members', []),
         'management_people': s.get('management_people', []),
         'company': {'name': (s['company'] or {}).get('name')}, 'app_version': s['app_version'], 'today': now_iso(), 'media_token': media,
-        'auth': {'user': {'staff_id': user.staff_id, 'name': me['name'], 'username': me['username'], 'role_name': me['role_name'], 'email': me['email']},
+        'auth': {'user': {'staff_id': user.staff_id, 'name': me['name'], 'username': me['username'], 'role_name': me['role_name'], 'email': me['email'], 'language': user.language},
                  'permissions': {k: v for k, v in s['auth']['permissions'].items() if k.startswith('tasks.')}},
         'lookups': [{'id': l['id'], 'name': l['name'], 'username': l.get('username'), 'nickname': l.get('nickname'), 'kind': 'staff', 'active': l['active']}
                     for l in s['lookups'] if l['kind'] == 'staff'],

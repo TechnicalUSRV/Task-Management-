@@ -5,6 +5,7 @@ The bot is another screen for Task Management: it reads and writes through the s
 answers commands and buttons, delivers notifications (with a durable delivery record each), and sends the morning
 summary. `python manage.py run_workers` runs it next to the reminder workers.
 """
+from core.i18n import msg as _message, text as _translate, render, language, notification_text, staff_language
 import json
 import logging
 import math
@@ -55,28 +56,28 @@ NOTE_ICON = {'task_assigned': '🆕', 'task_supporting': '🤝', 'task_reviewer'
 ANSWER_KINDS = ['task_assigned', 'task_supporting', 'task_reviewer', 'task_reminder', 'task_repeat']
 PER_PAGE, PEOPLE_PAGE, MAX_FILE = 8, 12, 30 * 1024 * 1024
 TASK_ID = re.compile(r'\b([A-Z]{2,8}-\d{6,12})\b')
-PRIVATE_COMMANDS = [('menu', 'Main menu'), ('answer', 'Tasks waiting for your answer'), ('mytasks', 'Tasks you are in charge of'),
-                    ('supporting', 'Tasks you support'), ('review', 'Work waiting for your decision'), ('requests', 'Your task requests'),
-                    ('newtask', 'Create a task'), ('request', 'Ask someone for a task'), ('report', 'Monthly task report'), ('task', 'Open a task by its ID'),
-                    ('help', 'How to use this bot'), ('unlink', 'Disconnect this Telegram account')]
-GROUP_COMMANDS = [('connect', 'Link this group to a workspace (administrators and workspace owners)'),
-                  ('disconnect', 'Disconnect this group'), ('help', 'How to use the bot here')]
-LIST_TITLES = {'my': ('📋', 'Tasks you are in charge of', 'You have no open tasks in charge.'),
-               'sup': ('🤝', 'Tasks you are supporting', 'You are not supporting any open tasks.'),
-               'rev': ('🔎', 'Submitted to you for review', 'Nothing is waiting for your review.'),
-               'ans': ('🆕', 'Waiting for your answer', 'Nothing is waiting for your answer. 🎉'),
-               'ws': ('🗂', 'Open tasks', 'There are no open tasks in this workspace.')}
-QUESTIONS = {'decline': ('why are you rejecting this? The people on the task will see your reason.', 'Reason'),
-             'stuck': ('what is blocking this task?', 'What is blocking it'),
-             'return': ('what still needs to be done? This goes back to the person who submitted it.', 'What is missing'),
-             'note': ('send your comment.', 'Comment'),
-             'submit': ('add a note for the person who checks or approves it, or send /skip.', 'Note (optional)'),
-             'cancel': ('why are you cancelling this task? Everyone on it will see your reason.', 'Reason')}
-NOT_ALLOWED = 'Only Task Controlling Management administrators or the workspace owner can link this group to a workspace.'
+PRIVATE_COMMANDS = [('menu', _message('Main menu')), ('answer', _message('Tasks waiting for your answer')), ('mytasks', _message('Tasks you are in charge of')),
+                    ('supporting', _message('Tasks you support')), ('review', _message('Work waiting for your decision')), ('requests', _message('Your task requests')),
+                    ('newtask', _message('Create a task')), ('request', _message('Ask someone for a task')), ('report', _message('Monthly task report')), ('task', _message('Open a task by its ID')),
+                    ('help', _message('How to use this bot')), ('unlink', _message('Disconnect this Telegram account'))]
+GROUP_COMMANDS = [('connect', _message('Link this group to a workspace (administrators and workspace owners)')),
+                  ('disconnect', _message('Disconnect this group')), ('help', _message('How to use the bot here'))]
+LIST_TITLES = {'my': ('📋', _message('Tasks you are in charge of'), _message('You have no open tasks in charge.')),
+               'sup': ('🤝', _message('Tasks you are supporting'), _message('You are not supporting any open tasks.')),
+               'rev': ('🔎', _message('Submitted to you for review'), _message('Nothing is waiting for your review.')),
+               'ans': ('🆕', _message('Waiting for your answer'), _message('Nothing is waiting for your answer. 🎉')),
+               'ws': ('🗂', _message('Open tasks'), _message('There are no open tasks in this workspace.'))}
+QUESTIONS = {'decline': (_message('why are you rejecting this? The people on the task will see your reason.'), _message('Reason')),
+             'stuck': (_message('what is blocking this task?'), _message('What is blocking it')),
+             'return': (_message('what still needs to be done? This goes back to the person who submitted it.'), _message('What is missing')),
+             'note': (_message('send your comment.'), _message('Comment')),
+             'submit': (_message('add a note for the person who checks or approves it, or send /skip.'), _message('Note (optional)')),
+             'cancel': (_message('why are you cancelling this task? Everyone on it will see your reason.'), _message('Reason'))}
+NOT_ALLOWED = _message('Only Task Controlling Management administrators or the workspace owner can link this group to a workspace.')
 NOTIFY_MAX_AGE = 6 * 3600
 RETRY_AFTER = [30, 120, 600, 1800]
-DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+DAYS = [_message('Mon'), _message('Tue'), _message('Wed'), _message('Thu'), _message('Fri'), _message('Sat'), _message('Sun')]
+MONTHS = [_message('Jan'), _message('Feb'), _message('Mar'), _message('Apr'), _message('May'), _message('Jun'), _message('Jul'), _message('Aug'), _message('Sep'), _message('Oct'), _message('Nov'), _message('Dec')]
 
 
 class TelegramError(Exception):
@@ -86,6 +87,10 @@ class TelegramError(Exception):
 
 
 # ---------------------------------------------------------------- text helpers (JavaScript string semantics)
+def _bot_message(source, **params):
+    return _translate(source, params)
+
+
 def js_len(s):
     return len(s.encode('utf-16-le')) // 2
 
@@ -95,11 +100,11 @@ def js_slice(s, n):
 
 
 def esc(v):
-    return str('' if v is None else v).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return str('' if v is None else render(v)).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
 def clip(v, n):
-    s = re.sub(r'\s+', ' ', str('' if v is None else v)).strip()
+    s = re.sub(r'\s+', ' ', str('' if v is None else render(v))).strip()
     return js_slice(s, n - 1) + '…' if js_len(s) > n else s
 
 
@@ -111,12 +116,12 @@ def fmt_day(d):
     if not d:
         return '—'
     x = datetime.fromisoformat(d[:10])
-    return f'{DAYS[x.weekday()]} {x.day} {MONTHS[x.month - 1]}'
+    return f'{render(DAYS[x.weekday()])} {x.day} {render(MONTHS[x.month - 1])}'
 
 
 def rel_day(d):
     n = dm.days_between(dm.task_today(), d)
-    return 'today' if n == 0 else 'tomorrow' if n == 1 else 'yesterday' if n == -1 else f'in {n} days' if n > 0 else f'{-n} days ago'
+    return _bot_message('today') if n == 0 else _bot_message('tomorrow') if n == 1 else _bot_message('yesterday') if n == -1 else _bot_message('in {p0} days', p0=n) if n > 0 else _bot_message('{p0} days ago', p0=-n)
 
 
 def js_round(x):
@@ -129,7 +134,7 @@ def bar(p):
 
 
 def button(text, data):
-    return {'text': text, 'callback_data': data}
+    return {'text': render(text), 'callback_data': data}
 
 
 def chunk(items, per=2):
@@ -141,11 +146,9 @@ def strip_tags(text):
 
 
 def link_help(app):
-    return ('To use me, connect this Telegram account to your Task Controlling Management login. You only do this once:\n\n'
-            '• In the Task Controlling Management, click your name (top right) → <b>Connect Telegram</b>, then tap <b>Open Telegram</b> '
-            '(or scan the QR code with your phone).\n• Or send me <code>/link CODE</code> with the code shown there.'
-            + ('\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management email and password.'
-               if app else '') + '\n\nYour personal link does not expire. It works once, and only for you.')
+    return (_bot_message('To use me, connect this Telegram account to your Task Controlling Management login. You only do this once:\n\n• In the Task Controlling Management, click your name (top right) → <b>Connect Telegram</b>, then tap <b>Open Telegram</b> (or scan the QR code with your phone).\n• Or send me <code>/link CODE</code> with the code shown there.')
+            + (_bot_message('\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management email and password.')
+               if app else '') + _bot_message('\n\nYour personal link does not expire. It works once, and only for you.'))
 
 
 def parse_command(text, bot_username):
@@ -223,10 +226,10 @@ def http_transport(api_base, token):
         try:
             answer = json.loads(raw)
         except ValueError:
-            raise TelegramError(f'Telegram answered with HTTP {status}.', status)
+            raise TelegramError(_bot_message('Telegram answered with HTTP {p0}.', p0=status), status)
         if not answer.get('ok'):
             p = answer.get('parameters') or {}
-            raise TelegramError(answer.get('description') or f'Telegram error {status}', answer.get('error_code') or status,
+            raise TelegramError(answer.get('description') or _bot_message('Telegram error {p0}', p0=status), answer.get('error_code') or status,
                                 p.get('retry_after'), p.get('migrate_to_chat_id'))
         return answer.get('result')
 
@@ -240,11 +243,11 @@ def http_transport(api_base, token):
                         break
                     size += len(part)
                     if size > MAX_FILE:
-                        raise TelegramError('too large', too_large=True)
+                        raise TelegramError(_bot_message('too large'), too_large=True)
                     chunks.append(part)
                 return b''.join(chunks)
         except urllib.error.HTTPError as e:
-            raise TelegramError(f'Telegram answered with HTTP {e.code}.')
+            raise TelegramError(_bot_message('Telegram answered with HTTP {p0}.', p0=e.code))
 
     def upload(method, chat, field, file, extra):
         boundary = uuid.uuid4().hex
@@ -264,9 +267,9 @@ def http_transport(api_base, token):
                 payload = json.loads(e.read(65536))
             except (ValueError, OSError):
                 payload = {}
-            raise TelegramError(f'Telegram answered with HTTP {e.code}.', e.code, (payload.get('parameters') or {}).get('retry_after'))
+            raise TelegramError(_bot_message('Telegram answered with HTTP {p0}.', p0=e.code), e.code, (payload.get('parameters') or {}).get('retry_after'))
         if not answer.get('ok'):
-            raise TelegramError(answer.get('description') or 'Telegram error', answer.get('error_code'), (answer.get('parameters') or {}).get('retry_after'))
+            raise TelegramError(answer.get('description') or _bot_message('Telegram error'), answer.get('error_code'), (answer.get('parameters') or {}).get('retry_after'))
         return answer.get('result')
     return {'call': call, 'download': download, 'upload': upload}
 
@@ -299,7 +302,7 @@ class Bot:
 
     @staticmethod
     def html(text, extra=None):
-        return {'text': clip2(text), 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}, **(extra or {})}
+        return {'text': clip2(render(text)), 'parse_mode': 'HTML', 'link_preview_options': {'is_disabled': True}, **(extra or {})}
 
     def send(self, ctx_or_chat, view, extra=None):
         extra = extra or {}
@@ -322,7 +325,7 @@ class Bot:
                                               'reply_markup': {'inline_keyboard': view.get('keyboard') or []}})
                 return target
             except TelegramError as e:
-                if re.search('not modified', str(e), re.I):
+                if re.search(_bot_message('not modified'), str(e), re.I):
                     return target
         return self.send(ctx, view)['message_id']
 
@@ -344,7 +347,7 @@ class Bot:
 
     def sign_in(self):
         app = self.app_url()
-        return [[{'text': '🔐 Sign in with your Task Controlling Management account', 'web_app': {'url': app}}]] if app else None
+        return [[{'text': _bot_message('🔐 Sign in with your Task Controlling Management account'), 'web_app': {'url': app}}]] if app else None
 
     # ------------------------------------------------------------ identity and access
     def context(self, chat, sender, **extra):
@@ -370,16 +373,15 @@ class Bot:
     def need_user(self, ctx):
         w = row(Workspace.objects.filter(id=ctx['workspace']).first()) if ctx.get('workspace') else None
         if ctx['isGroup'] and is_personal_workspace(w):
-            self.say(ctx, 'Personal workspace records are available only in your private bot chat or Mini App.')
+            self.say(ctx, _bot_message('Personal workspace records are available only in your private bot chat or Mini App.'))
             return False
         if ctx.get('user') and not ctx.get('problem'):
             if not Governance().operational_access(ctx['staff']):
-                self.say(ctx, 'Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.')
+                self.say(ctx, _bot_message('Your account is not mapped to the Organizational Structure. Ask an administrator to assign your level.'))
                 return False
             return True
-        message = ((link_help(self.app_url()) if ctx['isPrivate'] else 'Connect your Telegram account to the Task Controlling Management first: open a private chat '
-                    'with me and send /start.') if not ctx.get('link') else 'Your Task Controlling Management account is disabled. Ask an administrator for help.'
-                   if ctx['problem'] == 'disabled' else 'Your Task Controlling Management role does not include Task Management.')
+        message = ((link_help(self.app_url()) if ctx['isPrivate'] else _bot_message('Connect your Telegram account to the Task Controlling Management first: open a private chat with me and send /start.')) if not ctx.get('link') else _bot_message('Your Task Controlling Management account is disabled. Ask an administrator for help.')
+                   if ctx['problem'] == 'disabled' else _bot_message('Your Task Controlling Management role does not include Task Management.'))
         if ctx.get('callbackId'):
             self.answer(ctx, strip_tags(message), True)
         else:
@@ -392,9 +394,9 @@ class Bot:
         except InputError as e:
             return {'ok': False, 'error': e.message, 'status': e.status}
         except Exception as e:   # noqa: BLE001
-            log.exception('Telegram action failed')
+            log.exception(_bot_message('Telegram action failed'))
             tg.log('error', ctx['chatId'], f'{action}: {e}')
-            return {'ok': False, 'error': 'Something went wrong, so nothing was changed. Please try again.'}
+            return {'ok': False, 'error': _bot_message('Something went wrong, so nothing was changed. Please try again.')}
 
     # ------------------------------------------------------------ reading tasks
     def name_of(self, staff):
@@ -415,10 +417,10 @@ class Bot:
         except ValueError:
             listed = []
         if cr['kind'] == 'COMPLETE':
-            return 'complete the task'
+            return _bot_message('complete the task')
         if cr['kind'] == 'CANCEL':
-            return 'cancel the task'
-        return 'change ' + '; '.join(f"the {c['label'].lower()}" if c['field'] in ('description', 'department_note')
+            return _bot_message('cancel the task')
+        return 'change ' + '; '.join(_bot_message('the {p0}', p0=c['label'].lower()) if c['field'] in ('description', 'department_note')
                                      else f"{c['label'].lower()} {c['from_text']} → {c['to_text']}" for c in listed)
 
     @staticmethod
@@ -457,13 +459,12 @@ class Bot:
         lines = [f"{ICON.get(state, '•')} <b>{esc(t['title'])}</b>",
                  f"<code>{esc(t['id'])}</code> · {esc(t['workspace'])}{(' · 🔁 repeats ' + dm.RECURRENCE_SHORT[t['recurrence']]) if t['recurrence'] else ''}",
                  f"<b>{esc(state)}</b> · {t['progress']}% {bar(t['progress'])}",
-                 f"👤 In charge: <b>{esc(self.name_of(t['pic_id']))}</b>{' (you)' if t['pic_id'] == ctx['staff'] else ''}"
-                 f"{' ⏳' if is_open and t['pic_state'] == 'PENDING' else ''}"]
+                 _bot_message('👤 In charge: <b>{p0}</b>{p1}{p2}', p0=esc(self.name_of(t['pic_id'])), p1=' (you)' if t['pic_id'] == ctx['staff'] else '', p2=' ⏳' if is_open and t['pic_state'] == 'PENDING' else '')]
         active = [a for a in t['support'] if a['status'] != 'DECLINED']
         if active:
             lines.append('🤝 Supporting: ' + ', '.join(f"{esc(self.name_of(a['staff_id']))}{' ⏳' if a['status'] == 'PENDING' else ''}" for a in active))
         if t['declined_supporters']:
-            lines.append('✖️ Rejected supporting: ' + '; '.join(
+            lines.append(_bot_message('✖️ Rejected supporting: ') + '; '.join(
                 f"{esc(self.name_of(a['staff_id']))}{self.quoted(a['response_note'])}"
                 for a in t['declined_supporters']))
         if t.get('reviewer_id') and t['reviewer_id'] != t['pic_id']:
@@ -471,29 +472,27 @@ class Bot:
                       (' — ✖️ rejected' + (f" (“{esc(clip(t['reviewer_note'], 80))}”)" if t.get('reviewer_note') else '')) if t['reviewer_status'] == 'DECLINED' else '')
             lines.append(f"🔎 Reviewer: {esc(self.name_of(t['reviewer_id']))}{status}")
         if t['waiting']:
-            lines.append(f"⏳ Waiting for {', '.join(esc(self.short(w['staff_id'])) for w in t['waiting'])} to accept")
-        lines.append(f"📅 Due {fmt_day(t['due_date'])} ({rel_day(t['due_date'])}){' · ⚠️ <b>overdue</b>' if t['overdue'] else ''} · {t['priority'].lower()} priority")
+            lines.append(_bot_message('⏳ Waiting for {p0} to accept', p0=', '.join(esc(self.short(w['staff_id'])) for w in t['waiting'])))
+        lines.append(_bot_message('📅 Due {p0} ({p1}){p2} · {p3} priority', p0=fmt_day(t['due_date']), p1=rel_day(t['due_date']), p2=' · ⚠️ <b>overdue</b>' if t['overdue'] else '', p3=t['priority'].lower()))
         if t['check_total'] or t['file_count']:
-            lines.append(' · '.join(x for x in (f"☑️ Steps {t['check_done']} of {t['check_total']} completed" if t['check_total'] else '',
+            lines.append(' · '.join(x for x in (_bot_message('☑️ Steps {p0} of {p1} completed', p0=t['check_done'], p1=t['check_total']) if t['check_total'] else '',
                                                 f"📎 {t['file_count']} file{'' if t['file_count'] == 1 else 's'}" if t['file_count'] else '') if x))
         if t['department'] or t.get('department_note'):
-            lines.append(f"🏢 {esc(t['department'] or 'Department')}{(' — ' + esc(clip(t['department_note'], 300))) if t.get('department_note') else ''}")
+            lines.append(f"🏢 {esc(t['department'] or _bot_message('Department'))}{(' — ' + esc(clip(t['department_note'], 300))) if t.get('department_note') else ''}")
         if t['stuck']:
-            lines.append(f"⛔ <b>Stuck</b> since {fmt_day(dm.local_day(t['stuck_at']))}: {esc(t['stuck_reason'])}")
+            lines.append(_bot_message('⛔ <b>Stuck</b> since {p0}: {p1}', p0=fmt_day(dm.local_day(t['stuck_at'])), p1=esc(t['stuck_reason'])))
         if t['declined']:
-            lines.append(f"🟠 Rejected by {esc(self.name_of(t['pic_id']))}: {esc(t['declined_reason'])}")
+            lines.append(_bot_message('🟠 Rejected by {p0}: {p1}', p0=esc(self.name_of(t['pic_id'])), p1=esc(t['declined_reason'])))
         if t['status'] == 'IN_REVIEW':
-            lines.append(f"📤 Submitted by {esc(self.name_of(t['submitted_by']))} to <b>{esc(self.name_of(t['submitted_to']))}</b>"
-                         f"{(': ' + esc(clip(t['submit_note'], 300))) if t.get('submit_note') else ''}")
+            lines.append(_bot_message('📤 Submitted by {p0} to <b>{p1}</b>{p2}', p0=esc(self.name_of(t['submitted_by'])), p1=esc(self.name_of(t['submitted_to'])), p2=(': ' + esc(clip(t['submit_note'], 300))) if t.get('submit_note') else ''))
         if t['due_request']:
-            lines.append(f"⏳ New due date requested: {fmt_day(t['due_request']['proposed_due_date'])} (by {esc(self.name_of(t['due_request']['requested_by']))})")
+            lines.append(_bot_message('⏳ New due date requested: {p0} (by {p1})', p0=fmt_day(t['due_request']['proposed_due_date']), p1=esc(self.name_of(t['due_request']['requested_by']))))
         cr = t['change_request']
         completion = bool(cr) and cr['kind'] == 'COMPLETE' and cr['requester_side'] == 'PIC'
         if cr:
-            lines.append(f"🟡 <b>Waiting for {esc(self.name_of(cr['approver_id']))}{' (you)' if cr['approver_id'] == ctx['staff'] else ''} to approve</b>: "
-                         f"{esc(self.name_of(cr['requested_by']))} asks to {esc(self.change_text(cr))}{(' — “' + esc(clip(cr['note'], 200)) + '”') if cr.get('note') else ''}")
+            lines.append(_bot_message('🟡 <b>Waiting for {p0}{p1} to approve</b>: {p2} asks to {p3}{p4}', p0=esc(self.name_of(cr['approver_id'])), p1=' (you)' if cr['approver_id'] == ctx['staff'] else '', p2=esc(self.name_of(cr['requested_by'])), p3=esc(self.change_text(cr)), p4=(' — “' + esc(clip(cr['note'], 200)) + '”') if cr.get('note') else ''))
         elif t['approval']:
-            lines.append(f"🤝 Changes need both sides: {esc(self.short(t['pic_id']))} and {esc(self.short(t['assigned_by']))}")
+            lines.append(_bot_message('🤝 Changes need both sides: {p0} and {p1}', p0=esc(self.short(t['pic_id'])), p1=esc(self.short(t['assigned_by']))))
         if t['description']:
             lines += ['', f"🎯 <b>Expectation:</b> {esc(clip(t['description'], 600))}"]
         if note:
@@ -502,32 +501,32 @@ class Bot:
 
         def can(v):
             return self.group_allows(v, t) if ctx['isGroup'] else v in allowed
-        reply = [b for b, ok in ((button('✅ Accept', f't:acc:{key}'), can('accept')), (button('✖️ Reject', f't:dec:{key}'), can('decline'))) if ok]
+        reply = [b for b, ok in ((button(_bot_message('✅ Accept'), f't:acc:{key}'), can('accept')), (button(_bot_message('✖️ Reject'), f't:dec:{key}'), can('decline'))) if ok]
         if reply:
             k.append(reply)
         work = []
         if can('progress'):
-            work.append(button('▶️ Start / progress' if t['status'] == 'NOT_STARTED' else '📈 Progress', f't:prg:{key}'))
+            work.append(button(_bot_message('▶️ Start / progress') if t['status'] == 'NOT_STARTED' else _bot_message('📈 Progress'), f't:prg:{key}'))
         if can('resume'):
-            work.append(button('▶️ Resume', f't:res:{key}'))
+            work.append(button(_bot_message('▶️ Resume'), f't:res:{key}'))
         elif can('stuck'):
-            work.append(button('⛔ Stuck', f't:stk:{key}'))
+            work.append(button(_bot_message('⛔ Stuck'), f't:stk:{key}'))
         if work:
             k.append(work)
         pic, final_approver = t['pic_id'] == ctx['staff'], dm.completion_approver(t) == ctx['staff'] and t['status'] == 'IN_REVIEW'
         finish = []
         if can('submit'):
-            finish.append(button('📤 Submit for approval' if pic and dm.two_sided(t) else '📤 Send to reviewer' if t['status'] == 'IN_REVIEW' else '📤 Submit', f't:sub:{key}'))
+            finish.append(button(_bot_message('📤 Submit for approval') if pic and dm.two_sided(t) else _bot_message('📤 Send to reviewer') if t['status'] == 'IN_REVIEW' else _bot_message('📤 Submit'), f't:sub:{key}'))
         if can('pass'):
-            finish.append(button('➡️ Pass for approval', f't:pas:{key}'))
+            finish.append(button(_bot_message('➡️ Pass for approval'), f't:pas:{key}'))
         if can('close'):
-            finish.append(button('✔️ Approve completion' if final_approver and completion else '✔️ Ask to complete' if dm.approval_target(t, ctx['staff']) else '✔️ Close',
+            finish.append(button(_bot_message('✔️ Approve completion') if final_approver and completion else _bot_message('✔️ Ask to complete') if dm.approval_target(t, ctx['staff']) else _bot_message('✔️ Close'),
                                  f't:cls:{key}'))
         if can('return'):
-            finish.append(button('↩️ Return', f't:ret:{key}'))
+            finish.append(button(_bot_message('↩️ Return'), f't:ret:{key}'))
         if finish:
             k.append(finish)
-        more = [b for b, ok in ((button('💬 Comment', f't:note:{key}'), can('note')), (button('📅 New due date', f't:due:{key}'), can('due'))) if ok]
+        more = [b for b, ok in ((button(_bot_message('💬 Comment'), f't:note:{key}'), can('note')), (button(_bot_message('📅 New due date'), f't:due:{key}'), can('due'))) if ok]
         if more:
             k.append(more)
         extras = []
@@ -539,27 +538,27 @@ class Bot:
             k.append(extras)
         if cr and not completion and not ctx['isGroup']:
             if cr['approver_id'] == ctx['staff']:
-                k.append([button('✅ Approve change', f"c:ok:{cr['id']}"), button('↩️ Reject', f"c:no:{cr['id']}")])
+                k.append([button(_bot_message('✅ Approve change'), f"c:ok:{cr['id']}"), button(_bot_message('↩️ Reject'), f"c:no:{cr['id']}")])
             elif cr['requested_by'] == ctx['staff']:
-                k.append([button('🗑 Withdraw request', f"c:wd:{cr['id']}")])
+                k.append([button(_bot_message('🗑 Withdraw request'), f"c:wd:{cr['id']}")])
         elif cr and completion and cr['requested_by'] == ctx['staff'] and not ctx['isGroup']:
-            k.append([button('🗑 Take back completion request', f"c:wd:{cr['id']}")])
+            k.append([button(_bot_message('🗑 Take back completion request'), f"c:wd:{cr['id']}")])
         if ctx['isPrivate']:
             manage = []
             if can('handover'):
-                manage.append(button('🔁 Hand over', f't:ho:{key}'))
+                manage.append(button(_bot_message('🔁 Hand over'), f't:ho:{key}'))
             if can('remind'):
-                manage.append(button('🔔 Remind', f't:rm:{key}'))
+                manage.append(button(_bot_message('🔔 Remind'), f't:rm:{key}'))
             if can('cancel'):
-                manage.append(button('✖️ Ask to cancel' if dm.approval_target(t, ctx['staff']) else '✖️ Cancel task', f't:can:{key}'))
+                manage.append(button(_bot_message('✖️ Ask to cancel') if dm.approval_target(t, ctx['staff']) else _bot_message('✖️ Cancel task'), f't:can:{key}'))
             if manage:
                 k.append(manage)
-        nav = [button('🔄 Refresh', f't:v:{key}')]
+        nav = [button(_bot_message('🔄 Refresh'), f't:v:{key}')]
         app = self.app_url()
         if ctx['isPrivate'] and app:
-            nav.append({'text': '📱 Open in app', 'web_app': {'url': f"{app}?task={quote(key, safe='')}"}})
+            nav.append({'text': _bot_message('📱 Open in app'), 'web_app': {'url': f"{app}?task={quote(key, safe='')}"}})
         if ctx['isGroup'] and (self.me or {}).get('username'):
-            nav.append({'text': '🔒 Open privately', 'url': f"https://t.me/{self.me['username']}?start=task_{key}"})
+            nav.append({'text': _bot_message('🔒 Open privately'), 'url': f"https://t.me/{self.me['username']}?start=task_{key}"})
         k.append(nav)
         return {'text': '\n'.join(lines), 'keyboard': k}
 
@@ -601,35 +600,33 @@ class Bot:
     @staticmethod
     def role_note(t, staff):
         if t['pic_id'] == staff and t['pic_state'] == 'PENDING':
-            return 'asked to take charge'
+            return _bot_message('asked to take charge')
         if any(a['staff_id'] == staff and a['status'] == 'PENDING' for a in t['support']):
-            return 'asked to support'
+            return _bot_message('asked to support')
         if t.get('reviewer_id') == staff and t['reviewer_status'] == 'PENDING':
-            return 'asked to review'
+            return _bot_message('asked to review')
         return ''
 
     def list_view(self, ctx, kind, page=0):
         found = self.enrich([t for t in rows(self.list_query(kind, ctx)) if self.can_see(ctx, t)])
         part = found[page * PER_PAGE:page * PER_PAGE + PER_PAGE]
-        icon, title, empty = LIST_TITLES[kind]
+        icon, title, empty = render(LIST_TITLES[kind])
         ws_name = Workspace.objects.filter(id=ctx['workspace']).values_list('name', flat=True).first() if ctx['isGroup'] else ''
         head = f"{icon} <b>{title}{(' · ' + esc(ws_name)) if ws_name else ''}</b>"
         if not found:
-            return {'text': f'{head}\n\n{empty}', 'keyboard': [[button('🏠 Menu', 'm:home')]] if ctx['isPrivate'] else []}
-        lines = [f"{page * PER_PAGE + i + 1}. {ICON.get(dm.task_state_label(t), '•')} <b>{esc(clip(t['title'], 60))}</b>\n    "
-                 f"{(esc(self.role_note(t, ctx['staff'])) + ' · ') if kind == 'ans' else ''}"
-                 f"{(esc(self.short(t['pic_id'])) + ' · ') if kind in ('sup', 'ws', 'ans') else ''}due {fmt_day(t['due_date'])}{' ⚠️' if t['overdue'] else ''} · {t['progress']}%"
+            return {'text': f'{head}\n\n{empty}', 'keyboard': [[button(_bot_message('🏠 Menu'), 'm:home')]] if ctx['isPrivate'] else []}
+        lines = [_bot_message('{p0}. {p1} <b>{p2}</b>\n    {p3}{p4}due {p5}{p6} · {p7}%', p0=page * PER_PAGE + i + 1, p1=ICON.get(dm.task_state_label(t), '•'), p2=esc(clip(t['title'], 60)), p3=(esc(self.role_note(t, ctx['staff'])) + ' · ') if kind == 'ans' else '', p4=(esc(self.short(t['pic_id'])) + ' · ') if kind in ('sup', 'ws', 'ans') else '', p5=fmt_day(t['due_date']), p6=' ⚠️' if t['overdue'] else '', p7=t['progress'])
                  for i, t in enumerate(part)]
         k = [[button(f"{page * PER_PAGE + i + 1}. {clip(t['title'], 40)}", f"t:v:{t['id']}")] for i, t in enumerate(part)]
         pager = []
         if page > 0:
-            pager.append(button('◀ Previous', f'm:{kind}:{page - 1}'))
+            pager.append(button(_bot_message('◀ Previous'), f'm:{kind}:{page - 1}'))
         if len(found) > (page + 1) * PER_PAGE:
-            pager.append(button('Next ▶', f'm:{kind}:{page + 1}'))
+            pager.append(button(_bot_message('Next ▶'), f'm:{kind}:{page + 1}'))
         if pager:
             k.append(pager)
         if ctx['isPrivate']:
-            k.append([button('🏠 Menu', 'm:home')])
+            k.append([button(_bot_message('🏠 Menu'), 'm:home')])
         return {'text': f"{head} ({len(found)})\n\n" + '\n'.join(lines), 'keyboard': k}
 
     def counts(self, staff):
@@ -652,22 +649,22 @@ class Bot:
     def menu_view(self, ctx, intro=''):
         c = self.counts(ctx['staff'])
         company = query('SELECT name FROM company WHERE id=1')
-        company = (company[0]['name'] if company else None) or 'Task Controlling Management'
-        lines = [intro or f"👋 <b>Hi, {esc(self.name_of(ctx['staff']).split(' · ')[0])}</b>", f'{esc(company)} · Task Management', '',
-                 f"🆕 Waiting for your answer: <b>{c['answer']}</b>",
-                 f"📋 In charge: <b>{c['my']}</b> open{(' (⚠️ ' + str(c['overdue']) + ' overdue)') if c['overdue'] else ''}",
-                 f"🤝 Supporting: <b>{c['sup']}</b>", f"🔎 Waiting for your decision: <b>{c['rev']}</b>"]
-        k = [[button(f"🆕 To answer ({c['answer']})", 'm:ans:0'), button(f"🔎 To review ({c['rev']})", 'm:rev')],
-             [button(f"📋 My tasks ({c['my']})", 'm:my:0'), button(f"🤝 Supporting ({c['sup']})", 'm:sup:0')]]
+        company = (company[0]['name'] if company else None) or _bot_message('Task Controlling Management')
+        lines = [intro or f"👋 <b>Hi, {esc(self.name_of(ctx['staff']).split(' · ')[0])}</b>", _bot_message('{p0} · Task Management', p0=esc(company)), '',
+                 _bot_message('🆕 Waiting for your answer: <b>{p0}</b>', p0=c['answer']),
+                 _bot_message('📋 In charge: <b>{p0}</b> open{p1}', p0=c['my'], p1=(' (⚠️ ' + str(c['overdue']) + ' overdue)') if c['overdue'] else ''),
+                 f"🤝 Supporting: <b>{c['sup']}</b>", _bot_message('🔎 Waiting for your decision: <b>{p0}</b>', p0=c['rev'])]
+        k = [[button(_bot_message('🆕 To answer ({p0})', p0=c['answer']), 'm:ans:0'), button(_bot_message('🔎 To review ({p0})', p0=c['rev']), 'm:rev')],
+             [button(_bot_message('📋 My tasks ({p0})', p0=c['my']), 'm:my:0'), button(f"🤝 Supporting ({c['sup']})", 'm:sup:0')]]
         create = []
         if ctx['can']('tasks.tasks', 'create'):
-            create.append(button('➕ New task', 'm:new'))
-        create.append(button('📨 Request a task', 'm:ask'))
+            create.append(button(_bot_message('➕ New task'), 'm:new'))
+        create.append(button(_bot_message('📨 Request a task'), 'm:ask'))
         k.append(create)
-        k.append([button('🙋 My requests', 'm:req'), button('📊 Monthly report', f'rep:me:{current_month()}')])
+        k.append([button(_bot_message('🙋 My requests'), 'm:req'), button(_bot_message('📊 Monthly report'), f'rep:me:{current_month()}')])
         app = self.app_url()
         if app:
-            k.append([{'text': '📱 Open the task app', 'web_app': {'url': app}}])
+            k.append([{'text': _bot_message('📱 Open the task app'), 'web_app': {'url': app}}])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def review_view(self, ctx):
@@ -680,61 +677,61 @@ class Bot:
         changes = [{**row(c), 'title': c.task.title} for c in live(TaskChangeRequest.objects.filter(status='PENDING', approver_id=staff)
                                                                    .exclude(kind='COMPLETE', requester_side='PIC'), 'task__workspace')
                    .select_related('task').order_by('created_at', 'id')]
-        lines, k = ['🔎 <b>Waiting for your decision</b>'], []
+        lines, k = [_bot_message('🔎 <b>Waiting for your decision</b>')], []
         if not tasks and not requests and not dues and not changes:
-            lines += ['', 'Nothing is waiting for you. 🎉']
+            lines += ['', _bot_message('Nothing is waiting for you. 🎉')]
         if changes:
-            lines += ['', f'<b>Changes to approve ({len(changes)})</b>']
+            lines += ['', _bot_message('<b>Changes to approve ({p0})</b>', p0=len(changes))]
             for c in changes[:8]:
-                lines.append(f"• {esc(clip(c['title'], 50))}: {esc(self.short(c['requested_by']))} asks to {esc(clip(self.change_text(c), 90))}")
+                lines.append(_bot_message('• {p0}: {p1} asks to {p2}', p0=esc(clip(c['title'], 50)), p1=esc(self.short(c['requested_by'])), p2=esc(clip(self.change_text(c), 90))))
                 k.append([button(f"🟡 {clip(c['title'], 40)}", f"t:v:{c['task_id']}")])
         if tasks:
-            lines += ['', f'<b>Tasks to review ({len(tasks)})</b>']
+            lines += ['', _bot_message('<b>Tasks to review ({p0})</b>', p0=len(tasks))]
             for t in tasks[:8]:
-                lines.append(f"• {esc(clip(t['title'], 60))} — from {esc(self.short(t['submitted_by']))}")
+                lines.append(_bot_message('• {p0} — from {p1}', p0=esc(clip(t['title'], 60)), p1=esc(self.short(t['submitted_by']))))
                 k.append([button(f"📤 {clip(t['title'], 40)}", f"t:v:{t['id']}")])
         if requests:
-            lines += ['', f'<b>Task requests ({len(requests)})</b>']
+            lines += ['', _bot_message('<b>Task requests ({p0})</b>', p0=len(requests))]
             for q in requests[:8]:
-                lines.append(f"• {esc(clip(q['title'], 60))} — from {esc(self.short(q['requested_by']))}")
+                lines.append(_bot_message('• {p0} — from {p1}', p0=esc(clip(q['title'], 60)), p1=esc(self.short(q['requested_by']))))
                 k.append([button(f"🙋 {clip(q['title'], 40)}", f"r:v:{q['id']}")])
         if dues:
-            lines += ['', f'<b>Due date requests ({len(dues)})</b>']
+            lines += ['', _bot_message('<b>Due date requests ({p0})</b>', p0=len(dues))]
             for d in dues[:8]:
                 lines.append(f"• {esc(clip(d['title'], 50))}: {fmt_day(d['current_due_date'])} → {fmt_day(d['proposed_due_date'])}")
                 k.append([button(f"📅 {clip(d['title'], 40)}", f"d:v:{d['id']}")])
         if ctx['isPrivate']:
-            k.append([button('🏠 Menu', 'm:home')])
+            k.append([button(_bot_message('🏠 Menu'), 'm:home')])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def doer_text(self, q):
         doer = q.get('doer') or 'REQUESTER'
-        return (f"{self.name_of(q['manager_id'])} does it" if doer == 'RECEIVER' else 'decided when accepted' if doer == 'DECIDE'
-                else f"{self.name_of(q['requested_by'])} does it")
+        return (_bot_message('{p0} does it', p0=self.name_of(q['manager_id'])) if doer == 'RECEIVER' else _bot_message('decided when accepted') if doer == 'DECIDE'
+                else _bot_message('{p0} does it', p0=self.name_of(q['requested_by'])))
 
     def my_requests_view(self, ctx):
         listed = rows(TaskRequest.objects.filter(requested_by_id=ctx['staff']).order_by('-created_at', '-id')[:10])
-        lines = ['🙋 <b>Your task requests</b>']
+        lines = [_bot_message('🙋 <b>Your task requests</b>')]
         if not listed:
-            lines += ['', 'You have not requested any tasks yet.']
+            lines += ['', _bot_message('You have not requested any tasks yet.')]
         for q in listed:
-            lines.append(f"• {esc(clip(q['title'], 60))} — {'Accepted' if q['status'] == 'APPROVED' else dm.REQUEST_STATUS[q['status']]}"
+            lines.append(f"• {esc(clip(q['title'], 60))} — {_bot_message('Accepted') if q['status'] == 'APPROVED' else dm.REQUEST_STATUS[q['status']]}"
                          f"{(' (with ' + esc(self.short(q['manager_id'])) + ')') if q['status'] == 'PENDING' else ''}")
         k = [[button(f"{'⏳' if q['status'] == 'PENDING' else '✅' if q['status'] == 'APPROVED' else '•'} {clip(q['title'], 40)}", f"r:v:{q['id']}")] for q in listed]
-        k += [[button('📨 Request a task', 'm:ask')], [button('🏠 Menu', 'm:home')]]
+        k += [[button(_bot_message('📨 Request a task'), 'm:ask')], [button(_bot_message('🏠 Menu'), 'm:home')]]
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def request_view(self, ctx, q, note=''):
-        status = ((f"✅ Accepted{(' as <code>' + esc(q['task_id']) + '</code>') if q.get('task_id') else ''}") if q['status'] == 'APPROVED'
+        status = ((f"✅ Accepted{(_bot_message(' as <code>') + esc(q['task_id']) + '</code>') if q.get('task_id') else ''}") if q['status'] == 'APPROVED'
                   else f"🟠 Declined{(': ' + esc(q['decision_note'])) if q.get('decision_note') else ''}" if q['status'] == 'DECLINED'
-                  else '🗑 Withdrawn' if q['status'] == 'WITHDRAWN' else '⏳ Waiting for an answer')
+                  else '🗑 Withdrawn' if q['status'] == 'WITHDRAWN' else _bot_message('⏳ Waiting for an answer'))
         ws = Workspace.objects.filter(id=q['workspace_id']).values_list('name', flat=True).first() if q.get('workspace_id') else ''
-        lines = [f"🙋 <b>Task request</b> <code>{esc(q['id'])}</code>", f"<b>{esc(q['title'])}</b>",
-                 f"From <b>{esc(self.name_of(q['requested_by']))}</b> · asked: <b>{esc(self.name_of(q['manager_id']))}</b>",
-                 f'Who does it: {esc(self.doer_text(q))}', f"Workspace: {esc(ws or 'decided when accepted')} · {q['priority'].lower()} priority",
-                 f"Needed by: {fmt_day(q['proposed_due_date']) if q.get('proposed_due_date') else 'not set'}"]
+        lines = [_bot_message('🙋 <b>Task request</b> <code>{p0}</code>', p0=esc(q['id'])), f"<b>{esc(q['title'])}</b>",
+                 _bot_message('From <b>{p0}</b> · asked: <b>{p1}</b>', p0=esc(self.name_of(q['requested_by'])), p1=esc(self.name_of(q['manager_id']))),
+                 _bot_message('Who does it: {p0}', p0=esc(self.doer_text(q))), f"Workspace: {esc(ws or _bot_message('decided when accepted'))} · {q['priority'].lower()} priority",
+                 _bot_message('Needed by: {p0}', p0=fmt_day(q['proposed_due_date']) if q.get('proposed_due_date') else 'not set')]
         if q.get('department') or q.get('department_note'):
-            lines.append(f"🏢 {esc(q['department'] or 'Department')}{(' — ' + esc(clip(q['department_note'], 300))) if q.get('department_note') else ''}")
+            lines.append(f"🏢 {esc(q['department'] or _bot_message('Department'))}{(' — ' + esc(clip(q['department_note'], 300))) if q.get('department_note') else ''}")
         lines.append(status)
         if q.get('description'):
             lines += ['', f"🎯 <b>Expectation:</b> {esc(clip(q['description'], 600))}"]
@@ -742,28 +739,28 @@ class Bot:
             lines += ['', note]
         k = []
         if q['status'] == 'PENDING' and q['manager_id'] == ctx['staff']:
-            k += [[button('✅ Accept' if q.get('doer') == 'RECEIVER' else '✅ Approve', f"r:ok:{q['id']}"), button('↩️ Decline', f"r:no:{q['id']}")],
-                  [button('👥 Pass to someone else', f"r:fw:{q['id']}")]]
+            k += [[button(_bot_message('✅ Accept') if q.get('doer') == 'RECEIVER' else _bot_message('✅ Approve'), f"r:ok:{q['id']}"), button(_bot_message('↩️ Decline'), f"r:no:{q['id']}")],
+                  [button(_bot_message('👥 Pass to someone else'), f"r:fw:{q['id']}")]]
         if q['status'] == 'PENDING' and q['requested_by'] == ctx['staff']:
-            k.append([button('🗑 Withdraw request', f"r:wd:{q['id']}")])
+            k.append([button(_bot_message('🗑 Withdraw request'), f"r:wd:{q['id']}")])
         if q.get('task_id'):
-            k.append([button('👁 View task', f"t:v:{q['task_id']}")])
-        k.append([button('🔄 Refresh', f"r:v:{q['id']}")])
+            k.append([button(_bot_message('👁 View task'), f"t:v:{q['task_id']}")])
+        k.append([button(_bot_message('🔄 Refresh'), f"r:v:{q['id']}")])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def due_view(self, ctx, d, note=''):
         t = self.load_task(d['task_id'])
-        status = {'PENDING': '⏳ Waiting for a decision', 'APPROVED': '✅ Approved',
+        status = {'PENDING': _bot_message('⏳ Waiting for a decision'), 'APPROVED': '✅ Approved',
                   'DECLINED': f"🟠 Declined{(': ' + esc(d['decision_note'])) if d.get('decision_note') else ''}", 'WITHDRAWN': '🗑 Withdrawn'}[d['status']]
-        lines = ['📅 <b>New due date requested</b>', f"<code>{esc(d['task_id'])}</code> · {esc((t or {}).get('title') or '')}",
-                 f"{esc(self.name_of(d['requested_by']))} asks to move it from <b>{fmt_day(d['current_due_date'])}</b> to <b>{fmt_day(d['proposed_due_date'])}</b>.",
+        lines = [_bot_message('📅 <b>New due date requested</b>'), f"<code>{esc(d['task_id'])}</code> · {esc((t or {}).get('title') or '')}",
+                 _bot_message('{p0} asks to move it from <b>{p1}</b> to <b>{p2}</b>.', p0=esc(self.name_of(d['requested_by'])), p1=fmt_day(d['current_due_date']), p2=fmt_day(d['proposed_due_date'])),
                  f"Reason: {esc(d['reason'])}", status]
         if note:
             lines += ['', note]
         k = []
         if d['status'] == 'PENDING' and (d['decide_by'] == ctx['staff'] or ctx['can']('tasks.tasks', 'approve')):
-            k.append([button('✅ Approve', f"d:ok:{d['id']}"), button('↩️ Decline', f"d:no:{d['id']}")])
-        k.append([button('👁 View task', f"t:v:{d['task_id']}")])
+            k.append([button(_bot_message('✅ Approve'), f"d:ok:{d['id']}"), button(_bot_message('↩️ Decline'), f"d:no:{d['id']}")])
+        k.append([button(_bot_message('👁 View task'), f"t:v:{d['task_id']}")])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def report_view(self, ctx, scope_kind, month, category=''):
@@ -782,11 +779,11 @@ class Bot:
                  'lookups': query("SELECT id,name,'staff' AS kind FROM staff ORDER BY id")}
         _, found, summary = monthly_task_rows(state, f)
         ws_name = Workspace.objects.filter(id=ctx['workspace']).values_list('name', flat=True).first() if scope_kind == 'ws' else None
-        label = ('Your tasks' if scope_kind == 'me' else f"Your tasks in {esc(ws_name or 'this workspace')}" if scope_kind == 'ws'
-                 else 'Whole company' if sc['task_scope']['company'] else 'Your tasks and your team’s')
+        label = (_bot_message('Your tasks') if scope_kind == 'me' else _bot_message('Your tasks in {p0}', p0=esc(ws_name or 'this workspace')) if scope_kind == 'ws'
+                 else _bot_message('Whole company') if sc['task_scope']['company'] else _bot_message('Your tasks and your team’s'))
         running = month == current_month()
-        lines = [f"📊 <b>Monthly task report · {esc(b['label'])}</b>", f"{label}{' · so far this month' if running else ''}", '']
-        cats = [('completed', '✅', 'Completed'), ('in_progress', '🔵', 'In progress'), ('stuck', '🔴', 'Stuck'), ('overdue', '⚠️', 'Overdue')]
+        lines = [_bot_message('📊 <b>Monthly task report · {p0}</b>', p0=esc(b['label'])), f"{label}{_bot_message(' · so far this month') if running else ''}", '']
+        cats = [('completed', '✅', _bot_message('Completed')), ('in_progress', '🔵', _bot_message('In progress')), ('stuck', '🔴', _bot_message('Stuck')), ('overdue', '⚠️', _bot_message('Overdue'))]
         if not category:
             lines += [f'{icon} {name}: <b>{summary[key]}</b>' for key, icon, name in cats]
         else:
@@ -797,37 +794,37 @@ class Bot:
                 lines.append('None.')
             lines += [f"• <b>{esc(clip(r['title'], 55))}</b> — {esc(self.short(r['pic_id']))}\n    {esc(clip(r['detail'], 90))}" for r in listed[:15]]
             if len(listed) > 15:
-                lines.append(f'…and {len(listed) - 15} more. Open the task app or the Task Controlling Management for the full list.')
+                lines.append(_bot_message('…and {p0} more. Open the task app or the Task Controlling Management for the full list.', p0=len(listed) - 15))
         k = [[button(f'{icon} {summary[key]}', f'rep:{scope_kind}:{month}:{key}') for key, icon, _ in cats]]
         nav = [button(f"◀ {month_bounds(shift_month(month, -1))['label'].split(' ')[0][:3]}", f'rep:{scope_kind}:{shift_month(month, -1)}')]
         if not running:
             nav.append(button(f"{month_bounds(shift_month(month, 1))['label'].split(' ')[0][:3]} ▶", f'rep:{scope_kind}:{shift_month(month, 1)}'))
         if category:
-            nav.append(button('↩ Summary', f'rep:{scope_kind}:{month}'))
+            nav.append(button(_bot_message('↩ Summary'), f'rep:{scope_kind}:{month}'))
         k.append(nav)
         if ctx['isPrivate'] and ctx['can']('tasks.reports'):
-            k.append([button('🏢 Whole company' if self.scope().company_wide(ctx['staff']) else '👥 With my team', f'rep:all:{month}') if scope_kind == 'me'
-                      else button('👤 Only my tasks', f'rep:me:{month}')])
+            k.append([button(_bot_message('🏢 Whole company') if self.scope().company_wide(ctx['staff']) else _bot_message('👥 With my team'), f'rep:all:{month}') if scope_kind == 'me'
+                      else button(_bot_message('👤 Only my tasks'), f'rep:me:{month}')])
         if ctx['isPrivate']:
-            k.append([button('🏠 Menu', 'm:home')])
+            k.append([button(_bot_message('🏠 Menu'), 'm:home')])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     def checklist_view(self, ctx, t, note=''):
         items = rows(ChecklistItem.objects.filter(task_id=t['id']).order_by('position', 'id'))
         can = self.group_allows('checklist', t) if ctx['isGroup'] else 'checklist' in self.actions_for(ctx, t)['allowed']
-        lines = [f"☑️ <b>Steps of work</b> · {esc(t['title'])}", f"{len([i for i in items if i['done']])} of {len(items)} completed", '']
+        lines = [_bot_message('☑️ <b>Steps of work</b> · {p0}', p0=esc(t['title'])), _bot_message('{p0} of {p1} completed', p0=len([i for i in items if i['done']]), p1=len(items)), '']
         lines += [f"{'✅' if i['done'] else '⬜'} {n + 1}. {esc(i['title'])}" for n, i in enumerate(items)]
         if not items:
-            lines.append('No steps yet.')
+            lines.append(_bot_message('No steps yet.'))
         if can and items:
-            lines += ['', 'Tap a step to complete it (or reopen it). Steps never change the task’s progress.']
+            lines += ['', _bot_message('Tap a step to complete it (or reopen it). Steps never change the task’s progress.')]
         if note:
             lines += ['', note]
         k = chunk([button(f"{'✅' if i['done'] else '⬜'} {n + 1}. {clip(i['title'], 24)}", f"k:t:{i['id']}") for n, i in enumerate(items[:30])], 2) if can else []
         foot = []
         if can and ctx['isPrivate']:
-            foot.append(button('➕ Add a step', f"k:add:{t['id']}"))
-        foot.append(button('↩ Back to the task', f"t:v:{t['id']}"))
+            foot.append(button(_bot_message('➕ Add a step'), f"k:add:{t['id']}"))
+        foot.append(button(_bot_message('↩ Back to the task'), f"t:v:{t['id']}"))
         k.append(foot)
         return {'text': '\n'.join(lines), 'keyboard': k}
 
@@ -836,21 +833,21 @@ class Bot:
         lines = [f"📎 <b>Files</b> · {esc(t['title'])}", '']
         lines += [f"{n + 1}. {esc(f['name'])} — {max(1, math.ceil(f['size'] / 1024))} KB · {esc(self.short(f['uploaded_by_id']))}" for n, f in enumerate(files)]
         if not files:
-            lines.append('No files yet.')
+            lines.append(_bot_message('No files yet.'))
         can_add = self.group_allows('file', t) if ctx['isGroup'] else 'file' in self.actions_for(ctx, t)['allowed']
         if can_add:
-            lines += ['', 'To add a photo or document, tap “Attach a file” and send it (up to 30 MB).' if ctx['isPrivate']
-                      else 'To add a photo or document, reply to the task’s message with it (up to 30 MB).']
+            lines += ['', _bot_message('To add a photo or document, tap “Attach a file” and send it (up to 30 MB).') if ctx['isPrivate']
+                      else _bot_message('To add a photo or document, reply to the task’s message with it (up to 30 MB).')]
         if note:
             lines += ['', note]
         k = [[button(f"⬇️ {n + 1}. {clip(f['name'], 34)}", f"a:g:{f['id']}")] for n, f in enumerate(files[:20])] if ctx['isPrivate'] else []
         foot = []
         if can_add and ctx['isPrivate']:
-            foot.append(button('📎 Attach a file', f"a:add:{t['id']}"))
-        foot.append(button('↩ Back to the task', f"t:v:{t['id']}"))
+            foot.append(button(_bot_message('📎 Attach a file'), f"a:add:{t['id']}"))
+        foot.append(button(_bot_message('↩ Back to the task'), f"t:v:{t['id']}"))
         k.append(foot)
         if ctx['isGroup'] and files and (self.me or {}).get('username'):
-            k.append([{'text': '🔒 Get the files privately', 'url': f"https://t.me/{self.me['username']}?start=task_{t['id']}"}])
+            k.append([{'text': _bot_message('🔒 Get the files privately'), 'url': f"https://t.me/{self.me['username']}?start=task_{t['id']}"}])
         return {'text': '\n'.join(lines), 'keyboard': k}
 
     # ------------------------------------------------------------ people pickers
@@ -874,16 +871,16 @@ class Bot:
         if pages > 1:
             nav = []
             if p > 0:
-                nav.append(button('◀ Previous', f'{data}{p - 1}'))
-            nav.append(button(f'{p + 1} of {pages}', 'x:page'))
+                nav.append(button(_bot_message('◀ Previous'), f'{data}{p - 1}'))
+            nav.append(button(_bot_message('{p0} of {p1}', p0=p + 1, p1=pages), 'x:page'))
             if p < pages - 1:
-                nav.append(button('Next ▶', f'{data}{p + 1}'))
+                nav.append(button(_bot_message('Next ▶'), f'{data}{p + 1}'))
             out.append(nav)
         return out, len(found)
 
     # ------------------------------------------------------------ conversations (multi-step forms)
     def prompt(self, ctx, flow, step, data, question, placeholder):
-        text = (f"{self.mention(ctx['from'])}, {question}" if ctx['isGroup'] else f"{question[:1].upper()}{question[1:]}\n\n<i>Send /cancel to stop.</i>")
+        text = (f"{self.mention(ctx['from'])}, {question}" if ctx['isGroup'] else _bot_message('{p0}{p1}\n\n<i>Send /cancel to stop.</i>', p0=question[:1].upper(), p1=question[1:]))
         extra = {'reply_markup': {'force_reply': True, 'selective': True, 'input_field_placeholder': clip(placeholder, 64)}}
         if ctx['isGroup'] and ctx.get('messageId') and not ctx.get('callbackMessage'):
             extra['reply_parameters'] = {'message_id': ctx['messageId'], 'allow_sending_without_reply': True}
@@ -921,22 +918,22 @@ class Bot:
 
     def doer_choice(self, doer, d):
         first = self.name_of(d.get('manager_id')).split(' · ')[0]
-        return {'RECEIVER': f'{first} does it', 'REQUESTER': 'I do it (asking to take it on)', 'DECIDE': f'{first} decides who does it'}[doer]
+        return {'RECEIVER': _bot_message('{p0} does it', p0=first), 'REQUESTER': _bot_message('I do it (asking to take it on)'), 'DECIDE': _bot_message('{p0} decides who does it', p0=first)}[doer]
 
     def flow_view(self, ctx, d):
         step = self.next_step(d)
         ws = Workspace.objects.filter(id=d['workspace_id']).values_list('name', flat=True).first() if d.get('workspace_id') else ''
-        title = ('➕ <b>New task</b>' if d['kind'] == 'newtask' else '📨 <b>Request a task</b>' if d['kind'] == 'request'
-                 else '✅ <b>Accept task request</b>' if d.get('doer') == 'RECEIVER' else '✅ <b>Approve task request</b>')
+        title = (_bot_message('➕ <b>New task</b>') if d['kind'] == 'newtask' else _bot_message('📨 <b>Request a task</b>') if d['kind'] == 'request'
+                 else _bot_message('✅ <b>Accept task request</b>') if d.get('doer') == 'RECEIVER' else _bot_message('✅ <b>Approve task request</b>'))
         summary = [title, f"<b>{esc(d.get('title'))}</b>"]
         if d['kind'] == 'request' and d.get('manager_id'):
             summary.append(f"Asking: {esc(self.name_of(d['manager_id']))}")
         if d['kind'] == 'request' and d.get('doer'):
-            summary.append(f"Who does it: {esc(self.doer_choice(d['doer'], d))}")
+            summary.append(_bot_message('Who does it: {p0}', p0=esc(self.doer_choice(d['doer'], d))))
         if ws:
             summary.append(f'Workspace: {esc(ws)}')
         if d.get('pic_id'):
-            summary.append(f"In charge: {esc(self.name_of(d['pic_id']))}")
+            summary.append(_bot_message('In charge: {p0}', p0=esc(self.name_of(d['pic_id']))))
         if d['kind'] == 'approve':
             summary.append(f"Reviewer: {esc(self.name_of(d['requester'] if d.get('doer') == 'RECEIVER' else ctx['staff']))}")
         if d.get('supporter_ids'):
@@ -946,72 +943,72 @@ class Bot:
         if d['kind'] != 'approve':
             summary.append(f"Priority: {(d.get('priority') or 'MEDIUM').lower()}")
         if d.get('department_note'):
-            summary.append(f"🏢 Department note: {esc(clip(d['department_note'], 200))}")
+            summary.append(_bot_message('🏢 Department note: {p0}', p0=esc(clip(d['department_note'], 200))))
         if d.get('description'):
             summary.append(f"📝 {esc(clip(d['description'], 300))}")
-        cancel, pages = [button('✖️ Cancel', 'f:x')], d.get('pages') or {}
+        cancel, pages = [button(_bot_message('✖️ Cancel'), 'f:x')], d.get('pages') or {}
         if step == 'workspace':
-            question = 'Which workspace is it for? (optional)' if d['kind'] == 'request' else 'Which workspace is it for?'
+            question = _bot_message('Which workspace is it for? (optional)') if d['kind'] == 'request' else _bot_message('Which workspace is it for?')
             out = chunk([button(clip(w['name'], 30), f"f:ws:{w['id']}") for w in self.workspaces_for(ctx)[:20]], 2)
             if d['kind'] == 'request':
-                out.append([button('Skip — decided when accepted', 'f:ws:-')])
+                out.append([button(_bot_message('Skip — decided when accepted'), 'f:ws:-')])
             out.append(cancel)
             return {'text': '\n'.join([*summary, '', f'<b>{question}</b>']), 'keyboard': out}
         if step == 'pic':
             out, _ = self.people_rows(ctx, 'f:pic:', pages.get('pic'), data='f:pg:pic:')
             out.append(cancel)
-            return {'text': '\n'.join([*summary, '', '<b>Who is in charge?</b> Everyone who uses Task Management is listed; they are asked to accept.']), 'keyboard': out}
+            return {'text': '\n'.join([*summary, '', _bot_message('<b>Who is in charge?</b> Everyone who uses Task Management is listed; they are asked to accept.')]), 'keyboard': out}
         if step == 'manager':
             out, count = self.people_rows(ctx, 'f:mgr:', pages.get('mgr'), exclude=[ctx['staff']], data='f:pg:mgr:')
             if not count:
-                return {'text': '\n'.join([*summary, '', 'Nobody else uses Task Management yet. Ask an administrator to add people.']), 'keyboard': [cancel]}
+                return {'text': '\n'.join([*summary, '', _bot_message('Nobody else uses Task Management yet. Ask an administrator to add people.')]), 'keyboard': [cancel]}
             out.append(cancel)
-            return {'text': '\n'.join([*summary, '', '<b>Who are you asking?</b>']), 'keyboard': out}
+            return {'text': '\n'.join([*summary, '', _bot_message('<b>Who are you asking?</b>')]), 'keyboard': out}
         if step == 'doer':
-            return {'text': '\n'.join([*summary, '', '<b>Who should do it?</b>']),
+            return {'text': '\n'.join([*summary, '', _bot_message('<b>Who should do it?</b>')]),
                     'keyboard': [[button(f"👤 {clip(self.doer_choice('RECEIVER', d), 40)}", 'f:doer:RECEIVER')],
-                                 [button('🙋 Me — I am asking to take it on', 'f:doer:REQUESTER')],
+                                 [button(_bot_message('🙋 Me — I am asking to take it on'), 'f:doer:REQUESTER')],
                                  [button(f"🤔 {clip(self.doer_choice('DECIDE', d), 40)}", 'f:doer:DECIDE')], cancel]}
         if step == 'due':
-            out = [[button('Today', 'f:due:0'), button('Tomorrow', 'f:due:1')], [button('In 3 days', 'f:due:3'), button('In a week', 'f:due:7')],
-                   [button('In 2 weeks', 'f:due:14'), button('Other date…', 'f:due:other')]]
+            out = [[button(_bot_message('Today'), 'f:due:0'), button(_bot_message('Tomorrow'), 'f:due:1')], [button(_bot_message('In 3 days'), 'f:due:3'), button(_bot_message('In a week'), 'f:due:7')],
+                   [button(_bot_message('In 2 weeks'), 'f:due:14'), button(_bot_message('Other date…'), 'f:due:other')]]
             if d['kind'] == 'request':
-                out.append([button('No date — decided when accepted', 'f:due:-')])
+                out.append([button(_bot_message('No date — decided when accepted'), 'f:due:-')])
             out.append(cancel)
-            return {'text': '\n'.join([*summary, '', f"<b>{'When do you need it?' if d['kind'] == 'request' else 'When is it due?'}</b>"]), 'keyboard': out}
+            return {'text': '\n'.join([*summary, '', f"<b>{_bot_message('When do you need it?') if d['kind'] == 'request' else _bot_message('When is it due?')}</b>"]), 'keyboard': out}
         if step == 'supporters':
             out, _ = self.people_rows(ctx, 'f:sup:', pages.get('sup'), exclude=[d.get('pic_id')], selected=d.get('supporter_ids') or [], data='f:pg:sup:')
-            out.append([button('Done', 'f:sup:done')])
-            return {'text': '\n'.join([*summary, '', '<b>Who is supporting?</b> Tap to select, then Done. They are asked to accept.']), 'keyboard': out}
+            out.append([button(_bot_message('Done'), 'f:sup:done')])
+            return {'text': '\n'.join([*summary, '', _bot_message('<b>Who is supporting?</b> Tap to select, then Done. They are asked to accept.')]), 'keyboard': out}
         if step == 'priority':
             return {'text': '\n'.join([*summary, '', '<b>Priority?</b>']),
-                    'keyboard': [[button('🔴 High', 'f:pri:HIGH'), button('🟡 Medium', 'f:pri:MEDIUM'), button('🟢 Low', 'f:pri:LOW')]]}
+                    'keyboard': [[button(_bot_message('🔴 High'), 'f:pri:HIGH'), button(_bot_message('🟡 Medium'), 'f:pri:MEDIUM'), button(_bot_message('🟢 Low'), 'f:pri:LOW')]]}
         n = len(d.get('supporter_ids') or [])
         if d['kind'] == 'newtask':
-            out = [[button('✅ Create task', 'f:ok')], [button(f'🤝 Supporting ({n})', 'f:edit:supporters'), button('⚡ Priority', 'f:edit:priority')],
-                   [button('🎯 Expectation', 'f:text:description'), button('🏢 Department note', 'f:text:department_note')]]
+            out = [[button(_bot_message('✅ Create task'), 'f:ok')], [button(f'🤝 Supporting ({n})', 'f:edit:supporters'), button(_bot_message('⚡ Priority'), 'f:edit:priority')],
+                   [button(_bot_message('🎯 Expectation'), 'f:text:description'), button(_bot_message('🏢 Department note'), 'f:text:department_note')]]
         elif d['kind'] == 'request':
-            out = [[button('📨 Send request', 'f:ok')], [button('🎯 Expectation', 'f:text:description'), button('🏢 Department note', 'f:text:department_note')],
-                   [button('⚡ Priority', 'f:edit:priority'), button('👤 Who does it', 'f:edit:doer')]]
+            out = [[button(_bot_message('📨 Send request'), 'f:ok')], [button(_bot_message('🎯 Expectation'), 'f:text:description'), button(_bot_message('🏢 Department note'), 'f:text:department_note')],
+                   [button(_bot_message('⚡ Priority'), 'f:edit:priority'), button(_bot_message('👤 Who does it'), 'f:edit:doer')]]
         else:
-            out = [[button('✅ Accept and create the task' if d.get('doer') == 'RECEIVER' else '✅ Approve and create the task', 'f:ok')],
-                   [button('👤 Person in charge', 'f:edit:pic'), button('📅 Due date', 'f:edit:due')], [button(f'🤝 Supporting ({n})', 'f:edit:supporters')]]
+            out = [[button(_bot_message('✅ Accept and create the task') if d.get('doer') == 'RECEIVER' else _bot_message('✅ Approve and create the task'), 'f:ok')],
+                   [button(_bot_message('👤 Person in charge'), 'f:edit:pic'), button(_bot_message('📅 Due date'), 'f:edit:due')], [button(f'🤝 Supporting ({n})', 'f:edit:supporters')]]
         out.append(cancel)
-        return {'text': '\n'.join([*summary, '', 'Check the details, then confirm.']), 'keyboard': out}
+        return {'text': '\n'.join([*summary, '', _bot_message('Check the details, then confirm.')]), 'keyboard': out}
 
     def start_flow(self, ctx, kind, seed=None):
         if not self.need_user(ctx):
             return
         if kind == 'newtask' and not ctx['can']('tasks.tasks', 'create'):
-            return self.reply(ctx, 'Your Task Controlling Management role cannot create tasks. You can still ask someone for a task with /request.')
+            return self.reply(ctx, _bot_message('Your Task Controlling Management role cannot create tasks. You can still ask someone for a task with /request.'))
         if ctx['isGroup'] and not ctx['workspace'] and kind == 'newtask':
-            return self.reply(ctx, 'Link this group to a workspace first: an administrator can send /connect here.')
+            return self.reply(ctx, _bot_message('Link this group to a workspace first: an administrator can send /connect here.'))
         d = {'kind': kind, 'supporter_ids': [], 'priority': 'MEDIUM', 'description': '', 'department_note': '', 'pages': {}, **(seed or {})}
         if ctx['isGroup'] and ctx['workspace'] and kind != 'approve':
             d['workspace_id'] = ctx['workspace']
         if kind != 'approve' and not d.get('title'):
-            return self.prompt(ctx, 'flow', 'title', d, 'what is the task? Reply with a short title.' if kind == 'newtask'
-                               else 'what do you need? Reply with a short title for your request.', 'Task title' if kind == 'newtask' else 'Request title')
+            return self.prompt(ctx, 'flow', 'title', d, _bot_message('what is the task? Reply with a short title.') if kind == 'newtask'
+                               else _bot_message('what do you need? Reply with a short title for your request.'), _bot_message('Task title') if kind == 'newtask' else _bot_message('Request title'))
         if kind == 'newtask' and not d.get('workspace_id'):
             listed = self.workspaces_for(ctx)
             if len(listed) == 1:
@@ -1030,7 +1027,7 @@ class Bot:
         what, value, extra = (parts + [None, None, None])[:3]
         s = tg.session.get(ctx['chatId'], ctx['from']['id'])
         if not s or s['flow'] != 'flow' or (s['data'].get('card') and s['data']['card'] != ctx['callbackMessage']['message_id']):
-            return self.answer(ctx, 'This form belongs to someone else or has expired. Start again with /newtask or /request.', True)
+            return self.answer(ctx, _bot_message('This form belongs to someone else or has expired. Start again with /newtask or /request.'), True)
         if not self.need_user(ctx):
             return
         d = s['data']
@@ -1040,7 +1037,7 @@ class Bot:
             return any(p['staff_id'] == key for p in self.people())
         if what == 'x':
             tg.session.clear(ctx['chatId'], ctx['from']['id'])
-            self.show(ctx, {'text': f"{'Answer' if d['kind'] == 'approve' else 'Form'} cancelled.", 'keyboard': []})
+            self.show(ctx, {'text': f"{_bot_message('Answer') if d['kind'] == 'approve' else _bot_message('Form')} cancelled.", 'keyboard': []})
             return self.answer(ctx, 'Cancelled.')
         if what == 'pg' and value in ('pic', 'sup', 'mgr'):
             try:
@@ -1066,7 +1063,7 @@ class Bot:
             if value == 'other':
                 tg.session.set(ctx['chatId'], ctx['from']['id'], 'flow', 'buttons', d, {'message_id': d.get('card')})
                 self.answer(ctx)
-                return self.prompt(ctx, 'flow', 'due_date', d, 'send the due date, for example 2026-10-05 or 5/10.', 'YYYY-MM-DD or day/month')
+                return self.prompt(ctx, 'flow', 'due_date', d, _bot_message('send the due date, for example 2026-10-05 or 5/10.'), _bot_message('YYYY-MM-DD or day/month'))
             d['due_date'] = None if value == '-' else dm.add_days(dm.task_today(), int(value))
             d['sub'] = None
         elif what == 'sup':
@@ -1082,10 +1079,10 @@ class Bot:
             tg.session.set(ctx['chatId'], ctx['from']['id'], 'flow', 'buttons', d, {'message_id': d.get('card')})
             self.answer(ctx)
             if value == 'description':
-                question = ('send the expectation: the result you expect, and how you’ll know it is done (up to a few paragraphs).' if d['kind'] == 'request'
-                            else 'send the details (up to a few paragraphs).')
-                return self.prompt(ctx, 'flow', value, d, question, 'Expectation' if d['kind'] == 'request' else 'Details')
-            return self.prompt(ctx, 'flow', value, d, 'send the department note — which department or team this is for and anything they should know.', 'Department note')
+                question = (_bot_message('send the expectation: the result you expect, and how you’ll know it is done (up to a few paragraphs).') if d['kind'] == 'request'
+                            else _bot_message('send the details (up to a few paragraphs).'))
+                return self.prompt(ctx, 'flow', value, d, question, _bot_message('Expectation') if d['kind'] == 'request' else _bot_message('Details'))
+            return self.prompt(ctx, 'flow', value, d, _bot_message('send the department note — which department or team this is for and anything they should know.'), _bot_message('Department note'))
         elif what == 'ok':
             return self.finish_flow(ctx, d)
         tg.session.set(ctx['chatId'], ctx['from']['id'], 'flow', 'buttons', d, {'message_id': d.get('card')})
@@ -1095,7 +1092,7 @@ class Bot:
     def finish_flow(self, ctx, d):
         if d['kind'] in ('newtask', 'request') and not str(d.get('description') or '').strip():
             self.answer(ctx)
-            return self.prompt(ctx, 'flow', 'description', d, 'send the expected result before creating this task.', 'Expectation (required)')
+            return self.prompt(ctx, 'flow', 'description', d, _bot_message('send the expected result before creating this task.'), 'Expectation (required)')
         if d['kind'] == 'newtask':
             today = dm.task_today()
             start = today if today <= d['due_date'] else d['due_date']
@@ -1131,16 +1128,16 @@ class Bot:
         if s['flow'] == 'flow':
             if s['step'] == 'title':
                 if not value:
-                    return self.prompt(ctx, 'flow', 'title', d, 'please send a title.', 'Title')
+                    return self.prompt(ctx, 'flow', 'title', d, _bot_message('please send a title.'), _bot_message('Title'))
                 d['title'] = clip(value, 300)
                 ctx['editId'] = None
                 return self.start_flow(ctx, d['kind'], d)
             if s['step'] == 'due_date':
                 day = parse_day(value) if value else None
                 if not day:
-                    return self.prompt(ctx, 'flow', 'due_date', d, 'I could not read that date. Send it like 2026-10-05 or 5/10.', 'YYYY-MM-DD')
+                    return self.prompt(ctx, 'flow', 'due_date', d, _bot_message('I could not read that date. Send it like 2026-10-05 or 5/10.'), 'YYYY-MM-DD')
                 if day < dm.task_today():
-                    return self.prompt(ctx, 'flow', 'due_date', d, 'that date has passed. Send a date from today onward.', 'YYYY-MM-DD')
+                    return self.prompt(ctx, 'flow', 'due_date', d, _bot_message('that date has passed. Send a date from today onward.'), 'YYYY-MM-DD')
                 d['due_date'], d['sub'] = day, None
             if s['step'] == 'description':
                 d['description'] = js_slice(value, 8000) if value else ''
@@ -1152,15 +1149,15 @@ class Bot:
         if s['flow'] == 'attach':
             if value is None:
                 tg.session.clear(ctx['chatId'], ctx['from']['id'])
-                return self.say(ctx, 'OK, no file was attached.')
-            return self.prompt(ctx, 'attach', 'file', d, 'send the photo or document itself (as a file or photo), or send /cancel.', 'Photo or document')
+                return self.say(ctx, _bot_message('OK, no file was attached.'))
+            return self.prompt(ctx, 'attach', 'file', d, _bot_message('send the photo or document itself (as a file or photo), or send /cancel.'), _bot_message('Photo or document'))
         tg.session.clear(ctx['chatId'], ctx['from']['id'])
         if s['flow'] == 'check':
             t = self.load_task(d.get('id'))
             if not self.can_see(ctx, t):
-                return self.say(ctx, 'That task is no longer available.')
+                return self.say(ctx, _bot_message('That task is no longer available.'))
             if not value:
-                return self.prompt(ctx, 'check', 'x', d, 'send the step, for example “Photograph the seal”.', 'Step')
+                return self.prompt(ctx, 'check', 'x', d, _bot_message('send the step, for example “Photograph the seal”.'), _bot_message('Step'))
             r = self.perform(ctx, 'tm.check.add', {'task_id': t['id'], 'title': clip(value, 300)})
             fresh = self.load_task(t['id'])
             ctx['editId'] = d.get('card')
@@ -1168,38 +1165,38 @@ class Bot:
         if s['flow'] == 'task':
             t = self.load_task(d.get('id'))
             if not self.can_see(ctx, t):
-                return self.say(ctx, 'That task is no longer available.')
+                return self.say(ctx, _bot_message('That task is no longer available.'))
             if d['verb'] == 'progress':
                 n = js_int(value)
                 if n is None or n < 0 or n > 99:
-                    return self.prompt(ctx, 'task', 'x', d, 'send a whole number from 0 to 99. (Use Close or Submit when the work is finished.)', '0–99')
+                    return self.prompt(ctx, 'task', 'x', d, _bot_message('send a whole number from 0 to 99. (Use Close or Submit when the work is finished.)'), '0–99')
                 r = self.perform(ctx, 'tm.task.progress', {'id': t['id'], 'progress': n})
             elif d['verb'] == 'due':
                 if not d.get('date'):
                     day = parse_day(value) if value else None
                     if not day:
-                        return self.prompt(ctx, 'task', 'x', d, 'I could not read that date. Send it like 2026-10-05 or 5/10.', 'YYYY-MM-DD')
+                        return self.prompt(ctx, 'task', 'x', d, _bot_message('I could not read that date. Send it like 2026-10-05 or 5/10.'), 'YYYY-MM-DD')
                     d['date'] = day
-                    return self.prompt(ctx, 'task', 'x', d, f'why do you need {fmt_day(day)}? The person who approves it will see this reason.', 'Reason')
+                    return self.prompt(ctx, 'task', 'x', d, _bot_message('why do you need {p0}? The person who approves it will see this reason.', p0=fmt_day(day)), _bot_message('Reason'))
                 if not value:
-                    return self.prompt(ctx, 'task', 'x', d, 'please give a short reason.', 'Reason')
+                    return self.prompt(ctx, 'task', 'x', d, _bot_message('please give a short reason.'), _bot_message('Reason'))
                 r = self.perform(ctx, 'tm.due.request', {'task_id': t['id'], 'proposed_due_date': d['date'], 'reason': value})
             else:
                 if d['verb'] in ('decline', 'stuck', 'return', 'note', 'cancel') and not value:
-                    return self.prompt(ctx, 'task', 'x', d, 'this needs a short note. Please reply with it.', 'Note')
+                    return self.prompt(ctx, 'task', 'x', d, _bot_message('this needs a short note. Please reply with it.'), _bot_message('Note'))
                 r = self.perform(ctx, 'tm.task.' + d['verb'], {'id': t['id'], 'note': value or ''})
             fresh = self.load_task(t['id'])
             ctx['editId'] = d.get('card')
             return self.show(ctx, self.task_view(ctx, fresh, self.outcome(r)) if fresh else {'text': self.outcome(r)})
         if s['flow'] == 'request':
             if not value:
-                return self.prompt(ctx, 'request', 'x', d, 'please reply with a short reason.', 'Reason')
+                return self.prompt(ctx, 'request', 'x', d, _bot_message('please reply with a short reason.'), _bot_message('Reason'))
             r = self.perform(ctx, 'tm.request.decide', {'id': d['id'], 'decision': 'DECLINE', 'note': value})
             ctx['editId'] = d.get('card')
             return self.show(ctx, self.request_view(ctx, row(TaskRequest.objects.get(id=d['id'])), self.outcome(r)))
         if s['flow'] == 'change':
             if not value:
-                return self.prompt(ctx, 'change', 'x', d, 'please reply with a short reason.', 'Reason')
+                return self.prompt(ctx, 'change', 'x', d, _bot_message('please reply with a short reason.'), _bot_message('Reason'))
             r = self.perform(ctx, 'tm.change.decide', {'id': d['id'], 'decision': 'REJECT', 'note': value})
             task_id = TaskChangeRequest.objects.filter(id=d['id']).values_list('task_id', flat=True).first()
             t = self.load_task(task_id) if task_id else None
@@ -1207,7 +1204,7 @@ class Bot:
             return self.show(ctx, self.task_view(ctx, t, self.outcome(r)) if t else {'text': self.outcome(r)})
         if s['flow'] == 'due':
             if not value:
-                return self.prompt(ctx, 'due', 'x', d, 'please reply with a short reason.', 'Reason')
+                return self.prompt(ctx, 'due', 'x', d, _bot_message('please reply with a short reason.'), _bot_message('Reason'))
             r = self.perform(ctx, 'tm.due.decide', {'id': d['id'], 'decision': 'DECLINE', 'note': value})
             ctx['editId'] = d.get('card')
             return self.show(ctx, self.due_view(ctx, row(DueDateRequest.objects.get(id=d['id'])), self.outcome(r)))
@@ -1223,13 +1220,13 @@ class Bot:
             task_id = found.group(1) if found else None
         if not task_id:
             if ctx['isPrivate'] and ctx.get('link'):
-                self.say(ctx, 'To add this to a task, open the task, tap 📎 Files → Attach a file, and send it again. You can also reply to a task’s message with the file.')
+                self.say(ctx, _bot_message('To add this to a task, open the task, tap 📎 Files → Attach a file, and send it again. You can also reply to a task’s message with the file.'))
             return
         if not self.need_user(ctx):
             return
         t = self.load_task(task_id)
         if not self.can_see(ctx, t):
-            return self.say(ctx, 'That task is not available to you.')
+            return self.say(ctx, _bot_message('That task is not available to you.'))
         if m.get('document'):
             file_id, name, size = m['document']['file_id'], m['document'].get('file_name') or 'document', m['document'].get('file_size') or 0
         else:
@@ -1238,9 +1235,9 @@ class Bot:
             best = fitting[-1] if fitting else sizes[0]
             file_id, size = best['file_id'], best.get('file_size') or 0
             name = f"photo-{re.sub(r'[-:T]', '', datetime.now(dt_timezone.utc).strftime('%Y-%m-%dT%H:%M'))}.jpg"
-        too_big = '⚠️ That file is larger than 30 MB. Send a smaller file, or add it in the Task Controlling Management.'
+        too_big = _bot_message('⚠️ That file is larger than 30 MB. Send a smaller file, or add it in the Task Controlling Management.')
         if size > 20 * 1024 * 1024 and self.api_base == 'https://api.telegram.org':
-            return self.say(ctx, 'Files over 20 MB must be uploaded from the Telegram Mini App or web system (up to 30 MB per file).')
+            return self.say(ctx, _bot_message('Files over 20 MB must be uploaded from the Telegram Mini App or web system (up to 30 MB per file).'))
         if size > MAX_FILE:
             return self.say(ctx, too_big)
         try:
@@ -1251,8 +1248,8 @@ class Bot:
         except TelegramError as e:
             if e.too_large:
                 return self.say(ctx, too_big)
-            tg.log('warn', ctx['chatId'], f'File download: {e}')
-            return self.say(ctx, '⚠️ I could not get that file from Telegram. Please try again.')
+            tg.log('warn', ctx['chatId'], _bot_message('File download: {p0}', p0=e))
+            return self.say(ctx, _bot_message('⚠️ I could not get that file from Telegram. Please try again.'))
         r = self.perform(ctx, 'tm.file.add', {'task_id': t['id'], 'name': name, 'base64': base64.b64encode(content).decode()})
         if session and session['flow'] == 'attach':
             tg.session.clear(ctx['chatId'], m['from']['id'])
@@ -1266,9 +1263,9 @@ class Bot:
             return
         t = self.load_task(key)
         if not t:
-            return self.answer(ctx, 'This task no longer exists.', True)
+            return self.answer(ctx, _bot_message('This task no longer exists.'), True)
         if not self.can_see(ctx, t):
-            return self.answer(ctx, 'This task belongs to another workspace.', True)
+            return self.answer(ctx, _bot_message('This task belongs to another workspace.'), True)
         card = ctx['callbackMessage']['message_id']
 
         def act(action, data):
@@ -1286,7 +1283,7 @@ class Bot:
         if verb == 'p':
             n = js_int(extra)
             if n is None or n < 0 or n > 99:
-                return self.answer(ctx, 'Choose a value from the list.')
+                return self.answer(ctx, _bot_message('Choose a value from the list.'))
             return act('tm.task.progress', {'id': key, 'progress': n})
         if verb == 'ck':
             self.show(ctx, self.checklist_view(ctx, t))
@@ -1295,28 +1292,28 @@ class Bot:
             self.show(ctx, self.files_view(ctx, t))
             return self.answer(ctx)
         if verb == 'prg':
-            k = [[button(f'{n}%', f't:p:{key}:{n}') for n in (10, 25, 50)], [*(button(f'{n}%', f't:p:{key}:{n}') for n in (75, 90)), button('Other…', f't:po:{key}')],
-                 [button('↩ Back', f't:v:{key}')]]
-            self.show(ctx, {'text': self.task_view(ctx, t)['text'] + '\n\n📈 <b>How far along is it?</b>', 'keyboard': k})
+            k = [[button(f'{n}%', f't:p:{key}:{n}') for n in (10, 25, 50)], [*(button(f'{n}%', f't:p:{key}:{n}') for n in (75, 90)), button(_bot_message('Other…'), f't:po:{key}')],
+                 [button(_bot_message('↩ Back'), f't:v:{key}')]]
+            self.show(ctx, {'text': self.task_view(ctx, t)['text'] + _bot_message('\n\n📈 <b>How far along is it?</b>'), 'keyboard': k})
             return self.answer(ctx)
         if verb == 'po':
             self.answer(ctx)
-            return self.prompt(ctx, 'task', 'x', {'verb': 'progress', 'id': key, 'card': card}, 'send the progress as a number from 0 to 99.', '0–99')
+            return self.prompt(ctx, 'task', 'x', {'verb': 'progress', 'id': key, 'card': card}, _bot_message('send the progress as a number from 0 to 99.'), '0–99')
         actions = self.actions_for(ctx, t)
         allowed, roles = actions['allowed'], actions['roles']
 
         def blocked(v):
             b = dm.task_block(v, t, roles)
-            return (b or {}).get('message') or 'This action is not available.'
+            return (b or {}).get('message') or _bot_message('This action is not available.')
         if verb == 'cls':
             if 'close' not in allowed:
                 return self.answer(ctx, blocked('close'), True)
             other = dm.approval_target(t, ctx['staff'])
             asking = other and t['status'] != 'IN_REVIEW'
-            question = (f"✔️ <b>Ask {esc(self.name_of(other))} to approve completing this task?</b> It stays open until they approve." if asking
-                        else '✔️ <b>Approve completing this task?</b>' if (t['change_request'] or {}).get('kind') == 'COMPLETE' else '✔️ <b>Close this task as completed?</b>')
+            question = (_bot_message('✔️ <b>Ask {p0} to approve completing this task?</b> It stays open until they approve.', p0=esc(self.name_of(other))) if asking
+                        else _bot_message('✔️ <b>Approve completing this task?</b>') if (t['change_request'] or {}).get('kind') == 'COMPLETE' else _bot_message('✔️ <b>Close this task as completed?</b>'))
             self.show(ctx, {'text': self.task_view(ctx, t)['text'] + '\n\n' + question,
-                            'keyboard': [[button('✔️ Yes, ask' if asking else '✔️ Yes, complete it', f't:cls!:{key}'), button('↩ Back', f't:v:{key}')]]})
+                            'keyboard': [[button(_bot_message('✔️ Yes, ask') if asking else _bot_message('✔️ Yes, complete it'), f't:cls!:{key}'), button(_bot_message('↩ Back'), f't:v:{key}')]]})
             return self.answer(ctx)
         if verb in ('ho', 'hop', 'hp', 'hx'):
             if 'handover' not in allowed:
@@ -1327,25 +1324,25 @@ class Bot:
                 return self.show(ctx, self.task_view(ctx, self.load_task(key) or t, self.outcome(r)))
             if verb == 'hp':
                 if not any(p['staff_id'] == extra for p in self.people()):
-                    return self.answer(ctx, 'Choose someone from the list.')
-                self.show(ctx, {'text': f"{self.task_view(ctx, t)['text']}\n\n🔁 <b>Hand this task over to {esc(self.name_of(extra))}?</b> They are asked to accept it.",
-                                'keyboard': [[button('🔁 Hand over', f't:hx:{key}:{extra}:0')], [button('🤝 Hand over, and keep me as supporting', f't:hx:{key}:{extra}:1')],
-                                             [button('↩ Back', f't:ho:{key}')]]})
+                    return self.answer(ctx, _bot_message('Choose someone from the list.'))
+                self.show(ctx, {'text': _bot_message('{p0}\n\n🔁 <b>Hand this task over to {p1}?</b> They are asked to accept it.', p0=self.task_view(ctx, t)['text'], p1=esc(self.name_of(extra))),
+                                'keyboard': [[button(_bot_message('🔁 Hand over'), f't:hx:{key}:{extra}:0')], [button(_bot_message('🤝 Hand over, and keep me as supporting'), f't:hx:{key}:{extra}:1')],
+                                             [button(_bot_message('↩ Back'), f't:ho:{key}')]]})
                 return self.answer(ctx)
             listed, _ = self.people_rows(ctx, f't:hp:{key}:', extra if verb == 'hop' else 0, exclude=[t['pic_id']], data=f't:hop:{key}:')
-            listed.append([button('↩ Back', f't:v:{key}')])
-            self.show(ctx, {'text': f"{self.task_view(ctx, t)['text']}\n\n🔁 <b>Who should take charge?</b>", 'keyboard': listed})
+            listed.append([button(_bot_message('↩ Back'), f't:v:{key}')])
+            self.show(ctx, {'text': _bot_message('{p0}\n\n🔁 <b>Who should take charge?</b>', p0=self.task_view(ctx, t)['text']), 'keyboard': listed})
             return self.answer(ctx)
         action = {'dec': 'decline', 'stk': 'stuck', 'ret': 'return', 'note': 'note', 'sub': 'submit', 'due': 'due', 'can': 'cancel'}.get(verb)
         if not action:
-            return self.answer(ctx, 'This button is no longer available.')
+            return self.answer(ctx, _bot_message('This button is no longer available.'))
         if action not in allowed:
             return self.answer(ctx, blocked(action), True)
         self.answer(ctx)
         if action == 'due':
             return self.prompt(ctx, 'task', 'x', {'verb': 'due', 'id': key, 'card': card},
-                               f"what due date do you need instead of {fmt_day(t['due_date'])}? For example 2026-10-05 or 5/10.", 'YYYY-MM-DD or day/month')
-        question, placeholder = QUESTIONS[action]
+                               _bot_message('what due date do you need instead of {p0}? For example 2026-10-05 or 5/10.', p0=fmt_day(t['due_date'])), _bot_message('YYYY-MM-DD or day/month'))
+        question, placeholder = render(QUESTIONS[action])
         return self.prompt(ctx, 'task', 'x', {'verb': action, 'id': key, 'card': card}, question, placeholder)
 
     def on_check_button(self, ctx, parts):
@@ -1355,16 +1352,16 @@ class Bot:
         if verb == 'add':
             t = self.load_task(key)
             if not self.can_see(ctx, t):
-                return self.answer(ctx, 'This task is not available to you.', True)
+                return self.answer(ctx, _bot_message('This task is not available to you.'), True)
             actions = self.actions_for(ctx, t)
             if 'checklist' not in actions['allowed']:
-                return self.answer(ctx, (dm.task_block('checklist', t, actions['roles']) or {}).get('message') or 'You cannot change this checklist.', True)
+                return self.answer(ctx, (dm.task_block('checklist', t, actions['roles']) or {}).get('message') or _bot_message('You cannot change this checklist.'), True)
             self.answer(ctx)
-            return self.prompt(ctx, 'check', 'x', {'id': key, 'card': ctx['callbackMessage']['message_id']}, 'send the new step.', 'Step')
+            return self.prompt(ctx, 'check', 'x', {'id': key, 'card': ctx['callbackMessage']['message_id']}, _bot_message('send the new step.'), _bot_message('Step'))
         item = row(ChecklistItem.objects.filter(id=key).first()) if isinstance(key, str) else None
         t = self.load_task(item['task_id']) if item else None
         if not item or not self.can_see(ctx, t):
-            return self.answer(ctx, 'This step is no longer available.', True)
+            return self.answer(ctx, _bot_message('This step is no longer available.'), True)
         r = self.perform(ctx, 'tm.check.toggle', {'id': key, 'done': not item['done']})
         self.answer(ctx, r['result'].get('message') if r['ok'] else r['error'], not r['ok'])
         return self.show(ctx, self.checklist_view(ctx, self.load_task(t['id']) or t))
@@ -1376,27 +1373,27 @@ class Bot:
         if verb == 'add':
             t = self.load_task(key)
             if not self.can_see(ctx, t):
-                return self.answer(ctx, 'This task is not available to you.', True)
+                return self.answer(ctx, _bot_message('This task is not available to you.'), True)
             actions = self.actions_for(ctx, t)
             if 'file' not in actions['allowed']:
-                return self.answer(ctx, (dm.task_block('file', t, actions['roles']) or {}).get('message') or 'You cannot add files to this task.', True)
+                return self.answer(ctx, (dm.task_block('file', t, actions['roles']) or {}).get('message') or _bot_message('You cannot add files to this task.'), True)
             self.answer(ctx)
             return self.prompt(ctx, 'attach', 'file', {'id': key, 'card': ctx['callbackMessage']['message_id']},
-                               f"send the photo or document for “{clip(t['title'], 60)}” (up to 30 MB).", 'Photo or document')
+                               _bot_message('send the photo or document for “{p0}” (up to 30 MB).', p0=clip(t['title'], 60)), _bot_message('Photo or document'))
         if verb == 'g':
             if not ctx['isPrivate']:
-                return self.answer(ctx, 'Open the task in a private chat with me to get its files.', True)
+                return self.answer(ctx, _bot_message('Open the task in a private chat with me to get its files.'), True)
             f = TaskFile.objects.filter(id=key).first() if isinstance(key, str) else None
             t = self.load_task(f.task_id) if f else None
             if not f or not self.can_see(ctx, t):
-                return self.answer(ctx, 'This file is no longer available.', True)
+                return self.answer(ctx, _bot_message('This file is no longer available.'), True)
             self.answer(ctx, 'Sending…')
             try:
                 self.transport['upload']('sendDocument', ctx['chatId'], 'document', {'content': bytes(f.content), 'mime': f.mime, 'name': f.name},
                                          {'caption': f"{f.name} · {t['id']}"})
             except TelegramError as e:
-                tg.log('warn', ctx['chatId'], f'Send file: {e}')
-                self.say(ctx, '⚠️ I could not send that file. Please try again, or open it in the Task Controlling Management.')
+                tg.log('warn', ctx['chatId'], _bot_message('Send file: {p0}', p0=e))
+                self.say(ctx, _bot_message('⚠️ I could not send that file. Please try again, or open it in the Task Controlling Management.'))
             return
         return self.answer(ctx)
 
@@ -1406,9 +1403,9 @@ class Bot:
             return
         q = row(TaskRequest.objects.filter(id=key).first()) if isinstance(key, str) else None
         if not q or not self.scope().can_see_request(ctx['staff'], q):
-            return self.answer(ctx, 'This request is not available to you.', True)
+            return self.answer(ctx, _bot_message('This request is not available to you.'), True)
         if ctx['isGroup'] and q['workspace_id'] != ctx['workspace']:
-            return self.answer(ctx, 'Open this request in a private chat with me.', True)
+            return self.answer(ctx, _bot_message('Open this request in a private chat with me.'), True)
         card = ctx['callbackMessage']['message_id']
 
         def fresh():
@@ -1421,19 +1418,19 @@ class Bot:
             self.answer(ctx, r['result'].get('message') if r['ok'] else r['error'], not r['ok'])
             return self.show(ctx, self.request_view(ctx, fresh()))
         if q['manager_id'] != ctx['staff']:
-            return self.answer(ctx, 'Only the person this request was sent to can answer it.', True)
+            return self.answer(ctx, _bot_message('Only the person this request was sent to can answer it.'), True)
         if q['status'] != 'PENDING':
             self.show(ctx, self.request_view(ctx, q))
-            return self.answer(ctx, 'This request has already been answered.', True)
+            return self.answer(ctx, _bot_message('This request has already been answered.'), True)
         if verb == 'no':
             self.answer(ctx)
-            return self.prompt(ctx, 'request', 'x', {'id': key, 'card': card}, 'why are you declining this request? The requester will see this.', 'Reason')
+            return self.prompt(ctx, 'request', 'x', {'id': key, 'card': card}, _bot_message('why are you declining this request? The requester will see this.'), _bot_message('Reason'))
         if verb in ('fw', 'fp'):
             listed, count = self.people_rows(ctx, f'r:to:{key}:', extra if verb == 'fp' else 0, exclude=[ctx['staff'], q['requested_by']], data=f'r:fp:{key}:')
             if not count:
-                return self.answer(ctx, 'There is nobody else to pass it to.', True)
-            listed.append([button('↩ Back', f'r:v:{key}')])
-            self.show(ctx, {'text': self.request_view(ctx, q)['text'] + '\n\n👥 <b>Pass it to whom?</b>', 'keyboard': listed})
+                return self.answer(ctx, _bot_message('There is nobody else to pass it to.'), True)
+            listed.append([button(_bot_message('↩ Back'), f'r:v:{key}')])
+            self.show(ctx, {'text': self.request_view(ctx, q)['text'] + _bot_message('\n\n👥 <b>Pass it to whom?</b>'), 'keyboard': listed})
             return self.answer(ctx)
         if verb == 'to':
             r = self.perform(ctx, 'tm.request.forward', {'id': key, 'manager_id': extra})
@@ -1461,7 +1458,7 @@ class Bot:
         d = row(DueDateRequest.objects.filter(id=key).first()) if isinstance(key, str) else None
         t = self.load_task(d['task_id']) if d else None
         if not d or not self.can_see(ctx, t):
-            return self.answer(ctx, 'This request is not available to you.', True)
+            return self.answer(ctx, _bot_message('This request is not available to you.'), True)
         if verb == 'v':
             self.show(ctx, self.due_view(ctx, d))
             return self.answer(ctx)
@@ -1471,9 +1468,9 @@ class Bot:
             return self.show(ctx, self.due_view(ctx, row(DueDateRequest.objects.get(id=key))))
         if verb == 'no':
             if d['decide_by'] != ctx['staff'] and not ctx['can']('tasks.tasks', 'approve'):
-                return self.answer(ctx, 'Only the task’s reviewer or a task approver can decide this request.', True)
+                return self.answer(ctx, _bot_message('Only the task’s reviewer or a task approver can decide this request.'), True)
             self.answer(ctx)
-            return self.prompt(ctx, 'due', 'x', {'id': key, 'card': ctx['callbackMessage']['message_id']}, 'why are you declining the new date?', 'Reason')
+            return self.prompt(ctx, 'due', 'x', {'id': key, 'card': ctx['callbackMessage']['message_id']}, _bot_message('why are you declining the new date?'), _bot_message('Reason'))
         return self.answer(ctx)
 
     def on_change_button(self, ctx, parts):
@@ -1483,13 +1480,13 @@ class Bot:
         c = row(TaskChangeRequest.objects.filter(id=key).first()) if isinstance(key, str) else None
         t = self.load_task(c['task_id']) if c else None
         if not c or not self.can_see(ctx, t) or (c['approver_id'] != ctx['staff'] and c['requested_by'] != ctx['staff']):
-            return self.answer(ctx, 'This request is not available to you.', True)
+            return self.answer(ctx, _bot_message('This request is not available to you.'), True)
         if ctx['isGroup']:
-            return self.answer(ctx, 'Open the task in a private chat with me to decide changes.', True)
+            return self.answer(ctx, _bot_message('Open the task in a private chat with me to decide changes.'), True)
         card = ctx['callbackMessage']['message_id']
         if c['status'] != 'PENDING':
             self.show(ctx, self.task_view(ctx, t))
-            return self.answer(ctx, 'This request has already been decided.', True)
+            return self.answer(ctx, _bot_message('This request has already been decided.'), True)
         if verb in ('wd', 'ok'):
             r = (self.perform(ctx, 'tm.change.withdraw', {'id': key}) if verb == 'wd'
                  else self.perform(ctx, 'tm.change.decide', {'id': key, 'decision': 'APPROVE'}))
@@ -1497,9 +1494,9 @@ class Bot:
             return self.show(ctx, self.task_view(ctx, self.load_task(c['task_id']) or t, self.outcome(r)))
         if verb == 'no':
             if c['approver_id'] != ctx['staff']:
-                return self.answer(ctx, f"Only {self.name_of(c['approver_id'])} can reject this request.", True)
+                return self.answer(ctx, _bot_message('Only {p0} can reject this request.', p0=self.name_of(c['approver_id'])), True)
             self.answer(ctx)
-            return self.prompt(ctx, 'change', 'x', {'id': key, 'card': card}, 'why are you rejecting this change? The person who asked will see your reason.', 'Reason')
+            return self.prompt(ctx, 'change', 'x', {'id': key, 'card': card}, _bot_message('why are you rejecting this change? The person who asked will see your reason.'), _bot_message('Reason'))
         return self.answer(ctx)
 
     def on_menu_button(self, ctx, parts):
@@ -1512,7 +1509,7 @@ class Bot:
             return self.answer(ctx)
         if what in ('my', 'sup', 'ws', 'ans'):
             if what == 'ws' and not ctx['workspace']:
-                return self.answer(ctx, 'This group is not linked to a workspace.', True)
+                return self.answer(ctx, _bot_message('This group is not linked to a workspace.'), True)
             self.show(ctx, self.list_view(ctx, what, p))
             return self.answer(ctx)
         if what == 'rev':
@@ -1534,11 +1531,11 @@ class Bot:
         if scope_kind not in ('me', 'all', 'ws') or not re.fullmatch(r'\d{4}-\d{2}', month or ''):
             return self.answer(ctx)
         if scope_kind == 'all' and not ctx['can']('tasks.reports'):
-            return self.answer(ctx, 'Your role cannot view company-wide task reports.', True)
+            return self.answer(ctx, _bot_message('Your role cannot view company-wide task reports.'), True)
         if scope_kind == 'ws' and not ctx['workspace']:
-            return self.answer(ctx, 'This group is not linked to a workspace.', True)
+            return self.answer(ctx, _bot_message('This group is not linked to a workspace.'), True)
         if month > current_month():
-            return self.answer(ctx, 'That month has not started yet.')
+            return self.answer(ctx, _bot_message('That month has not started yet.'))
         if category and category not in ('completed', 'in_progress', 'stuck', 'overdue'):
             return self.answer(ctx)
         try:
@@ -1567,25 +1564,24 @@ class Bot:
         if what == 'ws':
             w = tg.link_group(Governance(), ctx['chatId'], key, ctx['staff'])
             if not w:
-                return self.answer(ctx, 'Choose an active workspace.', True)
-            self.show(ctx, {'text': f"✅ This group is now linked to <b>{esc(w['name'])}</b>.\n\nTask updates for this workspace will be posted here. Members who connected "
-                                    'their Telegram to the Task Controlling Management can use /tasks, /mytasks, /newtask and /report.',
-                            'keyboard': [[button('🗂 Open tasks', 'm:ws:0')]]})
-            return self.answer(ctx, 'Group linked.')
+                return self.answer(ctx, _bot_message('Choose an active workspace.'), True)
+            self.show(ctx, {'text': _bot_message('✅ This group is now linked to <b>{p0}</b>.\n\nTask updates for this workspace will be posted here. Members who connected their Telegram to the Task Controlling Management can use /tasks, /mytasks, /newtask and /report.', p0=esc(w['name'])),
+                            'keyboard': [[button(_bot_message('🗂 Open tasks'), 'm:ws:0')]]})
+            return self.answer(ctx, _bot_message('Group linked.'))
         if what == 'off':
             tg.unlink_group(ctx['chatId'], ctx['staff'])
-            self.show(ctx, {'text': 'This group is no longer linked to a workspace.', 'keyboard': []})
-            return self.answer(ctx, 'Group unlinked.')
+            self.show(ctx, {'text': _bot_message('This group is no longer linked to a workspace.'), 'keyboard': []})
+            return self.answer(ctx, _bot_message('Group unlinked.'))
         return self.answer(ctx)
 
     # ------------------------------------------------------------ commands
     def link(self, ctx, code):
         if not ctx['isPrivate']:
-            return self.say(ctx, 'For your security, connect your account in a private chat with me, not in a group.')
+            return self.say(ctx, _bot_message('For your security, connect your account in a private chat with me, not in a group.'))
         key, f = str(ctx['from']['id']), self.link_failures.get(str(ctx['from']['id']))
         now = time.monotonic()
         if f and f['count'] >= 5 and now - f['at'] < 900:
-            return self.say(ctx, 'Too many incorrect codes. Please wait 15 minutes and try again with the link from the Task Controlling Management.')
+            return self.say(ctx, _bot_message('Too many incorrect codes. Please wait 15 minutes and try again with the link from the Task Controlling Management.'))
         r = tg.redeem(code, ctx['from'], ctx['chatId'])
         if r.get('error'):
             self.link_failures[key] = {'count': (f['count'] if f and now - f['at'] < 900 else 0) + 1, 'at': now}
@@ -1593,30 +1589,27 @@ class Bot:
         self.link_failures.pop(key, None)
         fresh = self.context(ctx['chat'], ctx['from'])
         if not fresh['user']:
-            return self.say(ctx, '✅ Connected. Your Task Controlling Management role does not include Task Management yet, so ask an administrator for access.')
-        return self.send(fresh, self.menu_view(fresh, f"✅ <b>Connected!</b> This Telegram account now works as <b>{esc(r['name'])}</b> in the Task Controlling Management."))
+            return self.say(ctx, _bot_message('✅ Connected. Your Task Controlling Management role does not include Task Management yet, so ask an administrator for access.'))
+        return self.send(fresh, self.menu_view(fresh, _bot_message('✅ <b>Connected!</b> This Telegram account now works as <b>{p0}</b> in the Task Controlling Management.', p0=esc(r['name']))))
 
     def help_text(self, ctx):
         if ctx['isGroup']:
-            return ('<b>Task Management in this group</b>\n\n'
-                    + '\n'.join(f'/{c} – {d}' for c, d in GROUP_COMMANDS)
-                    + '\n\nOpen the bot in a private chat or use the Mini App to view and update Tasks, reports and attachments. '
-                    'Task information follows each employee’s permissions.')
-        return ('<b>What I can do</b>\n\n' + '\n'.join(f'/{c} – {d}' for c, d in PRIVATE_COMMANDS) + '\n\nTap the buttons under a task to accept or reject it, update '
-                'progress, tick its checklist, mark it stuck, submit it for review, close or cancel it, or hand it over. To attach a photo or document, reply to a '
-                'task’s message with it. Everything you do here is saved in the Task Controlling Management straight away.')
+            return (_bot_message('<b>Task Management in this group</b>\n\n')
+                    + '\n'.join(f'/{c} – {render(d)}' for c, d in GROUP_COMMANDS)
+                    + _bot_message('\n\nOpen the bot in a private chat or use the Mini App to view and update Tasks, reports and attachments. Task information follows each employee’s permissions.'))
+        return (_bot_message('<b>What I can do</b>\n\n') + '\n'.join(f'/{c} – {render(d)}' for c, d in PRIVATE_COMMANDS) + _bot_message('\n\nTap the buttons under a task to accept or reject it, update progress, tick its checklist, mark it stuck, submit it for review, close or cancel it, or hand it over. To attach a photo or document, reply to a task’s message with it. Everything you do here is saved in the Task Controlling Management straight away.'))
 
     def on_command(self, ctx, cmd, args):
         if cmd == 'start':
             if args.startswith('link_'):
                 return self.link(ctx, args[5:])
             if not ctx.get('link') and ctx['isPrivate']:
-                return self.say(ctx, f"👋 <b>Welcome!</b> I help your team manage Task Controlling Management tasks from Telegram.\n\n{link_help(self.app_url())}", self.sign_in())
+                return self.say(ctx, _bot_message('👋 <b>Welcome!</b> I help your team manage Task Controlling Management tasks from Telegram.\n\n{p0}', p0=link_help(self.app_url())), self.sign_in())
             if args.startswith('task_'):
                 if not self.need_user(ctx):
                     return
                 t = self.load_task(args[5:])
-                return self.send(ctx, self.task_view(ctx, t)) if self.can_see(ctx, t) else self.say(ctx, 'That task was not found, or you cannot view it.')
+                return self.send(ctx, self.task_view(ctx, t)) if self.can_see(ctx, t) else self.say(ctx, _bot_message('That task was not found, or you cannot view it.'))
             if ctx['isGroup']:
                 return self.say(ctx, self.help_text(ctx))
             if not self.need_user(ctx):
@@ -1624,33 +1617,33 @@ class Bot:
             return self.send(ctx, self.menu_view(ctx))
         if cmd == 'link':
             if not args:
-                return self.say(ctx, 'Send /link followed by the code from the Task Controlling Management, for example <code>/link ABCD2345</code>.')
+                return self.say(ctx, _bot_message('Send /link followed by the code from the Task Controlling Management, for example <code>/link ABCD2345</code>.'))
             return self.link(ctx, args)
         if cmd == 'help':
             return self.say(ctx, self.help_text(ctx))
         if cmd == 'unlink':
             if not ctx['isPrivate']:
-                return self.say(ctx, 'Send /unlink in a private chat with me.')
+                return self.say(ctx, _bot_message('Send /unlink in a private chat with me.'))
             if not ctx.get('link'):
-                return self.say(ctx, 'This Telegram account is not connected to the Task Controlling Management.')
-            return self.say(ctx, 'Disconnect this Telegram account from the Task Controlling Management? You will stop receiving task messages here.',
-                            [[button('Disconnect', 'u:yes'), button('Keep connected', 'u:no')]])
+                return self.say(ctx, _bot_message('This Telegram account is not connected to the Task Controlling Management.'))
+            return self.say(ctx, _bot_message('Disconnect this Telegram account from the Task Controlling Management? You will stop receiving task messages here.'),
+                            [[button(_bot_message('Disconnect'), 'u:yes'), button(_bot_message('Keep connected'), 'u:no')]])
         if cmd in ('connect', 'disconnect'):
             if not ctx['isGroup']:
-                return self.say(ctx, 'Use this command in a group chat after adding me to it.')
+                return self.say(ctx, _bot_message('Use this command in a group chat after adding me to it.'))
             if not self.need_user(ctx):
                 return
             listed = self.linkable_workspaces(ctx)
             if cmd == 'disconnect':
                 if not ctx['workspace']:
-                    return self.say(ctx, 'This group is not linked to a workspace.')
+                    return self.say(ctx, _bot_message('This group is not linked to a workspace.'))
                 if not (ctx['can']('admin.telegram', 'update') or any(w['id'] == ctx['workspace'] for w in listed)):
                     return self.say(ctx, NOT_ALLOWED)
-                return self.say(ctx, 'Unlink this group from its workspace?', [[button('Unlink', 'g:off:-'), button('Keep', 'x:')]])
+                return self.say(ctx, _bot_message('Unlink this group from its workspace?'), [[button(_bot_message('Unlink'), 'g:off:-'), button(_bot_message('Keep'), 'x:')]])
             if not listed:
-                return self.say(ctx, 'Only Task Controlling Management administrators or the workspace owner can link this group, and you do not own an active workspace.'
+                return self.say(ctx, _bot_message('Only Task Controlling Management administrators or the workspace owner can link this group, and you do not own an active workspace.')
                                 if ctx['can']('tasks.workspace', 'update') else NOT_ALLOWED)
-            return self.say(ctx, 'Which workspace should this group follow?', chunk([button(clip(w['name'], 30), f"g:ws:{w['id']}") for w in listed[:20]], 2))
+            return self.say(ctx, _bot_message('Which workspace should this group follow?'), chunk([button(clip(w['name'], 30), f"g:ws:{w['id']}") for w in listed[:20]], 2))
         if not self.need_user(ctx):
             return
         if cmd == 'menu':
@@ -1670,17 +1663,17 @@ class Bot:
         if cmd == 'review':
             return self.send(ctx, self.review_view(ctx) if ctx['isPrivate'] else self.list_view(ctx, 'rev'))
         if cmd == 'requests':
-            return self.send(ctx, self.my_requests_view(ctx)) if ctx['isPrivate'] else self.say(ctx, 'Open your requests in a private chat with me: /requests')
+            return self.send(ctx, self.my_requests_view(ctx)) if ctx['isPrivate'] else self.say(ctx, _bot_message('Open your requests in a private chat with me: /requests'))
         if cmd in ('newtask', 'request'):
             return self.start_flow(ctx, cmd, {'title': clip(args, 300)} if args else {})
         if cmd == 'task':
             t = self.load_task(args.upper())
             return (self.send(ctx, self.task_view(ctx, t)) if self.can_see(ctx, t) else
-                    self.say(ctx, 'Send /task followed by a task ID, for example <code>/task TASK-000012</code>. The task must be one you can view.'))
+                    self.say(ctx, _bot_message('Send /task followed by a task ID, for example <code>/task TASK-000012</code>. The task must be one you can view.')))
         if cmd == 'report':
             month = args if re.fullmatch(r'\d{4}-\d{2}', args) else current_month()
             if month > current_month():
-                return self.say(ctx, 'That month has not started yet.')
+                return self.say(ctx, _bot_message('That month has not started yet.'))
             try:
                 return self.send(ctx, self.report_view(ctx, ('ws' if ctx['workspace'] else 'me') if ctx['isGroup'] else 'me', month))
             except InputError as e:
@@ -1688,13 +1681,19 @@ class Bot:
         if cmd == 'app':
             app = self.app_url()
             if not ctx['isPrivate'] or not app:
-                return self.say(ctx, 'Open the task app from a private chat with me.' if app else 'The task app has not been set up yet. Ask an administrator.')
-            return self.say(ctx, 'Open the task app:', [[{'text': '📱 Open the task app', 'web_app': {'url': app}}]])
+                return self.say(ctx, _bot_message('Open the task app from a private chat with me.') if app else _bot_message('The task app has not been set up yet. Ask an administrator.'))
+            return self.say(ctx, _bot_message('Open the task app:'), [[{'text': _bot_message('📱 Open the task app'), 'web_app': {'url': app}}]])
         if ctx['isPrivate']:
-            return self.say(ctx, 'I did not recognise that command. Send /help to see what I can do.')
+            return self.say(ctx, _bot_message('I did not recognise that command. Send /help to see what I can do.'))
 
     # ------------------------------------------------------------ updates
     def handle_update(self, u):
+        event = u.get('callback_query') or u.get('message') or u.get('my_chat_member') or {}
+        link = tg.link_for((event.get('from') or {}).get('id'))
+        with language(staff_language(link['staff_id']) if link else 'en'):
+            return self._handle_update(u)
+
+    def _handle_update(self, u):
         if u.get('my_chat_member'):
             m = u['my_chat_member']
             status = (m.get('new_chat_member') or {}).get('status')
@@ -1704,10 +1703,10 @@ class Bot:
             g = tg.seen_group(m['chat'], present)
             if present and (m.get('old_chat_member') or {}).get('status') not in ('member', 'administrator', 'creator'):
                 try:
-                    self.send(m['chat']['id'], {'text': '👋 Hello! I connect this group to the Task Controlling Management’s Task Management.\n\n'
-                                                        + ('This group is already linked to a workspace.' if g.get('workspace_id') else
-                                                           'An Task Controlling Management administrator can link this group to a workspace with /connect.')
-                                                        + '\nEveryone who wants to use the buttons should first connect their Telegram in a private chat with me (send me /start).'})
+                    self.send(m['chat']['id'], {'text': _bot_message('👋 Hello! I connect this group to the Task Controlling Management’s Task Management.\n\n')
+                                                        + (_bot_message('This group is already linked to a workspace.') if g.get('workspace_id') else
+                                                           _bot_message('An Task Controlling Management administrator can link this group to a workspace with /connect.'))
+                                                        + _bot_message('\nEveryone who wants to use the buttons should first connect their Telegram in a private chat with me (send me /start).')})
                 except TelegramError:
                     pass
             return
@@ -1716,14 +1715,14 @@ class Bot:
             msg = q.get('message')
             if not (msg or {}).get('chat'):
                 try:
-                    return self.call('answerCallbackQuery', {'callback_query_id': q['id'], 'text': 'This message is too old. Send /menu to start again.'})
+                    return self.call('answerCallbackQuery', {'callback_query_id': q['id'], 'text': _bot_message('This message is too old. Send /menu to start again.')})
                 except TelegramError:
                     return None
             ctx = self.context(msg['chat'], q['from'], callbackId=q['id'], messageId=msg['message_id'], callbackMessage=msg,
                                threadId=msg.get('message_thread_id') if msg.get('is_topic_message') else None)
             kind, *parts = str(q.get('data') or '').split(':')
             if ctx['isGroup'] and kind not in ('g', 'u', 'x'):
-                return self.answer(ctx, 'For Task privacy, open a private chat with me or use the Mini App.', True)
+                return self.answer(ctx, _bot_message('For Task privacy, open a private chat with me or use the Mini App.'), True)
             try:
                 handlers = {'t': self.on_task_button, 'k': self.on_check_button, 'a': self.on_file_button, 'r': self.on_request_button, 'd': self.on_due_button,
                             'c': self.on_change_button, 'm': self.on_menu_button, 'f': self.on_flow_button, 'rep': self.on_report_button, 'g': self.on_group_button}
@@ -1736,9 +1735,9 @@ class Bot:
                             command(access.account_for(ctx['link']['staff_id']) or _NoUser(ctx['link']['staff_id']), 'tg.link.unlink', {}, 'TELEGRAM')
                         except Exception:   # noqa: BLE001
                             TelegramLink.objects.filter(tg_user_id=ctx['from']['id']).delete()
-                        self.show(ctx, {'text': 'Disconnected. Send /start whenever you want to connect again.', 'keyboard': []})
+                        self.show(ctx, {'text': _bot_message('Disconnected. Send /start whenever you want to connect again.'), 'keyboard': []})
                     else:
-                        self.show(ctx, {'text': 'Still connected.' if ctx.get('link') else 'This Telegram account is not connected.', 'keyboard': []})
+                        self.show(ctx, {'text': _bot_message('Still connected.') if ctx.get('link') else _bot_message('This Telegram account is not connected.'), 'keyboard': []})
                 elif kind == 'x' and parts[:1] != ['page']:
                     self.show(ctx, {'text': 'OK.', 'keyboard': []})
             finally:
@@ -1756,7 +1755,7 @@ class Bot:
             group_command = parse_command(text_value, (self.me or {}).get('username')) if text_value.startswith('/') else None
             if not group_command or group_command.get('cmd') not in ('connect', 'disconnect', 'help', 'start') or (group_command.get('args') or '').startswith('task_'):
                 if group_command and not group_command.get('other'):
-                    return self.say(ctx, 'For Task privacy, open a private chat with me or use the Mini App.')
+                    return self.say(ctx, _bot_message('For Task privacy, open a private chat with me or use the Mini App.'))
                 return
         if m.get('document') or (isinstance(m.get('photo'), list) and m['photo']):
             return self.on_media(ctx, m)
@@ -1777,7 +1776,7 @@ class Bot:
             if session and command['cmd'] not in ('skip', 'cancel'):
                 tg.session.clear(ctx['chatId'], m['from']['id'])
             if command['cmd'] in ('cancel', 'skip'):
-                return self.say(ctx, 'There is nothing to cancel.') if ctx['isPrivate'] else None
+                return self.say(ctx, _bot_message('There is nothing to cancel.')) if ctx['isPrivate'] else None
             return self.on_command(ctx, command['cmd'], command['args'])
         if ctx['isPrivate']:
             if not ctx.get('link') and re.fullmatch(r'[A-Za-z0-9]{4}[- ]?[A-Za-z0-9]{4}', text.strip()):
@@ -1786,7 +1785,7 @@ class Bot:
                 return self.say(ctx, link_help(self.app_url()), self.sign_in())
             if not self.need_user(ctx):
                 return
-            return self.send(ctx, self.menu_view(ctx, 'Use the buttons below, or send /help to see all commands.'))
+            return self.send(ctx, self.menu_view(ctx, _bot_message('Use the buttons below, or send /help to see all commands.')))
 
     # ------------------------------------------------------------ notifications to Telegram
     @staticmethod
@@ -1796,72 +1795,77 @@ class Bot:
 
     def ineligible(self, n):
         if n['kind'] == 'telegram_connected':
-            return 'Shown in the Task Controlling Management only'
+            return _bot_message('Shown in the Task Controlling Management only')
         if datetime.fromisoformat(n['created_at'].replace('Z', '+00:00')).timestamp() <= time.time() - NOTIFY_MAX_AGE:
-            return 'Older than 6 hours when Telegram was ready'
+            return _bot_message('Older than 6 hours when Telegram was ready')
         link = tg.link_for_staff(n['staff_id'])
         if not link:
-            return 'Telegram is not connected'
+            return _bot_message('Telegram is not connected')
         if not link['notify']:
-            return 'Telegram notifications are turned off'
+            return _bot_message('Telegram notifications are turned off')
         if not link['chat_id']:
-            return 'The bot cannot message this person (blocked or never started)'
+            return _bot_message('The bot cannot message this person (blocked or never started)')
         user = access.account_for(n['staff_id'])
         if not user:
-            return 'The login is disabled'
+            return _bot_message('The login is disabled')
         if not access.can(user, 'tasks.tasks') and not access.can(user, 'tasks.meetings'):
-            return 'The role no longer includes Task Management'
+            return _bot_message('The role no longer includes Task Management')
         gov = Governance()
         if not gov.operational_access(n['staff_id']):
-            return 'Account is not mapped to the Organizational Structure'
+            return _bot_message('Account is not mapped to the Organizational Structure')
         if n.get('org_request_id') and (not access.can(user, 'tasks.organization') or not gov.notification_visible(n['staff_id'], n['org_request_id'])):
-            return 'Organization request no longer requires or permits this recipient'
+            return _bot_message('Organization request no longer requires or permits this recipient')
         sc = TaskScope(gov)
         if n.get('task_id'):
             t = row(Task.objects.filter(id=n['task_id']).first())
             if not t:
-                return 'The task no longer exists'
+                return _bot_message('The task no longer exists')
             if not access.can(user, 'tasks.tasks'):
-                return 'The role no longer includes Tasks'
+                return _bot_message('The role no longer includes Tasks')
             if not sc.can_see(n['staff_id'], t) or not sc.is_involved(n['staff_id'], t):
-                return 'No longer on this task'
+                return _bot_message('No longer on this task')
         if n.get('meeting_id'):
             from meetings.models import Meeting
             m = row(Meeting.objects.filter(id=n['meeting_id']).first())
             if not m:
-                return 'The meeting no longer exists'
+                return _bot_message('The meeting no longer exists')
             if m['status'] == 'CANCELLED' and n['kind'] != 'meeting_cancelled':
-                return 'The meeting was cancelled'
+                return _bot_message('The meeting was cancelled')
             if not sc.can_see_meeting(n['staff_id'], m):
-                return 'No longer invited to this meeting'
+                return _bot_message('No longer invited to this meeting')
         if n.get('note_id'):
             from meetings.models import CalendarNote
             owner = CalendarNote.objects.filter(id=n['note_id']).values_list('staff_id', flat=True).first()
             if not owner or owner != n['staff_id']:
-                return 'The note was deleted'
+                return _bot_message('The note was deleted')
         if n.get('request_id') and not n.get('task_id'):
             q = row(TaskRequest.objects.filter(id=n['request_id']).first())
             if not q or (q['requested_by'] != n['staff_id'] and q['manager_id'] != n['staff_id']):
-                return 'No longer part of this request'
+                return _bot_message('No longer part of this request')
             if not sc.can_see_request(n['staff_id'], q):
-                return 'The workspace was deleted'
+                return _bot_message('The workspace was deleted')
         return None
 
     def attempt(self, n, attempts):
         why = self.ineligible(n)
         if why:
             return self.delivery(n['id'], 'SKIPPED', why, attempts)
-        self.delivery(n['id'], 'PENDING', 'Sending', attempts + 1)
+        self.delivery(n['id'], 'PENDING', _bot_message('Sending'), attempts + 1)
         try:
             self.deliver(n)
             self.delivery(n['id'], 'SENT', '', attempts + 1)
         except TelegramError as e:
             retry = attempts + 1 <= len(RETRY_AFTER) and e.code != 403
-            self.delivery(n['id'], 'FAILED', 'The person blocked the bot' if e.code == 403 else str(e), attempts + 1,
+            self.delivery(n['id'], 'FAILED', _bot_message('The person blocked the bot') if e.code == 403 else str(e), attempts + 1,
                           timezone.now() + timedelta(seconds=RETRY_AFTER[attempts]) if retry else None)
-            tg.log('error', None, f"Notification {n['id']}: {e}{' (will retry)' if retry else ''}")
+            tg.log('error', None, _bot_message('Notification {p0}: {p1}{p2}', p0=n['id'], p1=e, p2=' (will retry)' if retry else ''))
 
     def deliver(self, n):
+        preferred = staff_language(n['staff_id'])
+        with language(preferred):
+            return self._deliver(notification_text(n, preferred))
+
+    def _deliver(self, n):
         link = tg.link_for_staff(n['staff_id'])
         user = access.account_for(n['staff_id'])
         ctx = Context(chatId=link['chat_id'], isPrivate=True, isGroup=False, staff=n['staff_id'], user=user)
@@ -1871,37 +1875,37 @@ class Bot:
             t = self.load_task(n['task_id'])
             allowed = self.actions_for(ctx, t)['allowed'] if t else []
             if t and n['kind'] in ANSWER_KINDS and 'accept' in allowed:
-                k.append([button('✅ Accept', f"t:acc:{t['id']}"), *([button('✖️ Reject', f"t:dec:{t['id']}")] if 'decline' in allowed else [])])
+                k.append([button(_bot_message('✅ Accept'), f"t:acc:{t['id']}"), *([button(_bot_message('✖️ Reject'), f"t:dec:{t['id']}")] if 'decline' in allowed else [])])
             if t and n['kind'] == 'task_submitted' and 'close' in allowed:
-                k.append([button('✔️ Approve completion' if (t['change_request'] or {}).get('kind') == 'COMPLETE' else '✔️ Close', f"t:cls:{t['id']}"),
-                          button('↩️ Return', f"t:ret:{t['id']}")])
+                k.append([button(_bot_message('✔️ Approve completion') if (t['change_request'] or {}).get('kind') == 'COMPLETE' else _bot_message('✔️ Close'), f"t:cls:{t['id']}"),
+                          button(_bot_message('↩️ Return'), f"t:ret:{t['id']}")])
             elif t and n['kind'] == 'task_submitted' and 'pass' in allowed:
-                k.append([button('➡️ Pass for approval', f"t:pas:{t['id']}"), button('↩️ Return', f"t:ret:{t['id']}")])
+                k.append([button(_bot_message('➡️ Pass for approval'), f"t:pas:{t['id']}"), button(_bot_message('↩️ Return'), f"t:ret:{t['id']}")])
             if t and n['kind'] in ('task_due_soon', 'task_overdue') and 'progress' in allowed:
-                k.append([button('📈 Update progress', f"t:prg:{t['id']}")])
+                k.append([button(_bot_message('📈 Update progress'), f"t:prg:{t['id']}")])
             if n['kind'] == 'due_new' and n.get('due_request_id'):
-                k.append([button('✅ Approve date', f"d:ok:{n['due_request_id']}"), button('↩️ Decline', f"d:no:{n['due_request_id']}")])
+                k.append([button(_bot_message('✅ Approve date'), f"d:ok:{n['due_request_id']}"), button(_bot_message('↩️ Decline'), f"d:no:{n['due_request_id']}")])
             cr = (t or {}).get('change_request')
             if cr and n['kind'] == 'change_request' and cr['approver_id'] == n['staff_id']:
-                k.append([button('✅ Approve change', f"c:ok:{cr['id']}"), button('↩️ Reject', f"c:no:{cr['id']}")])
-            k.append([button('👁 View task', f"t:v:{n['task_id']}")])
+                k.append([button(_bot_message('✅ Approve change'), f"c:ok:{cr['id']}"), button(_bot_message('↩️ Reject'), f"c:no:{cr['id']}")])
+            k.append([button(_bot_message('👁 View task'), f"t:v:{n['task_id']}")])
         elif n.get('request_id'):
             q = row(TaskRequest.objects.filter(id=n['request_id']).first())
             if q and n['kind'] == 'request_new' and q['status'] == 'PENDING' and q['manager_id'] == n['staff_id']:
-                k.append([button('✅ Accept' if q.get('doer') == 'RECEIVER' else '✅ Approve', f"r:ok:{q['id']}"), button('↩️ Decline', f"r:no:{q['id']}")])
-            k.append([button('👁 View request', f"r:v:{n['request_id']}")])
+                k.append([button(_bot_message('✅ Accept') if q.get('doer') == 'RECEIVER' else _bot_message('✅ Approve'), f"r:ok:{q['id']}"), button(_bot_message('↩️ Decline'), f"r:no:{q['id']}")])
+            k.append([button(_bot_message('👁 View request'), f"r:v:{n['request_id']}")])
         app = self.app_url()
         if app and n.get('org_request_id'):
-            k.append([{'text': 'Review organization request', 'web_app': {'url': f"{app}?org_request={quote(n['org_request_id'], safe='')}"}}])
+            k.append([{'text': _bot_message('Review organization request'), 'web_app': {'url': f"{app}?org_request={quote(n['org_request_id'], safe='')}"}}])
         if app and ctx['can']('tasks.tasks') and (n.get('note_id') or (n.get('meeting_id') and ctx['can']('tasks.meetings'))):
             target = n.get('meeting_id') or n.get('note_id')
-            k.append([{'text': '📅 Open in the calendar', 'web_app': {'url': f"{app}?{'meeting' if n.get('meeting_id') else 'note'}={quote(target, safe='')}"}}])
+            k.append([{'text': _bot_message('📅 Open in the calendar'), 'web_app': {'url': f"{app}?{'meeting' if n.get('meeting_id') else 'note'}={quote(target, safe='')}"}}])
         try:
             self.send(ctx, {'text': f"{NOTE_ICON.get(n['kind'], '🔔')} <b>{esc(n['title'])}</b>\n{esc(n['body'])}", 'keyboard': k})
         except TelegramError as e:
             if e.code == 403:
                 TelegramLink.objects.filter(tg_user_id=link['tg_user_id']).update(chat_id=None)
-                tg.log('warn', link['chat_id'], f"{self.name_of(n['staff_id'])} blocked the bot; messages paused until they message it again.")
+                tg.log('warn', link['chat_id'], _bot_message('{p0} blocked the bot; messages paused until they message it again.', p0=self.name_of(n['staff_id'])))
             raise
 
     def flush(self):
@@ -1915,7 +1919,7 @@ class Bot:
                 cursor = Notification.objects.order_by('-id').values_list('id', flat=True).first() or 0
                 TelegramSettings.objects.filter(id=1).update(last_notification_id=cursor)
             NotificationDelivery.objects.filter(channel='TELEGRAM', status='PENDING', updated_at__lt=timezone.now() - timedelta(minutes=2)).update(
-                status='SKIPPED', reason='Interrupted while sending; not repeated so it can never arrive twice', next_at=None, updated_at=timezone.now())
+                status='SKIPPED', reason=_bot_message('Interrupted while sending; not repeated so it can never arrive twice'), next_at=None, updated_at=timezone.now())
             delivered = NotificationDelivery.objects.filter(channel='TELEGRAM').values('notification_id')
             for n in rows(Notification.objects.filter(id__gt=cursor).exclude(id__in=delivered).order_by('id')[:25]):
                 if self.stopped.is_set():
@@ -1923,7 +1927,7 @@ class Bot:
                 try:
                     self.attempt(n, 0)
                 except Exception as e:   # noqa: BLE001
-                    tg.log('error', None, f"Notification {n['id']}: {e}")
+                    tg.log('error', None, _bot_message('Notification {p0}: {p1}', p0=n['id'], p1=e))
                 TelegramSettings.objects.filter(id=1, last_notification_id__lt=n['id']).update(last_notification_id=n['id'])
             due = (NotificationDelivery.objects.filter(channel='TELEGRAM', status='FAILED', next_at__isnull=False, next_at__lte=timezone.now())
                    .select_related('notification').order_by('next_at')[:10])
@@ -1934,11 +1938,11 @@ class Bot:
                 try:
                     self.attempt(n, d.attempts)
                 except Exception as e:   # noqa: BLE001
-                    tg.log('error', None, f"Notification {n['id']}: {e}")
+                    tg.log('error', None, _bot_message('Notification {p0}: {p1}', p0=n['id'], p1=e))
             self.digest(s)
         except Exception as e:   # noqa: BLE001
             if not self.stopped.is_set():
-                log.exception('Telegram outbox failed')
+                log.exception(_bot_message('Telegram outbox failed'))
                 tg.log('error', None, str(e))
         finally:
             self.flushing.release()
@@ -1950,35 +1954,39 @@ class Bot:
             return
         TelegramSettings.objects.filter(id=1).update(last_digest_date=today)
         for link in rows(TelegramLink.objects.filter(notify=True, chat_id__isnull=False).order_by('tg_user_id')):
-            if self.stopped.is_set():
-                return
-            user = access.account_for(link['staff_id'])
-            scope = TaskScope(Governance())
-            if not user or not access.can(user, 'tasks.tasks') or not scope.gov.operational_access(link['staff_id']):
-                continue
-            mine_ids = TaskAssignee.objects.filter(staff_id=link['staff_id']).exclude(status='DECLINED').values('task_id')
-            mine = self.enrich([t for t in rows(live(Task.objects.filter(id__in=mine_ids, status__in=OPEN, due_date__lte=today)).order_by('due_date', 'id'))
-                                if scope.can_see(link['staff_id'], t)])
-            c = self.counts(link['staff_id'])
-            due_today, late = [t for t in mine if t['due_date'] == today], [t for t in mine if t['due_date'] < today]
-            if not mine and not c['rev'] and not c['answer']:
-                continue
-            lines = [f"☀️ <b>Good morning, {esc(self.name_of(link['staff_id']).split(' · ')[0])}</b>", f'Your tasks for {fmt_day(today)}:', '']
-            if late:
-                lines.append(f'⚠️ Overdue: <b>{len(late)}</b>')
-            if due_today:
-                lines.append(f'📅 Due today: <b>{len(due_today)}</b>')
-            if c['answer']:
-                lines.append(f"🆕 Waiting for your answer: <b>{c['answer']}</b>")
-            if c['rev']:
-                lines.append(f"🔎 Waiting for your decision: <b>{c['rev']}</b>")
-            lines += [f"• {esc(clip(t['title'], 60))} — {'overdue' if t['due_date'] < today else 'due today'}" for t in mine[:5]]
-            try:
-                self.send(link['chat_id'], {'text': '\n'.join(lines), 'keyboard': [[button('🆕 To answer', 'm:ans:0'), button('📋 My tasks', 'm:my:0')],
-                                                                                   [button('🔎 To review', 'm:rev')]]}, {'disable_notification': False})
-            except TelegramError as e:
-                if e.code == 403:
-                    TelegramLink.objects.filter(tg_user_id=link['tg_user_id']).update(chat_id=None)
+            with language(staff_language(link['staff_id'])):
+                self._digest_person(link, today)
+
+    def _digest_person(self, link, today):
+        if self.stopped.is_set():
+            return
+        user = access.account_for(link['staff_id'])
+        scope = TaskScope(Governance())
+        if not user or not access.can(user, 'tasks.tasks') or not scope.gov.operational_access(link['staff_id']):
+            return
+        mine_ids = TaskAssignee.objects.filter(staff_id=link['staff_id']).exclude(status='DECLINED').values('task_id')
+        mine = self.enrich([t for t in rows(live(Task.objects.filter(id__in=mine_ids, status__in=OPEN, due_date__lte=today)).order_by('due_date', 'id'))
+                            if scope.can_see(link['staff_id'], t)])
+        c = self.counts(link['staff_id'])
+        due_today, late = [t for t in mine if t['due_date'] == today], [t for t in mine if t['due_date'] < today]
+        if not mine and not c['rev'] and not c['answer']:
+            return
+        lines = [_bot_message('☀️ <b>Good morning, {p0}</b>', p0=esc(self.name_of(link['staff_id']).split(' · ')[0])), _bot_message('Your tasks for {p0}:', p0=fmt_day(today)), '']
+        if late:
+            lines.append(f'⚠️ Overdue: <b>{len(late)}</b>')
+        if due_today:
+            lines.append(_bot_message('📅 Due today: <b>{p0}</b>', p0=len(due_today)))
+        if c['answer']:
+            lines.append(_bot_message('🆕 Waiting for your answer: <b>{p0}</b>', p0=c['answer']))
+        if c['rev']:
+            lines.append(_bot_message('🔎 Waiting for your decision: <b>{p0}</b>', p0=c['rev']))
+        lines += [f"• {esc(clip(t['title'], 60))} — {'overdue' if t['due_date'] < today else _bot_message('due today')}" for t in mine[:5]]
+        try:
+            self.send(link['chat_id'], {'text': '\n'.join(lines), 'keyboard': [[button(_bot_message('🆕 To answer'), 'm:ans:0'), button(_bot_message('📋 My tasks'), 'm:my:0')],
+                                                                               [button(_bot_message('🔎 To review'), 'm:rev')]]}, {'disable_notification': False})
+        except TelegramError as e:
+            if e.code == 403:
+                TelegramLink.objects.filter(tg_user_id=link['tg_user_id']).update(chat_id=None)
 
     # ------------------------------------------------------------ lifecycle
     def configure(self):
@@ -1987,9 +1995,9 @@ class Bot:
                 self.call(method, params)
             except TelegramError:
                 pass
-        for commands, scope, label in ((PRIVATE_COMMANDS, 'all_private_chats', 'Commands'), (GROUP_COMMANDS, 'all_group_chats', 'Group commands')):
+        for commands, scope, label in ((PRIVATE_COMMANDS, 'all_private_chats', _bot_message('Commands')), (GROUP_COMMANDS, 'all_group_chats', _bot_message('Group commands'))):
             try:
-                self.call('setMyCommands', {'commands': [{'command': c, 'description': d} for c, d in commands], 'scope': {'type': scope}})
+                self.call('setMyCommands', {'commands': [{'command': c, 'description': render(d, 'en')} for c, d in commands], 'scope': {'type': scope}})
             except TelegramError as e:
                 tg.log('warn', None, f'{label}: {e}')
         self.refresh_menu()
@@ -1999,18 +2007,18 @@ class Bot:
         if app == self.menu_for:
             return
         try:
-            self.call('setChatMenuButton', {'menu_button': {'type': 'web_app', 'text': 'Tasks', 'web_app': {'url': app}} if app else {'type': 'commands'}})
+            self.call('setChatMenuButton', {'menu_button': {'type': 'web_app', 'text': _bot_message('Tasks'), 'web_app': {'url': app}} if app else {'type': 'commands'}})
             self.menu_for = app
         except TelegramError as e:
-            tg.log('warn', None, f'Menu button: {e}')
+            tg.log('warn', None, _bot_message('Menu button: {p0}', p0=e))
 
     def connect(self):
         """getMe and configure (one attempt). Returns False when the token was rejected."""
         self.me = self.api('getMe')
         TelegramSettings.objects.filter(id=1).update(bot_id=self.me['id'], bot_username=self.me.get('username') or '', bot_name=self.me.get('first_name') or '')
         self.configure()
-        tg.set_status('ONLINE', f"Connected as @{self.me.get('username')}")
-        tg.log('info', None, f"Connected as @{self.me.get('username')}")
+        tg.set_status('ONLINE', _bot_message('Connected as @{p0}', p0=self.me.get('username')))
+        tg.log('info', None, _bot_message('Connected as @{p0}', p0=self.me.get('username')))
         return True
 
     def run(self):
@@ -2022,10 +2030,10 @@ class Bot:
                 break
             except TelegramError as e:
                 if e.code in (401, 404):
-                    tg.set_status('ERROR', 'Telegram rejected the bot token. Check it in Administration → Telegram.')
-                    tg.log('error', None, 'Bot token rejected')
+                    tg.set_status('ERROR', _bot_message('Telegram rejected the bot token. Check it in Administration → Telegram.'))
+                    tg.log('error', None, _bot_message('Bot token rejected'))
                     return
-                tg.set_status('RECONNECTING', f'Cannot reach Telegram: {e}')
+                tg.set_status('RECONNECTING', _bot_message('Cannot reach Telegram: {p0}', p0=e))
                 self.stopped.wait(backoff)
                 backoff = min(backoff * 2, 60)
         outbox = threading.Thread(target=self._outbox, name='telegram-outbox', daemon=True)
@@ -2038,7 +2046,7 @@ class Bot:
                 updates = self.api('getUpdates', {'offset': s['last_update_id'] + 1, 'timeout': self.poll_timeout,
                                                   'allowed_updates': ['message', 'callback_query', 'my_chat_member']}, self.poll_timeout + 10)
                 if backoff > 1:
-                    tg.set_status('ONLINE', f"Connected as @{self.me.get('username')}")
+                    tg.set_status('ONLINE', _bot_message('Connected as @{p0}', p0=self.me.get('username')))
                 backoff = 1
                 for u in updates:
                     if self.stopped.is_set():
@@ -2047,23 +2055,23 @@ class Bot:
                     try:
                         self.handle_update(u)
                     except Exception as e:   # noqa: BLE001
-                        log.exception('Telegram update failed')
+                        log.exception(_bot_message('Telegram update failed'))
                         tg.log('error', None, f"Update {u.get('update_id')}: {e}")
                     TelegramSettings.objects.filter(id=1, last_update_id__lt=u['update_id']).update(last_update_id=u['update_id'])
             except TelegramError as e:
                 if self.stopped.is_set():
                     break
                 if e.code == 401:
-                    tg.set_status('ERROR', 'Telegram rejected the bot token. Check it in Administration → Telegram.')
+                    tg.set_status('ERROR', _bot_message('Telegram rejected the bot token. Check it in Administration → Telegram.'))
                     break
                 if e.code == 409:
                     try:
                         self.api('deleteWebhook', {'drop_pending_updates': False})
                     except TelegramError:
                         pass
-                    tg.set_status('RECONNECTING', 'Another program is using this bot token (only one Task Controlling Management should run a bot). Retrying…')
+                    tg.set_status('RECONNECTING', _bot_message('Another program is using this bot token (only one Task Controlling Management should run a bot). Retrying…'))
                 else:
-                    tg.set_status('RECONNECTING', f'Connection to Telegram lost: {e}')
+                    tg.set_status('RECONNECTING', _bot_message('Connection to Telegram lost: {p0}', p0=e))
                 self.stopped.wait(backoff)
                 backoff = min(backoff * 2, 60)
 
@@ -2126,7 +2134,7 @@ class Runtime:
             try:
                 self.supervise()
             except Exception:   # noqa: BLE001
-                log.exception('Telegram supervisor failed')
+                log.exception(_bot_message('Telegram supervisor failed'))
             self.stopped.wait(self.every)
         if self.bot:
             self.bot.stop()

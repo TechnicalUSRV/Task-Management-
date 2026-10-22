@@ -19,6 +19,7 @@ POST /api/google                     the Google Sheets panel of a group's settin
 Changes go through POST /api/command (tm.group.*). The role permission for Groups is checked here; the group's own
 sharing, row and column rules are checked by groups.service, which answers "not found" for groups a person may not open.
 """
+from core.i18n import msg as _message
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -96,7 +97,7 @@ class GroupReadView(APIView):
             name = re.sub(r'[\\/:*?"<>|]+', '-', file['name']) + '.xlsx'
             return binary(file['buffer'], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                           {'Content-Disposition': f"attachment; filename=\"group.xlsx\"; filename*=UTF-8''{attachment_name(name)}"})
-        fail('Route not found.', 404)
+        fail(_message('Route not found.'), 404)
 
 
 class ImportPreviewView(APIView):
@@ -108,7 +109,7 @@ class ImportPreviewView(APIView):
         return Response(service().imports.preview(body.get('import_id'), request.user.staff_id, body.get('plan')))
 
 
-DIRECTIONS = {'TO_SHEETS': 'Group → Google Sheets', 'FROM_SHEETS': 'Google Sheets → Group', 'TWO_WAY': 'Both ways'}
+DIRECTIONS = {'TO_SHEETS': _message('Group → Google Sheets'), 'FROM_SHEETS': _message('Google Sheets → Group'), 'TWO_WAY': _message('Both ways')}
 
 
 class GoogleView(APIView):
@@ -120,10 +121,10 @@ class GoogleView(APIView):
         user = request.user
         access.require_permission(user, 'tasks.groups', 'view')
         if body.get('action') != 'describe':
-            fail('This action is not available.', 403)
+            fail(_message('This action is not available.'), 403)
         groups = service()
         b = groups.board_row(str(body.get('group_id') or ''))
         if not b or not groups.caps_for(b, user.staff_id)['share']:
-            fail('Only people who manage this group can connect it to Google Sheets.', 403)
+            fail(_message('Only people who manage this group can connect it to Google Sheets.'), 403)
         return Response({'ok': True, 'result': {'configured': False, 'allow_existing': False, 'default_interval': 60, 'simulated': False, 'account': None,
                                                 'columns': [], 'directions': DIRECTIONS, 'sync': None}})

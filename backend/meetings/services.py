@@ -4,6 +4,7 @@ A port of the meeting and calendar parts of tasks.mjs and of meeting-workflow.mj
 TaskService of the same command (same governance, scope and helpers), so a meeting command behaves exactly like the
 original inside one transaction.
 """
+from core.i18n import msg as _message
 import json
 import re
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -37,7 +38,7 @@ def instant(value, label):
     except ValueError:
         moment = None
     if moment is None or moment.tzinfo is None:
-        fail(f'Enter a valid {label} with a timezone.')
+        fail(_message('Enter a valid {p0} with a timezone.', p0=label))
     date_text(s[:10], label)
     return iso(moment)
 
@@ -46,27 +47,27 @@ def ms(value):
     return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp() * 1000
 
 
-def offsets_input(value, label='Reminders'):
+def offsets_input(value, label=_message('Reminders')):
     if value is None or value == '':
         return []
     if isinstance(value, str) and re.match(r'^\s*\[', value):
         try:
             value = json.loads(value)
         except ValueError:
-            fail(f'{label}: choose up to five reminders.')
+            fail(_message('{p0}: choose up to five reminders.', p0=label))
     if not isinstance(value, list) or len(value) > 5:
-        fail(f'{label}: choose up to five reminders.')
+        fail(_message('{p0}: choose up to five reminders.', p0=label))
     from core.validation import js_number
     numbers = list(dict.fromkeys(js_number(n) for n in value))
     for n in numbers:
         if isinstance(n, float) and (n != n or not n.is_integer()) or n < 0 or n > MAX_OFFSET:
-            fail(f'{label}: each reminder is 0 minutes to 30 days before the start.')
+            fail(_message('{p0}: each reminder is 0 minutes to 30 days before the start.', p0=label))
     return sorted((int(n) for n in numbers), reverse=True)
 
 
 def offset_text(n):
     if n == 0:
-        return 'at the start'
+        return _message('at the start')
     if n % 1440 == 0:
         return f"{n // 1440} day{'' if n == 1440 else 's'} before"
     if n % 60 == 0:
@@ -90,18 +91,18 @@ def meeting_url(value):
         host = parts.hostname
         port = parts.port
     except ValueError:
-        fail('Enter a complete meeting URL.')
+        fail(_message('Enter a complete meeting URL.'))
     if not parts.scheme or not re.fullmatch(r'[A-Za-z][A-Za-z0-9+.-]*', parts.scheme):
-        fail('Enter a complete meeting URL.')
+        fail(_message('Enter a complete meeting URL.'))
     scheme = parts.scheme.lower()
     if scheme in ('http', 'https') and not host:
-        fail('Enter a complete meeting URL.')
+        fail(_message('Enter a complete meeting URL.'))
     if scheme not in ('http', 'https') or parts.username or parts.password:
-        fail('Use an http or https meeting URL without credentials.')
+        fail(_message('Use an http or https meeting URL without credentials.'))
     try:
         host = host.encode('idna').decode('ascii').lower()
     except UnicodeError:
-        fail('Enter a complete meeting URL.')
+        fail(_message('Enter a complete meeting URL.'))
     netloc = host + (f':{port}' if port and port != {'http': 80, 'https': 443}[scheme] else '')
     safe = "/:@!$&'()*+,;=-._~%"
     path = quote(parts.path or '/', safe=safe)
@@ -141,7 +142,7 @@ class MeetingService:
         for key in ids:
             self.t.profile(key)
             if wid and key not in known:
-                self.t.ensure_member(wid, key, actor, 'invited to a meeting')
+                self.t.ensure_member(wid, key, actor, _message('invited to a meeting'))
         return ids
 
     def when(self, start, staff):
@@ -161,21 +162,21 @@ class MeetingService:
                 self.t.hidden()
             self.t.check_version(old, d.get('expected_version'))
             if not self.is_participant(old, actor):
-                fail('Only the organizer and the attendees can change this meeting. It is shared with you to view.', 403)
+                fail(_message('Only the organizer and the attendees can change this meeting. It is shared with you to view.'), 403)
         manager = not old or self.is_participant(old, actor)
         creation_key = f"{actor}:{text(d['request_key'], 'Creation key', 100, True)}" if not old and d.get('request_key') else None
         if creation_key:
             duplicate = Meeting.objects.filter(creation_key=creation_key).values('id', 'workspace_id').first()
             if duplicate:
                 if duplicate['workspace_id'] != d.get('workspace_id'):
-                    fail('Creation key already belongs to another workspace.')
+                    fail(_message('Creation key already belongs to another workspace.'))
                 return {'id': duplicate['id'], 'type': 'tm_meeting'}
         w = self.t.active_workspace(old['workspace_id'] if old else d.get('workspace_id'))
         key = old['id'] if old else next_id('tm-meeting', 'MEET')
         if not old and not self.gov.can_create_resource(actor, w):
-            fail('Join this workspace before scheduling a meeting in it.', 403)
+            fail(_message('Join this workspace before scheduling a meeting in it.'), 403)
         if (old or {}).get('activity_id') or d.get('activity_id'):
-            fail('Links to CRM activities are not available in this installation.', 403)
+            fail(_message('Links to CRM activities are not available in this installation.'), 403)
         task = self.t.task(d['task_id']) if d.get('task_id') else None
         if not task and (old or {}).get('task_id'):
             linked = row(Task.objects.filter(id=old['task_id']).first())
@@ -184,52 +185,52 @@ class MeetingService:
         if task and task['id'] != (old or {}).get('task_id') and not self.scope.can_see(actor, task):
             self.t.hidden()
         if task and task['workspace_id'] != w['id']:
-            fail('Choose a task from the same workspace.')
+            fail(_message('Choose a task from the same workspace.'))
         if d.get('attendee_ids') not in (None, False, '', 0) and not isinstance(d['attendee_ids'], list):
             fail('Select meeting attendees.')
-        status0 = choice(d.get('status') or 'SCHEDULED', ['SCHEDULED', 'COMPLETED', 'CANCELLED'], 'meeting status')
+        status0 = choice(d.get('status') or 'SCHEDULED', ['SCHEDULED', 'COMPLETED', 'CANCELLED'], _message('meeting status'))
         known = self.attendees_of(old['id']) if old and not (status0 == 'SCHEDULED' and old['status'] != 'SCHEDULED') else []
         organizer = self.t.lookup((d.get('organizer_id') if d.get('organizer_id') is not None else old['organizer_id']) if old
                                   else (d.get('organizer_id') or actor))
         listed = d.get('attendee_ids')
         chosen = listed if listed not in (None, False, '', 0) else (self.attendees_of(old['id']) if old else [])
         attendees = self.people(list(dict.fromkeys([*chosen, organizer])), w['id'], actor, known)
-        start, end = instant(d.get('start_at'), 'Meeting start'), instant(d.get('end_at'), 'Meeting end')
+        start, end = instant(d.get('start_at'), _message('Meeting start')), instant(d.get('end_at'), _message('Meeting end'))
         if end <= start:
-            fail('Meeting end must be after its start.')
+            fail(_message('Meeting end must be after its start.'))
         if ms(end) - ms(start) > 7 * 86400000:
-            fail('Meetings cannot last longer than seven days.')
-        status = choice(d.get('status') or 'SCHEDULED', ['SCHEDULED', 'COMPLETED', 'CANCELLED'], 'meeting status')
+            fail(_message('Meetings cannot last longer than seven days.'))
+        status = choice(d.get('status') or 'SCHEDULED', ['SCHEDULED', 'COMPLETED', 'CANCELLED'], _message('meeting status'))
         now_ms = timezone.now().timestamp() * 1000
         if status == 'SCHEDULED' and (not old or old['start_at'] != start or old['status'] != 'SCHEDULED') and ms(start) < now_ms - 5 * 60000:
-            fail('Choose a start time that is still ahead.')
+            fail(_message('Choose a start time that is still ahead.'))
         if status == 'SCHEDULED':
             for staff in attendees:
                 if MeetingAttendee.objects.filter(staff_id=staff, meeting__status='SCHEDULED', meeting__start_at__lt=parse(end),
                                                   meeting__end_at__gt=parse(start)).exclude(meeting_id=key).exists():
-                    fail(f'{self.t.name_of(staff)} already has a scheduled meeting during this time.')
+                    fail(_message('{p0} already has a scheduled meeting during this time.', p0=self.t.name_of(staff)))
         url = text(d.get('url'), 'Meeting URL', 2000)
         if url:
             url = meeting_url(url)
         if d.get('share_scope') is None:
             share = 'SELECTED' if (old or {}).get('share_scope') == 'SELECTED' else 'PARTICIPANTS'
         else:
-            share = choice(d['share_scope'], ['PARTICIPANTS', 'SELECTED'], 'sharing option')
+            share = choice(d['share_scope'], ['PARTICIPANTS', 'SELECTED'], _message('sharing option'))
         share_ids = []
         if share == 'SELECTED':
             chosen_shares = self.shares_of(key) if 'share_ids' not in d else d['share_ids']
             if not isinstance(chosen_shares, list) or len(chosen_shares) > 100:
-                fail('Choose up to 100 people to share the meeting with.')
+                fail(_message('Choose up to 100 people to share the meeting with.'))
             share_ids = [x for x in dict.fromkeys(chosen_shares) if x not in attendees]
             for x in share_ids:
                 self.t.lookup(x)
             if not share_ids:
-                fail('Choose the people to share this meeting with, or keep it visible to its participants only.')
+                fail(_message('Choose the people to share this meeting with, or keep it visible to its participants only.'))
         if self.gov.governed(w):
             if share == 'COMPANY' and is_personal_workspace(w):
-                fail('A personal workspace meeting can be shared with named people, not the whole company.', 403)
+                fail(_message('A personal workspace meeting can be shared with named people, not the whole company.'), 403)
             if share == 'COMPANY' and share != (old or {}).get('share_scope') and not self.gov.can_collaborate_outside(actor, w):
-                fail('Company sharing requires outside-collaboration authority.', 403)
+                fail(_message('Company sharing requires outside-collaboration authority.'), 403)
             previous = set(self.shares_of(old['id'])) if old else set()
             for target in share_ids:
                 self.gov.check_collaborator(actor, w, target, existing=target in previous)
@@ -251,14 +252,13 @@ class MeetingService:
                      or not same(url, old['url']) or share != old['share_scope'] or not same_value(share_ids, share_before if share == 'SELECTED' else [])
                      or not same((task or {}).get('id'), old['task_id']) or status == 'CANCELLED' or (status == 'SCHEDULED' and old['status'] != 'SCHEDULED'))
             if moved:
-                also = f" or {self.t.name_of(old['created_by'])}" if old.get('created_by') and old['created_by'] != old['organizer_id'] else ''
-                fail(f"Only {self.t.name_of(old['organizer_id'])} (the organizer){also} can change this meeting’s time, people or details, or cancel it. "
-                     'You can complete it with notes or change its reminders.', 403)
+                also = _message(' or {p0}', p0=self.t.name_of(old['created_by'])) if old.get('created_by') and old['created_by'] != old['organizer_id'] else ''
+                fail(_message('Only {p0} (the organizer){p1} can change this meeting’s time, people or details, or cancel it. You can complete it with notes or change its reminders.', p0=self.t.name_of(old['organizer_id']), p1=also), 403)
         timing = not old or old['start_at'] != start or old['reminder_offsets'] != jtext(offsets) or old['status'] != status
         if status == 'SCHEDULED' and timing:
             late = past_offsets(start, offsets)
             if late:
-                fail(f"The reminder {' and '.join(offset_text(n) for n in late)} would already be in the past. Choose a shorter reminder, or none.", 422)
+                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=' and '.join(offset_text(n) for n in late)), 422)
         values = {'workspace_id': w['id'], 'task_id': (task or {}).get('id'), 'activity_id': None, 'contact_id': (task or {}).get('contact_id'),
                   'title': text(d.get('title'), 'Meeting title', 300, True), 'agenda': text(d.get('agenda'), 'Agenda', 8000), 'organizer_id': organizer,
                   'start_at': start, 'end_at': end, 'location': text(d.get('location'), 'Location', 500), 'url': url, 'status': status,
@@ -285,22 +285,22 @@ class MeetingService:
         if status == 'SCHEDULED':
             for staff in invited:
                 self.tell([staff], 'meeting_invited', actor, f'Meeting: {title}',
-                          f"{self.t.name_of(actor)} invited you · {self.when(start, staff)}{' · ' + values['location'] if values['location'] else ''}", key)
+                          _message('{p0} invited you · {p1}{p2}', p0=self.t.name_of(actor), p1=self.when(start, staff), p2=' · ' + values['location'] if values['location'] else ''), key)
         followers = self.followers_of(key) if old else []
         if old and status == 'SCHEDULED' and (old['start_at'] != start or old['end_at'] != end):
             for staff in dict.fromkeys([*[x for x in attendees if x in before], *followers]):
-                self.tell([staff], 'meeting_updated', actor, f'Meeting moved: {title}', f'{self.t.name_of(actor)} moved it to {self.when(start, staff)}', key)
+                self.tell([staff], 'meeting_updated', actor, _message('Meeting moved: {p0}', p0=title), _message('{p0} moved it to {p1}', p0=self.t.name_of(actor), p1=self.when(start, staff)), key)
         if old and old['status'] != 'CANCELLED' and status == 'CANCELLED':
-            self.tell([*attendees, *followers], 'meeting_cancelled', actor, f'Meeting cancelled: {title}', f"{self.t.name_of(actor)}: {values['reason']}", key)
+            self.tell([*attendees, *followers], 'meeting_cancelled', actor, _message('Meeting cancelled: {p0}', p0=title), f"{self.t.name_of(actor)}: {values['reason']}", key)
         if old and old['status'] == 'SCHEDULED':
             for staff in before:
                 if staff not in attendees and staff != actor:
-                    Notification.objects.create(staff_id=staff, kind='meeting_updated', meeting_id=None, title=f'Removed from a meeting: {title}',
-                                                body=f'{self.t.name_of(actor)} took you off this meeting ({dm.at_text(start, self.t.zone_of(staff))}).',
+                    Notification.objects.create(staff_id=staff, kind='meeting_updated', meeting_id=None, title=_message('Removed from a meeting: {p0}', p0=title),
+                                                body=_message('{p0} took you off this meeting ({p1}).', p0=self.t.name_of(actor), p1=dm.at_text(start, self.t.zone_of(staff))),
                                                 actor_id=actor, created_at=timezone.now())
-        shared = {'WORKSPACE': 'the workspace', 'COMPANY': 'the company', 'SELECTED': f'{len(share_ids)} people'}
-        self.t.log(actor, 'meeting', key, w['id'], 'Meeting updated' if old else 'Meeting scheduled',
-                   f"{title} · {status}{' · shared with ' + shared[share] if share != 'PARTICIPANTS' else ''}")
+        shared = {'WORKSPACE': _message('the workspace'), 'COMPANY': _message('the company'), 'SELECTED': f'{len(share_ids)} people'}
+        self.t.log(actor, 'meeting', key, w['id'], _message('Meeting updated') if old else _message('Meeting scheduled'),
+                   f"{title} · {status}{_message(' · shared with ') + shared[share] if share != 'PARTICIPANTS' else ''}")
         return {'id': key, 'type': 'tm_meeting'}
 
     # ------------------------------------------------------------ following a shared meeting
@@ -310,16 +310,16 @@ class MeetingService:
             self.t.hidden()
         on = d.get('follow') is True or d.get('follow') == 1
         if self.is_participant(m, actor):
-            return {'id': m['id'], 'type': 'tm_meeting', 'message': 'You get this meeting’s reminders as a participant.', 'unchanged': True}
+            return {'id': m['id'], 'type': 'tm_meeting', 'message': _message('You get this meeting’s reminders as a participant.'), 'unchanged': True}
         was = MeetingFollower.objects.filter(meeting_id=m['id'], staff_id=actor).exists()
         if was == on:
-            return {'id': m['id'], 'type': 'tm_meeting', 'message': 'You already get its reminders.' if on else 'You don’t get its reminders.', 'unchanged': True}
+            return {'id': m['id'], 'type': 'tm_meeting', 'message': _message('You already get its reminders.') if on else _message('You don’t get its reminders.'), 'unchanged': True}
         if on:
             MeetingFollower.objects.create(meeting_id=m['id'], staff_id=actor, created_at=timezone.now())
         else:
             MeetingFollower.objects.filter(meeting_id=m['id'], staff_id=actor).delete()
         return {'id': m['id'], 'type': 'tm_meeting',
-                'message': 'You will get this meeting’s reminders.' if on else 'You will no longer get this meeting’s reminders.'}
+                'message': _message('You will get this meeting’s reminders.') if on else _message('You will no longer get this meeting’s reminders.')}
 
     # ------------------------------------------------------------ personal calendar notes
     def note_moment(self, day, staff):
@@ -339,18 +339,18 @@ class MeetingService:
             self.t.check_version(old, d.get('expected_version'))
             CalendarNote.objects.filter(id=old['id']).delete()
             EventReminderSent.objects.filter(kind='NOTE', ref_id=old['id']).delete()
-            return {'id': old['id'], 'type': 'tm_calnote', 'message': 'Note deleted.'}
+            return {'id': old['id'], 'type': 'tm_calnote', 'message': _message('Note deleted.')}
         if old:
             self.t.check_version(old, d.get('expected_version'))
         all_day = (bool(old['all_day']) if old else True) if 'all_day' not in d else (d['all_day'] is True or d['all_day'] == 1)
         start = end = None
         if all_day:
-            day = date_text(d.get('day'), 'Date')
+            day = date_text(d.get('day'), _message('Date'))
         else:
-            start = instant(d.get('start_at'), 'Start')
-            end = instant(d['end_at'], 'End') if d.get('end_at') else None
+            start = instant(d.get('start_at'), _message('Start'))
+            end = instant(d['end_at'], _message('End')) if d.get('end_at') else None
             if end and end < start:
-                fail('The end must be after the start.')
+                fail(_message('The end must be after the start.'))
             day = datetime.fromisoformat(start.replace('Z', '+00:00')).astimezone(ZoneInfo(self.t.zone_of(actor))).strftime('%Y-%m-%d')
         offsets = (json.loads(old['reminder_offsets'] or '[]') if old else []) if 'reminder_offsets' not in d else offsets_input(d['reminder_offsets'])
         done = 1 if d.get('done') is True or d.get('done') == 1 else 0
@@ -360,7 +360,7 @@ class MeetingService:
         if not done and timing:
             late = past_offsets(moment, offsets)
             if late:
-                fail(f"The reminder {' and '.join(offset_text(n) for n in late)} would already be in the past. Choose a shorter reminder, or none.", 422)
+                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=' and '.join(offset_text(n) for n in late)), 422)
         key = old['id'] if old else next_id('tm-calnote', 'NOTE')
         values = {'title': text(d.get('title'), 'Title', 200, True), 'body': text(d.get('body'), 'Note', 4000), 'all_day': 1 if all_day else 0, 'day': day,
                   'start_at': start, 'end_at': end, 'reminder_offsets': jtext(offsets), 'done': done, 'version': old['version'] + 1 if old else 0,
@@ -369,7 +369,7 @@ class MeetingService:
             update(CalendarNote, key, values)
         else:
             insert(CalendarNote, {'id': key, 'staff_id': actor, **values, 'created_at': iso(timezone.now())})
-        return {'id': key, 'type': 'tm_calnote', 'message': 'Note saved.' if old else 'Note added to your calendar.'}
+        return {'id': key, 'type': 'tm_calnote', 'message': _message('Note saved.') if old else _message('Note added to your calendar.')}
 
     # ------------------------------------------------------------ meeting change approvals (meeting-workflow.mjs)
     def active_reviewer(self, who):
@@ -381,7 +381,7 @@ class MeetingService:
     def meeting(self, key):
         found = row(Meeting.objects.filter(id=key).first()) if isinstance(key, str) else None
         if not found:
-            fail('Meeting not found.', 404)
+            fail(_message('Meeting not found.'), 404)
         return found
 
     def workflow_tell(self, m, who, actor, title):
@@ -393,12 +393,12 @@ class MeetingService:
             return self.save(d, actor, source)
         m = self.meeting(d['id'])
         if not self.scope.can_see_meeting(actor, m):
-            fail('Meeting not found.', 404)
+            fail(_message('Meeting not found.'), 404)
         if not self.eligible(m, actor) or not self.gov.can_staff(actor, 'tasks.meetings', 'update'):
-            fail('Only authorized participants can request meeting changes.', 403)
+            fail(_message('Only authorized participants can request meeting changes.'), 403)
         self.t.check_version(m, d.get('expected_version'))
         if MeetingChange.objects.filter(meeting_id=m['id'], status='PENDING').exists():
-            fail('Decide or withdraw the pending meeting change first.', 409)
+            fail(_message('Decide or withdraw the pending meeting change first.'), 409)
         # Validate every field, conflicts, memberships and linked-record rights without keeping any side effect.
         preview = None
         try:
@@ -417,36 +417,36 @@ class MeetingService:
             if jtext(before) != jtext(after):
                 changes.append({'field': field, 'from': before, 'to': after})
         if not changes:
-            return {'id': m['id'], 'type': 'tm_meeting', 'unchanged': True, 'message': 'Nothing was changed.'}
+            return {'id': m['id'], 'type': 'tm_meeting', 'unchanged': True, 'message': _message('Nothing was changed.')}
         candidates = [x for x in [m['organizer_id'], m['created_by'], *self.attendees_of(m['id'], ordered=True), *preview['attendee_ids']]
                       if x != actor and self.active_reviewer(x)]
         approver = d.get('approver_id') or (candidates[0] if candidates else None)
         if not approver or approver not in candidates:
-            fail('Invite another active participant to approve this change. The meeting remains unchanged until they approve.', 409)
+            fail(_message('Invite another active participant to approve this change. The meeting remains unchanged until they approve.'), 409)
         key = next_id('tm-meeting-change', 'MCHANGE')
         MeetingChange.objects.create(id=key, meeting_id=m['id'], requested_by_id=actor, approver_id=approver, base_version=m['version'],
                                      payload_json=jtext({'data': d, 'changes': changes}), source=source,
                                      note=text(d.get('change_note'), 'Reason for change', 1000), created_at=timezone.now())
-        self.t.log(actor, 'meeting', m['id'], m['workspace_id'], 'Meeting change requested', jtext({'request': key, 'approver': approver, 'changes': changes}))
-        self.workflow_tell(m, approver, actor, f"Meeting change awaiting your approval: {m['title']}")
+        self.t.log(actor, 'meeting', m['id'], m['workspace_id'], _message('Meeting change requested'), jtext({'request': key, 'approver': approver, 'changes': changes}))
+        self.workflow_tell(m, approver, actor, _message('Meeting change awaiting your approval: {p0}', p0=m['title']))
         return {'id': m['id'], 'type': 'tm_meeting', 'change_id': key,
-                'message': f'Sent to {self.t.name_of(approver)} for approval. The meeting stays unchanged until approved.'}
+                'message': _message('Sent to {p0} for approval. The meeting stays unchanged until approved.', p0=self.t.name_of(approver))}
 
     def decide(self, action, d, actor, source):
         q = row(MeetingChange.objects.filter(id=str(d.get('id') or '')).first())
         if not q:
-            fail('Change request not found.', 404)
+            fail(_message('Change request not found.'), 404)
         m = self.meeting(q['meeting_id'])
         if not self.scope.can_see_meeting(actor, m) or actor not in (q['requested_by'], q['approver_id']):
-            fail('Change request not found.', 404)
+            fail(_message('Change request not found.'), 404)
         withdrawing = action == 'tm.meeting.withdraw'
         if (q['requested_by'] != actor) if withdrawing else (q['approver_id'] != actor or q['requested_by'] == actor):
-            fail('Only the other designated party can decide this request.', 403)
+            fail(_message('Only the other designated party can decide this request.'), 403)
         if q['status'] != 'PENDING':
-            fail('This request has already been decided.', 409)
+            fail(_message('This request has already been decided.'), 409)
         self.t.check_version(q, d.get('expected_version'))
         if not withdrawing and d.get('decision') not in ('APPROVE', 'REJECT'):
-            fail('Choose Approve or Reject.')
+            fail(_message('Choose Approve or Reject.'))
         status = 'WITHDRAWN' if withdrawing else 'APPROVED' if d['decision'] == 'APPROVE' else 'REJECTED'
         note = text(d.get('note'), 'Decision note', 1000, status == 'REJECTED')
         if status == 'APPROVED':
@@ -454,15 +454,15 @@ class MeetingService:
             invited = actor in (data.get('attendee_ids') or []) or data.get('organizer_id') == actor
             if (not self.active_reviewer(actor) or not (self.is_participant(m, actor) or invited) or not self.eligible(m, q['requested_by'])
                     or not self.gov.can_staff(q['requested_by'], 'tasks.meetings', 'update')):
-                fail('A responsible participant no longer has authority. Withdraw and submit a new request.', 409)
+                fail(_message('A responsible participant no longer has authority. Withdraw and submit a new request.'), 409)
             if m['version'] != q['base_version']:
-                fail('The meeting changed since this request. Withdraw and request the change again.', 409)
+                fail(_message('The meeting changed since this request. Withdraw and request the change again.'), 409)
             self.save({**data, 'expected_version': m['version']}, q['requested_by'], source)
         MeetingChange.objects.filter(id=q['id']).update(status=status, decision_note=note, decided_by_id=actor, decided_at=timezone.now(),
                                                         version=q['version'] + 1)
-        self.t.log(actor, 'meeting', m['id'], m['workspace_id'], f'Meeting change {status.lower()}', jtext({'request': q['id'], 'note': note, 'source': source}))
-        self.workflow_tell(m, q['approver_id'] if withdrawing else q['requested_by'], actor, f"Meeting change {status.lower()}: {m['title']}")
-        return {'id': m['id'], 'type': 'tm_meeting', 'message': 'Approved change applied.' if status == 'APPROVED' else 'The meeting remains unchanged.'}
+        self.t.log(actor, 'meeting', m['id'], m['workspace_id'], _message('Meeting change {p0}', p0=status.lower()), jtext({'request': q['id'], 'note': note, 'source': source}))
+        self.workflow_tell(m, q['approver_id'] if withdrawing else q['requested_by'], actor, _message('Meeting change {p0}: {p1}', p0=status.lower(), p1=m['title']))
+        return {'id': m['id'], 'type': 'tm_meeting', 'message': _message('Approved change applied.') if status == 'APPROVED' else _message('The meeting remains unchanged.')}
 
     # ------------------------------------------------------------ meeting and note reminders (worker, every minute)
     def event_reminders(self, now=None):
@@ -494,7 +494,7 @@ class MeetingService:
                 if not self.t.calendar_reachable(staff) or not self.scope.can_see_meeting(staff, m):
                     continue
                 zone = self.t.zone_of(staff)
-                remind('MEETING', m['id'], staff, n, m['start_at'], f"{'Starting now' if n == 0 else 'Reminder'}: {m['title']}",
+                remind('MEETING', m['id'], staff, n, m['start_at'], f"{_message('Starting now') if n == 0 else _message('Reminder')}: {m['title']}",
                        f"{dm.at_text(m['start_at'], zone)} ({zone_label(zone)}){' · ' + m['location'] if m['location'] else ''}{' · online' if m['url'] else ''}")
         since = (now - timedelta(days=2)).strftime('%Y-%m-%d')
         for x in (row(n) for n in CalendarNote.objects.filter(done=False, day__gte=since).exclude(reminder_offsets='[]').order_by('id')):
@@ -522,7 +522,7 @@ class MeetingService:
             return self.follow(d, actor)
         if action in ('tm.calnote.save', 'tm.calnote.delete'):
             return self.calendar_note(action, d, actor)
-        fail('Unknown Task Management action.', 404)
+        fail(_message('Unknown Task Management action.'), 404)
 
 
 class _Preview(Exception):

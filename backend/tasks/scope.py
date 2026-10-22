@@ -7,6 +7,7 @@ used by the web app, the Telegram bot, the Mini App, reports, the calendar, expo
  - Unmapped non-Administration accounts receive no operational data, including before structure initialization.
  - Seeing a task never subscribes anyone to its notifications and never grants editing, approval or closing.
 """
+from core.i18n import msg as _message
 import hashlib
 import json
 import uuid
@@ -18,10 +19,10 @@ from organization.models import Profile
 
 from .models import DueDateRequest, Task, TaskAssignee, TaskChangeRequest
 
-SCOPE_REASONS = {'involved': 'You are on this task', 'team': 'Someone in your reporting line is in charge',
-                 'company': 'Company-wide task access', 'organization': 'Organization administrator',
-                 'membership': 'Workspace member', 'owner': 'Workspace owner', 'governance': 'Workspace governance',
-                 'shared': 'Explicitly shared with you'}
+SCOPE_REASONS = {'involved': _message('You are on this task'), 'team': _message('Someone in your reporting line is in charge'),
+                 'company': _message('Company-wide task access'), 'organization': _message('Organization administrator'),
+                 'membership': _message('Workspace member'), 'owner': _message('Workspace owner'), 'governance': _message('Workspace governance'),
+                 'shared': _message('Explicitly shared with you')}
 
 
 def reports_under(staff, links):
