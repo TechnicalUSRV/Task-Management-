@@ -1,4 +1,4 @@
-import { uiText, useLanguage, dynamicLabels, translatedEntries } from "./i18n";
+import { uiText, useLanguage, dynamicLabels, translatedEntries , translatedMap } from "./i18n";
 import { Share2 } from 'lucide-react';
 import { CheckboxField } from './ui-kit';
 import { formatColumnNumber, cellColors } from './group-presentation';
@@ -26,7 +26,7 @@ import { toast } from 'sonner';
 import type { Row } from './components';
 import type { Workspace } from './ui';
 import {
-  COLUMN_TYPES, COLUMN_HINTS, STATUS_COLORS, DEFAULT_STATUS_LABELS, LEVELS, LEVEL_LABELS, LEVEL_HINTS, FORMULA_FUNCTIONS, FORMULA_RULES, FORMULA_ERRORS, GROUP_LIMITS,
+  COLUMN_TYPES as EN_COLUMN_TYPES, COLUMN_HINTS, STATUS_COLORS, DEFAULT_STATUS_LABELS, LEVELS, LEVEL_LABELS as EN_LEVEL_LABELS, LEVEL_HINTS, FORMULA_FUNCTIONS, FORMULA_RULES, FORMULA_ERRORS, GROUP_LIMITS,
   groupCaps, cellText, formatResult, formatDay, cleanCell, columnNameError, compileFormula, previewFormula, statusLabels, emptyValue, levelKey,
 } from './group-domain.mjs';
 import { groupCommand, groupRead, type GroupError } from './group-api';
@@ -40,6 +40,8 @@ import { GoogleSheetsPanel, syncLabel } from './group-sync-ui';
 import { useViewState } from './router';
 import { formatDateTime, plural } from './format';
 import { Alert, Avatar, EmptyState, ErrorState, ExpandableText, Field, FilterBar, FormSection, IconButton, Picker, SearchInput, Segmented, StatusBadge, ToggleFilter, useConfirm, type FilterChip } from './ui-kit';
+const COLUMN_TYPES = translatedMap(EN_COLUMN_TYPES);
+const LEVEL_LABELS = translatedMap(EN_LEVEL_LABELS);
 
 type ColumnType = keyof typeof COLUMN_TYPES;
 const TYPE_ICON: Record<string, LucideIcon> = { TEXT: Type, DATE: CalendarDays, NUMBER: Hash, STATUS: Tags, IN_CHARGE: User, SUPPORT: Users, FORMULA: Calculator, ATTACHMENT: Paperclip };

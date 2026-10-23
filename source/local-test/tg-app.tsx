@@ -1,4 +1,4 @@
-import { getLocale, getLanguage, getLanguageRevision, receiveLanguage, useLanguage, uiText, dynamicLabels, translatedEntries } from './i18n';
+import { getLocale, getLanguage, getLanguageRevision, receiveLanguage, useLanguage, uiText, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from './i18n';
 import { LanguageSelector } from './language-selector';
 import { CameraAttachment } from './camera-attachment';
 import { TaskCategories, TaskVisibility, TaskSharing } from './task-access-ui';
@@ -18,9 +18,9 @@ import {
   Lock, MessageSquare, NotebookPen, Paperclip, Pencil, PieChart, PlayCircle, Plus, Repeat, RotateCcw, Scale, Search, Send, Settings, ShieldCheck, Trash2, Undo2, UserCheck, UserPlus, UserRoundCog, Users, Video, X, XCircle, type LucideIcon,
 } from 'lucide-react';
 import {
-  enrichedTasks, taskActions, taskStateLabel, waitingFor, dueDecider, REQUEST_STATUS, OPEN_TASK_STATUSES, RECURRENCE, RECURRENCE_SHORT, TASK_FILE_ACCEPT, PREVIEW_TYPES,
-  formatMinutes, taskToday, addDays, daysBetween, currentMonth, monthBounds, shiftMonth, MONTHLY_CATEGORIES,
-  CHANGE_KIND, CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, editApprovalTarget, assignerOf, assignedByMe, completionApprover, completionPath, reminderDays, reminderText, toReviewOrApprove, twoSided,
+  enrichedTasks, taskActions, taskStateLabel, waitingFor, dueDecider, REQUEST_STATUS as EN_REQUEST_STATUS, OPEN_TASK_STATUSES, RECURRENCE as EN_RECURRENCE, RECURRENCE_SHORT as EN_RECURRENCE_SHORT, TASK_FILE_ACCEPT, PREVIEW_TYPES,
+  formatMinutes, taskToday, addDays, daysBetween, currentMonth, monthBounds, shiftMonth, MONTHLY_CATEGORIES as EN_MONTHLY_CATEGORIES,
+  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, editApprovalTarget, assignerOf, assignedByMe, completionApprover, completionPath, reminderDays, reminderText, toReviewOrApprove, twoSided,
   canDecideDue, canManageMeeting, reopenNeedsApproval,
 } from './task-domain.mjs';
 import { fileToBase64, photoFromFile } from './media';
@@ -28,6 +28,12 @@ import { setDisplayZone, zoneName, zonedInput, zonedToIso } from './format';
 import { BrandTitle, LogoIcon } from './brand';
 import { API_BASE, uuid } from './api-client';
 import { PreviewPane, previewKind, type PreviewSource } from './file-preview';
+const REQUEST_STATUS = translatedMap(EN_REQUEST_STATUS);
+const RECURRENCE = translatedMap(EN_RECURRENCE);
+const RECURRENCE_SHORT = translatedMap(EN_RECURRENCE_SHORT);
+const MONTHLY_CATEGORIES = translatedTuples(EN_MONTHLY_CATEGORIES);
+const CHANGE_KIND = translatedMap(EN_CHANGE_KIND);
+const CHANGE_STATUS = translatedMap(EN_CHANGE_STATUS);
 
 // The Telegram Mini App: a phone-sized screen for Task Management inside Telegram. It talks only to the
 // Mini App gateway, which checks Telegram's signed launch data and applies the person's Task Controlling Management permissions.
@@ -909,14 +915,14 @@ function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; 
 }
 
 // ------------------------------------------------------------------ task detail
-const HISTORY: Record<string, string> = {
+const HISTORY: Record<string, string> = translatedMap({
   create: 'created the task', accept: 'accepted the task', decline: 'rejected the task', progress: 'updated progress', stuck: 'marked it stuck', resume: 'resumed work', submit: 'submitted for review', return: 'returned it',
   close: 'closed it', cancel: 'cancelled it', reopen: 'reopened it', note: 'commented', edit: 'changed details', due_request: 'asked for a new due date', due_change: 'changed the due date', due_declined: 'declined a new due date', due_withdrawn: 'withdrew a due date request',
   support_accept: 'accepted to support', support_decline: 'rejected supporting', review_accept: 'accepted to review', review_decline: 'rejected reviewing', handover: 'handed the task over', remind: 'sent a reminder',
   checklist: 'updated the steps of work', file: 'added a file', file_removed: 'removed a file',
   pass: 'passed it on for approval', change_request: 'asked for approval', change_rejected: 'rejected a change', change_withdrawn: 'withdrew a request', change_closed: 'closed a request', reminders: 'changed the reminders',
-};
-const ASKED: Record<string, string> = { pic: 'to take charge of this task', supporter: 'to support this task', reviewer: 'to review this task' };
+});
+const ASKED: Record<string, string> = translatedMap({ pic: 'to take charge of this task', supporter: 'to support this task', reviewer: 'to review this task' });
 function TaskView({ c, id }: { c: Ctx; id: string }) {
   useLanguage();
   const [deliveryOpen,setDeliveryOpen] = useState(false);

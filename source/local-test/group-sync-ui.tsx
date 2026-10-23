@@ -1,4 +1,4 @@
-import { uiText, useLanguage } from "./i18n";
+import { uiText, useLanguage , translatedMap } from "./i18n";
 // V5.5 Groups · Settings & sharing → Google Sheets: connect a group to one worksheet, choose the direction and the
 // columns, check exactly what would be shared, then start, pause, sync now, resolve conflicts or disconnect.
 // Tokens and secrets never reach the browser; every action is checked again on the server.
@@ -8,17 +8,18 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { Row } from './components';
 import type { Workspace } from './ui';
-import { COLUMN_TYPES } from './group-domain.mjs';
+import { COLUMN_TYPES as EN_COLUMN_TYPES } from './group-domain.mjs';
 import { groupPost, groupRead } from './group-api';
 import { formatDateTime, plural } from './format';
 import { Alert, ButtonLink, Card, CheckboxField, EmptyState, Field, Picker, StatusBadge, useConfirm } from './ui-kit';
+const COLUMN_TYPES = translatedMap(EN_COLUMN_TYPES);
 
 const call = async (data: Row): Promise<Row> => (await groupPost('/api/google', data)).result ?? {};
-const DIRECTION_HELP: Record<string, string> = {
+const DIRECTION_HELP: Record<string, string> = translatedMap({
   TO_SHEETS: 'The sheet is a copy of the group. Edits made in the sheet to these columns are replaced at the next sync.',
   FROM_SHEETS: 'The sheet is the source. Its values replace the group’s values in these columns; new sheet rows become group rows.',
   TWO_WAY: 'Edits on either side are copied to the other. A cell changed on both sides since the last sync is shown as a conflict for you to resolve.',
-};
+});
 const STATUS_TONE: Record<string, 'success' | 'warning' | 'danger' | 'neutral'> = { ACTIVE: 'success', PAUSED: 'neutral', ERROR: 'danger' };
 export const syncLabel = (s: Row) => s.status === 'ACTIVE' ? `Google Sheets · ${s.last_success_at ? `synced ${formatDateTime(s.last_success_at)}` : 'starting'}` : s.status === 'PAUSED' ? uiText("Google Sheets · paused") : uiText("Google Sheets · stopped");
 

@@ -1,4 +1,4 @@
-import { uiText, useLanguage, dynamicLabels, translatedEntries } from "./i18n";
+import { uiText, useLanguage, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from "./i18n";
 import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -16,8 +16,8 @@ import { toast } from 'sonner';
 import type { Row } from './components';
 import type { Workspace } from './ui';
 import {
-  TASK_STATUS, REQUEST_STATUS, TASK_SOURCES, MONTHLY_CATEGORIES, RECURRENCE_SHORT, ROLE_LABEL, TASK_FILE_ACCEPT, PREVIEW_TYPES, OPEN_TASK_STATUSES, enrichedTasks, taskActions, waitingFor, taskStateLabel, taskToday, addDays, currentMonth, monthBounds, shiftMonth, formatMinutes,
-  CHANGE_KIND, CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, assignerOf, completionApprover, completionPath, reminderDays, reminderText, twoSided, canDecideDue, reopenNeedsApproval,
+  TASK_STATUS as EN_TASK_STATUS, REQUEST_STATUS as EN_REQUEST_STATUS, TASK_SOURCES as EN_TASK_SOURCES, MONTHLY_CATEGORIES as EN_MONTHLY_CATEGORIES, RECURRENCE_SHORT as EN_RECURRENCE_SHORT, ROLE_LABEL as EN_ROLE_LABEL, TASK_FILE_ACCEPT, PREVIEW_TYPES, OPEN_TASK_STATUSES, enrichedTasks, taskActions, waitingFor, taskStateLabel, taskToday, addDays, currentMonth, monthBounds, shiftMonth, formatMinutes,
+  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, assignerOf, completionApprover, completionPath, reminderDays, reminderText, twoSided, canDecideDue, reopenNeedsApproval,
 } from './task-domain.mjs';
 import { CameraAttachment } from './camera-attachment';
 import { TaskSharing, TaskVisibility } from './task-access-ui';
@@ -32,6 +32,14 @@ import {
   Alert, Avatar, AvatarStack, ButtonLink, Card, CheckboxField, DataTable, DateText, EmptyState, ErrorState, ExpandableText, Field, FilterBar, FilterSelect, FormSection, IconButton, KeyValues,
   PeoplePicker, PersonPicker, Picker, PriorityBadge, ProgressBar, Segmented, StatCard, StatusBadge, buildChips, useConfirm, useFormErrors, type Column, type PersonOption, type Tone,
 } from './ui-kit';
+const TASK_STATUS = translatedMap(EN_TASK_STATUS);
+const REQUEST_STATUS = translatedMap(EN_REQUEST_STATUS);
+const TASK_SOURCES = translatedMap(EN_TASK_SOURCES);
+const MONTHLY_CATEGORIES = translatedTuples(EN_MONTHLY_CATEGORIES);
+const RECURRENCE_SHORT = translatedMap(EN_RECURRENCE_SHORT);
+const ROLE_LABEL = translatedMap(EN_ROLE_LABEL);
+const CHANGE_KIND = translatedMap(EN_CHANGE_KIND);
+const CHANGE_STATUS = translatedMap(EN_CHANGE_STATUS);
 
 // ------------------------------------------------------------------ shared helpers
 // V5.6.8: "Accepted" is a task that has not started yet (neutral, like the Not started column it sits in); only work in
@@ -40,7 +48,7 @@ export const STATE_TONES: Record<string, Tone> = { 'Awaiting acceptance': 'warni
 export function TaskStateBadge({ task }: { task: Row }) {
   useLanguage();
   const label = taskStateLabel(task);
-  return <StatusBadge value={label} label={label} tone={STATE_TONES[label] || 'neutral'} title={task.stuck ? uiText("Stuck: {p0}", { p0: task.stuck_reason }) : task.declined ? uiText("Rejected: {p0}", { p0: task.declined_reason }) : undefined} />;
+  return <StatusBadge value={label} label={uiText(label)} tone={STATE_TONES[label] || 'neutral'} title={task.stuck ? uiText("Stuck: {p0}", { p0: task.stuck_reason }) : task.declined ? uiText("Rejected: {p0}", { p0: task.declined_reason }) : undefined} />;
 }
 export const useTasks = (w: Workspace) => useMemo(() => enrichedTasks(w.data), [w.data]);
 export const canApproveTasks = (w: Workspace) => w.can('tasks.tasks', 'approve');
@@ -50,9 +58,9 @@ export const involvedIn = (t: Row) => !t.access_reason || t.access_reason === 'i
  *  governance or company-wide access is for viewing only (the server applies the same rule). */
 export const canApproveOn = (w: Workspace, t: Row) => canApproveTasks(w) && involvedIn(t);
 /** Why a task someone is not on is visible to them. Every reason other than 'involved' is view-only. */
-export const SCOPE_NOTE: Record<string, string> = { team: 'Someone in your reporting line is in charge', company: 'Company-wide task access', governance: 'Workspace governance', organization: 'Organization administration', membership: 'Workspace membership', owner: 'Workspace ownership' };
+export const SCOPE_NOTE: Record<string, string> = translatedMap({ team: 'Someone in your reporting line is in charge', company: 'Company-wide task access', governance: 'Workspace governance', organization: 'Organization administration', membership: 'Workspace membership', owner: 'Workspace ownership' });
 /** The same reasons as short marks beside a task's title in lists, cards and the board. */
-export const SCOPE_CHIP: Record<string, string> = { team: 'Team', company: 'Company', governance: 'Governance', organization: 'Organization', membership: 'Membership', owner: 'Ownership' };
+export const SCOPE_CHIP: Record<string, string> = translatedMap({ team: 'Team', company: 'Company', governance: 'Governance', organization: 'Organization', membership: 'Membership', owner: 'Ownership' });
 /** V5.6.8: organization requests waiting for this person's decision (the server sends the list, or only their number). */
 export function orgPending(data: Row): { count: number; items: Row[] } {
   const p = data.organization?.pending;
@@ -100,7 +108,7 @@ export function SupportNote({ task, staff }: { task: Row; staff: string }) {
 // ------------------------------------------------------------------ V5.4 two-party approval
 const parseChanges = (c: Row): Row[] => { try { return JSON.parse(c.changes_json || '[]'); } catch { return []; } };
 const CHANGE_TONE: Record<string, Tone> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', WITHDRAWN: 'neutral', CLOSED: 'neutral' };
-const DECIDED: Record<string, string> = { APPROVED: 'Approved', REJECTED: 'Rejected', WITHDRAWN: 'Withdrawn', CLOSED: 'Closed' };
+const DECIDED: Record<string, string> = translatedMap({ APPROVED: 'Approved', REJECTED: 'Rejected', WITHDRAWN: 'Withdrawn', CLOSED: 'Closed' });
 /** What changes, field by field: previous value → new value. */
 export function ChangeList({ changes }: { changes: Row[] }) {
   useLanguage();
@@ -237,7 +245,7 @@ const HISTORY_LABEL: Record<string, string> = {
   handover: 'Handed the task over', remind: 'Sent a reminder', checklist: 'Steps of work', file: 'Added a file', file_removed: 'Removed a file',
 };
 const ACTION_ORDER = ['accept', 'decline', 'review-close', 'pass', 'return', 'progress', 'submit', 'close', 'resume', 'stuck', 'due', 'handover', 'remind', 'reminders', 'edit', 'reopen', 'cancel'];
-const ASKED: Record<string, string> = { pic: 'to take charge of this task', supporter: 'to support this task', reviewer: 'to review this task' };
+const ASKED: Record<string, string> = translatedMap({ pic: 'to take charge of this task', supporter: 'to support this task', reviewer: 'to review this task' });
 
 export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskId: string; onClose: () => void; onEdit: (t: Row) => void }) {
   useLanguage();
@@ -808,8 +816,8 @@ const KIND_ICON: Record<string, LucideIcon> = {
   telegram_connected: Send, task_stuck: Hand, task_resumed: PlayCircle, task_progress: PlayCircle, task_submitted: Send, task_closed: CheckCircle2, task_returned: Undo2, task_cancelled: Ban, task_reopened: RotateCcw, task_note: MessageSquare,
   change_request: Scale, change_approved: CheckCheck, change_rejected: XCircle, change_withdrawn: CircleSlash, task_passed: ArrowRight,
 };
-const WAIT_ROLE: Record<string, string> = { pic: 'Take charge?', supporter: 'Support?', reviewer: 'Review?' };
-const ORG_KIND: Record<string, string> = { MEMBERSHIP: 'Workspace membership', DELEGATION: 'Delegated authority', STRUCTURE: 'Reporting change' };
+const WAIT_ROLE: Record<string, string> = translatedMap({ pic: 'Take charge?', supporter: 'Support?', reviewer: 'Review?' });
+const ORG_KIND: Record<string, string> = translatedMap({ MEMBERSHIP: 'Workspace membership', DELEGATION: 'Delegated authority', STRUCTURE: 'Reporting change' });
 /** Opens Organizational Structure on one request (its Approvals tab), or on the page when no request is named. */
 const orgAddress = (id?: string) => '/tasks/organization' + (id ? '?org_request=' + encodeURIComponent(id) : '');
 

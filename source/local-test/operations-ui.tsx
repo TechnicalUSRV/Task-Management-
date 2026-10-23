@@ -1,4 +1,4 @@
-import { uiText, useLanguage, translatedEntries } from "./i18n";
+import { uiText, useLanguage, translatedEntries , translatedMap } from "./i18n";
 import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -27,7 +27,7 @@ import {
 
 type RequestType = keyof typeof REQUEST_TYPES;
 const TYPE_ORDER: RequestType[] = ['QUOTATION', 'PO', 'JOB', 'DN', 'PR'];
-const SHORT: Record<string, string> = { QUOTATION: 'Quotation', PO: 'Purchase order', JOB: 'Job file', DN: 'Debit note', PR: 'Payment request' };
+const SHORT: Record<string, string> = translatedMap({ QUOTATION: 'Quotation', PO: 'Purchase order', JOB: 'Job file', DN: 'Debit note', PR: 'Payment request' });
 const SOURCE_TYPE: Record<string, RequestType> = { PO: 'QUOTATION', JOB: 'PO', DN: 'JOB', PR: 'DN' };
 const opts = (v: string[]): [string, string][] => v.map(k => [k, statusLabel(k)]);
 const newCharge = (): Row => ({ description: '', unit: 'service', quantity: '1', unit_price: '0', discount: '0', percentage_discount: '0', tax_percent: '0', category: '', container_size: 'ALL', rate_basis: 'SHIPMENT', remark: '' });

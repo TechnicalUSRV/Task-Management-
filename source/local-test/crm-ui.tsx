@@ -1,4 +1,4 @@
-import { uiText, useLanguage } from "./i18n";
+import { uiText, useLanguage , translatedMap } from "./i18n";
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowUpRight, CalendarClock, CheckCircle2, Download, FileText, Link2, Mail, Megaphone, Pencil, Phone, Plus, Printer, Truck, UserRound, Users,
@@ -21,15 +21,15 @@ import {
   statusLabel, type Column, type DateRange,
 } from './ui-kit';
 
-const TYPE_LABEL: Record<string, string> = { contact: 'Contact', lead: 'Lead', opportunity: 'Opportunity', quotation: 'Sales quotation', account: 'Business Account', campaign: 'Campaign', order: 'Sales order' };
-const DESCRIPTIONS: Record<string, string> = {
+const TYPE_LABEL: Record<string, string> = translatedMap({ contact: 'Contact', lead: 'Lead', opportunity: 'Opportunity', quotation: 'Sales quotation', account: 'Business Account', campaign: 'Campaign', order: 'Sales order' });
+const DESCRIPTIONS: Record<string, string> = translatedMap({
   contact: 'Customers and the people you deal with. Every lead, deal, quotation and account stays connected to its contact.',
   lead: 'Inquiries to qualify. Qualified leads convert into opportunities.',
   opportunity: 'Deals in progress. Build pricing, then close each one as won or lost.',
   quotation: 'Formal quotations created from won opportunities, with revisions and ordered approvals.',
   account: 'Created automatically when an opportunity is won. All customer history stays connected.',
   campaign: 'Outreach that generates leads from contacts who respond.',
-};
+});
 const titleFor = (r: Row) => r.title || r.name || r.customer_name || r.subject || r.id;
 const statusOf = (r: Row) => r.status || (r.active === 0 ? 'INACTIVE' : 'ACTIVE');
 const staffOptions = (w: Workspace): [string, string][] => w.data.lookups.filter((r: Row) => r.kind === 'staff').map((r: Row) => [r.id, r.name]);

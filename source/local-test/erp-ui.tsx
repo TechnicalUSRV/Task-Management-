@@ -1,4 +1,4 @@
-import { getLanguage, uiText, useLanguage } from "./i18n";
+import { getLanguage, uiText, useLanguage , translatedMap } from "./i18n";
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -54,7 +54,7 @@ const LIST: Record<string, { title: string; description: string; icon: LucideIco
   'crm-followups': { get title() { return uiText("CRM follow-ups"); }, get description() { return uiText("Open calls, meetings and follow-ups, earliest first"); }, icon: UserRound, get empty() { return uiText("No open follow-ups in this period."); } },
   'team-meetings': { get title() { return uiText("Meeting schedule"); }, get description() { return uiText("Scheduled meetings, earliest first"); }, icon: CalendarDays, get empty() { return uiText("No scheduled meetings in this period."); } },
 };
-const SHIPMENT_LABEL: Record<string, string> = { CLOSED: 'Delivered (closed)', ARRIVED_PORT: 'Arrived at port', IN_TRANSIT: 'In transit', DELIVERING: 'Delivering' };
+const SHIPMENT_LABEL: Record<string, string> = translatedMap({ CLOSED: 'Delivered (closed)', ARRIVED_PORT: 'Arrived at port', IN_TRANSIT: 'In transit', DELIVERING: 'Delivering' });
 const TARGET_ICON: Record<string, LucideIcon> = { contact: UserRound, lead: UserRound, opportunity: Target, quotation: FileText, account: BadgeCheck, activity: Clock3, campaign: Layers3, tm_task: ListTodo, tm_meeting: CalendarDays, tm_time: Clock3, tm_workspace: Layers3, tm_profile: Users, operations: Truck };
 
 const EMPTY_FILTERS = { modules: [] as string[], from: '', to: '', preset: 'all' };
@@ -199,7 +199,7 @@ export function ERPDashboard(w: Workspace & { drill: (f: Row) => void }) {
 }
 
 // ================================================================ drill-down record explorer
-const FILTER_LABEL: Record<string, string> = { statuses: 'Status', categories: 'Category', assignees: 'Assigned to', clients: 'Client', accounts: 'Business Account', opportunities: 'Opportunity', users: 'User', departments: 'Department', modules: 'Module' };
+const FILTER_LABEL: Record<string, string> = translatedMap({ statuses: 'Status', categories: 'Category', assignees: 'Assigned to', clients: 'Client', accounts: 'Business Account', opportunities: 'Opportunity', users: 'User', departments: 'Department', modules: 'Module' });
 
 export function SourceExplorer(w: Workspace & { filters: Row; onBack: () => void }) {
   useLanguage();

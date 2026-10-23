@@ -704,7 +704,8 @@
     "source/local-test/operations-ui.tsx"
   ],
   "A/F verification": [
-    "source/local-test/operations-ui.tsx"
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "A/F verification clears the remaining AR and marks the sale paid. The original Debit Note, earlier receipts and this verification stay in the audit history.": [
     "source/local-test/operations-ui.tsx"
@@ -793,6 +794,7 @@
   "Accepted": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -1071,6 +1073,9 @@
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tasks-ui.tsx"
   ],
+  "Add team member": [
+    "source/local-test/tasks-ui.tsx"
+  ],
   "Add the bot to a Telegram group, then an administrator or the workspace owner sends ": [
     "source/local-test/telegram-ui.tsx"
   ],
@@ -1195,7 +1200,8 @@
     "source/local-test/operations-ui.tsx"
   ],
   "After sale": [
-    "source/local-test/components.tsx"
+    "source/local-test/components.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "After-sale forecast value": [
     "source/local-test/components.tsx"
@@ -1562,7 +1568,9 @@
   "Approved": [
     "source/local-test/crm-ui.tsx",
     "source/local-test/operations-ui.tsx",
-    "source/local-test/organization-ui.tsx"
+    "source/local-test/organization-ui.tsx",
+    "source/local-test/task-domain.mjs",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Approved COA posting register": [
     "source/local-test/operations-ui.tsx"
@@ -1647,6 +1655,10 @@
   ],
   "Archived workspaces are read-only and hidden by default. Tasks, time and history are kept. Open tasks and scheduled meetings must be finished or cancelled first.": [
     "source/local-test/tasks-ui.tsx"
+  ],
+  "Arrived at port": [
+    "source/local-test/erp-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "As entered (up to 6)": [
     "source/local-test/groups-ui.tsx"
@@ -1786,7 +1798,8 @@
   ],
   "Assigned to": [
     "source/local-test/components.tsx",
-    "source/local-test/crm-ui.tsx"
+    "source/local-test/crm-ui.tsx",
+    "source/local-test/erp-ui.tsx"
   ],
   "Assigned to ": [
     "source/local-test/access-ui.tsx"
@@ -1826,7 +1839,8 @@
     "source/local-test/groups-ui.tsx"
   ],
   "Attachment": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Attempts": [
     "source/local-test/telegram-ui.tsx"
@@ -2059,6 +2073,9 @@
   "CSV downloaded": [
     "source/local-test/erp-ui.tsx"
   ],
+  "CSV table": [
+    "source/local-test/file-preview.tsx"
+  ],
   "Calculated for each row from values in the ": [
     "source/local-test/groups-ui.tsx"
   ],
@@ -2066,6 +2083,7 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Calendar": [
+    "source/local-test/task-domain.mjs",
     "source/local-test/tg-app.tsx"
   ],
   "Calendar view": [
@@ -2122,19 +2140,22 @@
     "source/local-test/groups-ui.tsx"
   ],
   "Can edit records": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Can edit: changes you make in this column are saved in the source group and recorded in its edit history.": [
     "source/local-test/group-live-ui.tsx"
   ],
   "Can manage": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Can sign in": [
     "source/local-test/access-ui.tsx"
   ],
   "Can view": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Can view: read only. Can edit records: add, change and delete rows. Can manage: also change columns, formulas and sharing. ": [
     "source/local-test/groups-ui.tsx"
@@ -2181,6 +2202,9 @@
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
+  "Cancel the task": [
+    "source/local-test/task-domain.mjs"
+  ],
   "Cancel this meeting?": [
     "source/local-test/tg-app.tsx"
   ],
@@ -2202,6 +2226,7 @@
     "backend/tasks/services.py",
     "source/local-test/crm-ui.tsx",
     "source/local-test/organization-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -2263,6 +2288,7 @@
   ],
   "Category": [
     "backend/compat/reports.py",
+    "source/local-test/erp-ui.tsx",
     "source/local-test/operations-ui.tsx"
   ],
   "Cell colors": [
@@ -2296,6 +2322,9 @@
   ],
   "Change code": [
     "source/local-test/organization-ui.tsx"
+  ],
+  "Change details": [
+    "source/local-test/task-domain.mjs"
   ],
   "Change ownership in Organizational Structure after reviewing the affected scope.": [
     "source/local-test/tasks-ui.tsx"
@@ -2351,7 +2380,8 @@
     "source/local-test/organization-ui.tsx"
   ],
   "Changed": [
-    "source/local-test/admin-functions.tsx"
+    "source/local-test/admin-functions.tsx",
+    "source/local-test/group-live-ui.tsx"
   ],
   "Changed by": [
     "source/local-test/organization-ui.tsx"
@@ -3048,7 +3078,9 @@
   ],
   "Closed": [
     "source/local-test/finance-ui.tsx",
-    "source/local-test/operations-ui.tsx"
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/task-domain.mjs",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Closed as lost": [
     "source/local-test/crm-ui.tsx"
@@ -3207,6 +3239,7 @@
   "Company": [
     "source/local-test/access-ui.tsx",
     "source/local-test/admin-functions.tsx",
+    "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "Company & modules": [
@@ -3264,7 +3297,8 @@
     "source/local-test/profile-ui.tsx"
   ],
   "Company-wide task access": [
-    "backend/tasks/scope.py"
+    "backend/tasks/scope.py",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Complete or cancel open tasks and meetings before archiving this workspace.": [
     "backend/workspaces/services.py"
@@ -3273,12 +3307,16 @@
     "source/local-test/organization-ui.tsx",
     "source/local-test/ui-kit/forms.tsx"
   ],
+  "Complete the task": [
+    "source/local-test/task-domain.mjs"
+  ],
   "Completed": [
     "backend/compat/reports.py",
     "backend/tasks/domain.py",
     "backend/tasks/services.py",
     "backend/telegram/bot.py",
     "source/local-test/crm-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -3708,6 +3746,9 @@
     "source/local-test/operations-ui.tsx",
     "source/local-test/task-workflow-ui.tsx"
   ],
+  "Created automatically when an opportunity is won. All customer history stays connected.": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Created by ": [
     "source/local-test/operations-ui.tsx"
   ],
@@ -3816,6 +3857,9 @@
   "Customers": [
     "source/local-test/ui.tsx"
   ],
+  "Customers and the people you deal with. Every lead, deal, quotation and account stays connected to its contact.": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Customer…": [
     "source/local-test/operations-ui.tsx"
   ],
@@ -3868,6 +3912,7 @@
     "source/local-test/calendar-ui.tsx",
     "source/local-test/crm-ui.tsx",
     "source/local-test/erp-ui.tsx",
+    "source/local-test/group-domain.mjs",
     "source/local-test/operations-ui.tsx",
     "source/local-test/organization-ui.tsx",
     "source/local-test/tg-app.tsx"
@@ -3921,6 +3966,9 @@
   "Deal activity": [
     "source/local-test/components.tsx"
   ],
+  "Deals in progress. Build pricing, then close each one as won or lost.": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Debit Note date": [
     "backend/compat/reports.py"
   ],
@@ -3931,7 +3979,9 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Debit note": [
-    "source/local-test/finance-ui.tsx"
+    "source/local-test/finance-ui.tsx",
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Dec": [
     "backend/tasks/domain.py",
@@ -3945,6 +3995,9 @@
   ],
   "Decide or withdraw the pending meeting change first.": [
     "backend/meetings/services.py"
+  ],
+  "Decided when accepted": [
+    "source/local-test/task-domain.mjs"
   ],
   "Decides": [
     "source/local-test/task-workflow-ui.tsx"
@@ -3976,7 +4029,8 @@
     "source/local-test/task-workflow-ui.tsx"
   ],
   "Declined": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Declined by ": [
     "source/local-test/tg-app.tsx"
@@ -4010,7 +4064,8 @@
     "source/local-test/organization-ui.tsx"
   ],
   "Delegated authority": [
-    "source/local-test/organization-ui.tsx"
+    "source/local-test/organization-ui.tsx",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Delegated capabilities": [
     "source/local-test/organization-ui.tsx"
@@ -4023,6 +4078,9 @@
   ],
   "Delegation needs a configured Level 3+ employee and a valid Level 2 manager.": [
     "backend/organization/governance.py"
+  ],
+  "Delegation request": [
+    "source/local-test/organization-ui.tsx"
   ],
   "Delete": [
     "source/local-test/calendar-ui.tsx",
@@ -4122,8 +4180,14 @@
   "Deleting a row on one side deletes it on the other": [
     "source/local-test/group-sync-ui.tsx"
   ],
+  "Delivered (closed)": [
+    "source/local-test/erp-ui.tsx"
+  ],
   "Delivered / closed date": [
     "source/local-test/operations-ui.tsx"
+  ],
+  "Delivering": [
+    "source/local-test/erp-ui.tsx"
   ],
   "Delivery / shipment reference": [
     "source/local-test/components.tsx"
@@ -4403,7 +4467,8 @@
     "source/local-test/crm-ui.tsx"
   ],
   "Does not repeat": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Done": [
     "backend/groups/domain.py",
@@ -4612,12 +4677,18 @@
   "Each supporting person is asked to accept or reject.": [
     "source/local-test/tg-app.tsx"
   ],
+  "Earlier handoff": [
+    "source/local-test/ui-kit/display.tsx"
+  ],
   "Earlier sales handoffs": [
     "source/local-test/crm-ui.tsx",
     "source/local-test/operations-ui.tsx"
   ],
   "Earlier text": [
     "source/local-test/group-tools-ui.tsx"
+  ],
+  "Earlier version": [
+    "source/local-test/task-domain.mjs"
   ],
   "Edit": [
     "source/local-test/access-ui.tsx",
@@ -4691,6 +4762,9 @@
   ],
   "Editing cell formatting requires record-edit access.": [
     "backend/groups/presentation.py"
+  ],
+  "Edits on either side are copied to the other. A cell changed on both sides since the last sync is shown as a conflict for you to resolve.": [
+    "source/local-test/group-sync-ui.tsx"
   ],
   "Effort": [
     "source/local-test/task-workflow-ui.tsx"
@@ -4894,7 +4968,8 @@
     "source/local-test/crm-ui.tsx"
   ],
   "Every day": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Every eligible employee is already a member.": [
     "source/local-test/tasks-ui.tsx"
@@ -4906,7 +4981,8 @@
     "source/local-test/groups-ui.tsx"
   ],
   "Every month": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Every page, not only the rows on screen.": [
     "source/local-test/group-tools-ui.tsx"
@@ -4933,10 +5009,12 @@
     "source/local-test/tg-app.tsx"
   ],
   "Every week": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Every weekday (Mon–Fri)": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Every won deal has a quotation": [
     "source/local-test/crm-workflow.tsx"
@@ -4996,6 +5074,9 @@
   "Examples of what will be saved": [
     "source/local-test/group-import-ui.tsx"
   ],
+  "Excel 97–2003 workbook": [
+    "source/local-test/file-preview.tsx"
+  ],
   "Excel column": [
     "source/local-test/group-import-ui.tsx"
   ],
@@ -5005,8 +5086,14 @@
   "Excel formulas are not calculated: their saved results are imported. Group formula columns keep calculating themselves.": [
     "source/local-test/group-import-ui.tsx"
   ],
+  "Excel or group import": [
+    "source/local-test/group-live-ui.tsx"
+  ],
   "Excel shows the error {p0} here, so it was left empty.": [
     "backend/groups/imports.py"
+  ],
+  "Excel workbook": [
+    "source/local-test/file-preview.tsx"
   ],
   "Excel workbook to import": [
     "source/local-test/group-import-ui.tsx"
@@ -5222,7 +5309,8 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Finance verified": [
-    "source/local-test/finance-ui.tsx"
+    "source/local-test/finance-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Finance · Payables": [
     "backend/compat/reports.py"
@@ -5333,11 +5421,15 @@
   "Formal quotations are created from won opportunities.": [
     "source/local-test/crm-ui.tsx"
   ],
+  "Formal quotations created from won opportunities, with revisions and ordered approvals.": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Format {p0} cell colors": [
     "source/local-test/group-cell-format.tsx"
   ],
   "Formula": [
     "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs",
     "source/local-test/groups-ui.tsx"
   ],
   "Formula for ": [
@@ -5407,6 +5499,9 @@
   ],
   "Functions, examples and rules": [
     "source/local-test/groups-ui.tsx"
+  ],
+  "GIF image": [
+    "source/local-test/file-preview.tsx"
   ],
   "Garment quotations need container-size-specific rates.": [
     "source/local-test/operations-ui.tsx"
@@ -5482,6 +5577,9 @@
   ],
   "Google sign-in (OAuth client)": [
     "source/local-test/group-sync-ui.tsx"
+  ],
+  "Governance": [
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Governance is not initialized": [
     "source/local-test/organization-ui.tsx"
@@ -5585,6 +5683,7 @@
     "backend/groups/views.py"
   ],
   "Groups": [
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/telegram-ui.tsx",
     "source/local-test/tg-app.tsx",
@@ -5607,6 +5706,9 @@
   ],
   "H:MM": [
     "backend/compat/reports.py"
+  ],
+  "HEIC photo": [
+    "source/local-test/file-preview.tsx"
   ],
   "Hand over": [
     "source/local-test/task-workflow-ui.tsx",
@@ -5781,6 +5883,9 @@
   "Import steps": [
     "source/local-test/group-import-ui.tsx"
   ],
+  "Imported": [
+    "source/local-test/group-live-ui.tsx"
+  ],
   "Imported from Excel": [
     "backend/groups/imports.py"
   ],
@@ -5798,7 +5903,8 @@
     "source/local-test/tg-app.tsx"
   ],
   "In Charge": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "In Google Cloud console, create (or choose) a project and enable the ": [
     "source/local-test/group-sync-ui.tsx"
@@ -5829,6 +5935,7 @@
     "backend/compat/reports.py",
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -5837,13 +5944,21 @@
   ],
   "In review": [
     "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tg-app.tsx"
   ],
   "In the Task Controlling Management, click your name (top right) and choose ": [
     "source/local-test/tg-app.tsx"
   ],
+  "In the source group": [
+    "source/local-test/group-live-ui.tsx"
+  ],
   "In this company": [
     "source/local-test/access-ui.tsx"
+  ],
+  "In transit": [
+    "source/local-test/erp-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "In your Google Drive, shared with nobody else until you share it.": [
     "source/local-test/group-sync-ui.tsx"
@@ -5914,6 +6029,9 @@
   ],
   "Initials are shown instead.": [
     "source/local-test/profile-ui.tsx"
+  ],
+  "Inquiries to qualify. Qualified leads convert into opportunities.": [
+    "source/local-test/crm-ui.tsx"
   ],
   "Inquiry source": [
     "source/local-test/components.tsx"
@@ -6098,6 +6216,9 @@
   "Its {p0} {p1} and {p2} {p3} are kept but can’t be changed while it is archived. It can be restored, or deleted permanently.": [
     "source/local-test/groups-ui.tsx"
   ],
+  "JPEG image": [
+    "source/local-test/file-preview.tsx"
+  ],
   "JSON is required.": [
     "backend/accounts/views.py",
     "backend/core/errors.py",
@@ -6124,6 +6245,10 @@
   ],
   "Job File issue deadlines": [
     "source/local-test/operations-ui.tsx"
+  ],
+  "Job file": [
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Join online": [
     "source/local-test/tg-app.tsx"
@@ -6329,6 +6454,9 @@
   ],
   "Leave without saving?": [
     "source/local-test/tasks-ui.tsx"
+  ],
+  "Legacy": [
+    "source/local-test/organization-ui.tsx"
   ],
   "Legacy data and access are preserved. ": [
     "source/local-test/organization-ui.tsx"
@@ -6581,6 +6709,9 @@
   "Log calls, meetings and follow-ups to keep the customer history complete.": [
     "source/local-test/crm-ui.tsx"
   ],
+  "Log time": [
+    "source/local-test/tasks-ui.tsx"
+  ],
   "Log time for someone assigned to this task (the person in charge or a supporting person).": [
     "backend/tasks/services.py"
   ],
@@ -6815,7 +6946,8 @@
     "source/local-test/tasks-ui.tsx"
   ],
   "Meeting register": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Meeting reminders": [
     "source/local-test/tg-app.tsx"
@@ -6883,11 +7015,17 @@
   "Members from your team": [
     "source/local-test/tasks-ui.tsx"
   ],
+  "Membership": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Membership access ends immediately. Independently authorized task/meeting participation is retained.": [
     "source/local-test/organization-ui.tsx"
   ],
   "Membership already removed.": [
     "backend/organization/governance.py"
+  ],
+  "Membership request": [
+    "source/local-test/organization-ui.tsx"
   ],
   "Membership-based access will be revoked. Existing tasks, history and independently authorized participation are retained.": [
     "source/local-test/tasks-ui.tsx"
@@ -6933,6 +7071,9 @@
     "source/local-test/components.tsx",
     "source/local-test/crm-ui.tsx"
   ],
+  "Module": [
+    "source/local-test/erp-ui.tsx"
+  ],
   "Module off": [
     "source/local-test/admin-functions.tsx"
   ],
@@ -6965,10 +7106,12 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Monthly completed tasks": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Monthly overdue tasks": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Monthly report": [
     "source/local-test/tasks-ui.tsx",
@@ -6981,19 +7124,22 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Monthly stuck tasks": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Monthly task report": [
     "backend/telegram/bot.py"
   ],
   "Monthly task summary": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Monthly task summary · {p0}": [
     "source/local-test/task-workflow-ui.tsx"
   ],
   "Monthly tasks in progress": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Months follow Cambodia time. Completed: closed during the month and still closed at its end. In progress: in progress or waiting for review at the end of the month (or today), and not stuck. Stuck: marked stuck at any time during the month. Overdue: still open after the due date at the end of the month (or today), or completed after the due date during the month.": [
     "source/local-test/task-workflow-ui.tsx"
@@ -7281,6 +7427,7 @@
     "source/local-test/tg-app.tsx"
   ],
   "New task": [
+    "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "New task: {p0}": [
@@ -7302,7 +7449,8 @@
     "source/local-test/organization-ui.tsx"
   ],
   "New workspace": [
-    "source/local-test/organization-ui.tsx"
+    "source/local-test/organization-ui.tsx",
+    "source/local-test/tasks-ui.tsx"
   ],
   "New {p0}": [
     "source/local-test/operations-ui.tsx",
@@ -7936,6 +8084,9 @@
     "source/local-test/crm-ui.tsx",
     "source/local-test/operations-ui.tsx"
   ],
+  "Not received": [
+    "source/local-test/ui-kit/display.tsx"
+  ],
   "Not running": [
     "source/local-test/telegram-ui.tsx"
   ],
@@ -7964,6 +8115,7 @@
   ],
   "Not started": [
     "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -8160,7 +8312,8 @@
     "source/local-test/tg-app.tsx"
   ],
   "Number": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Number of {p0} · {p1} · {p2}": [
     "source/local-test/erp-ui.tsx"
@@ -8798,7 +8951,11 @@
   "Order value": [
     "source/local-test/crm-ui.tsx"
   ],
+  "Organization": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Organization administration": [
+    "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "Organization administrator": [
@@ -8816,8 +8973,12 @@
   "Organization views": [
     "source/local-test/organization-ui.tsx"
   ],
+  "Organizational": [
+    "source/local-test/organization-ui.tsx"
+  ],
   "Organizational Structure": [
     "source/local-test/organization-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tg-app.tsx"
   ],
   "Organizational Structure Create permission is required for management actions.": [
@@ -8911,6 +9072,9 @@
   "Out of date: {p0} changed after it was asked": [
     "backend/tasks/services.py"
   ],
+  "Outreach that generates leads from contacts who respond.": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Outside invitations require approved collaboration authority.": [
     "source/local-test/tasks-ui.tsx"
   ],
@@ -8931,6 +9095,7 @@
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
     "source/local-test/crm-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -8963,6 +9128,7 @@
     "source/local-test/components.tsx",
     "source/local-test/crm-ui.tsx",
     "source/local-test/crm-workflow.tsx",
+    "source/local-test/group-domain.mjs",
     "source/local-test/groups-ui.tsx"
   ],
   "Owner grant": [
@@ -8975,10 +9141,14 @@
     "source/local-test/organization-ui.tsx"
   ],
   "Ownership": [
-    "source/local-test/components.tsx"
+    "source/local-test/components.tsx",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Ownership & source": [
     "source/local-test/components.tsx"
+  ],
+  "PDF document": [
+    "source/local-test/file-preview.tsx"
   ],
   "PDF downloaded": [
     "source/local-test/erp-ui.tsx"
@@ -8991,6 +9161,9 @@
   ],
   "PDF, PNG, JPG, XLSX, DOCX, CSV or TXT, up to 5 MB each. Upload A/F evidence to the Debit Note before verification.": [
     "source/local-test/operations-ui.tsx"
+  ],
+  "PNG image": [
+    "source/local-test/file-preview.tsx"
   ],
   "PO deadlines": [
     "source/local-test/operations-ui.tsx"
@@ -9155,6 +9328,10 @@
   "Payment date": [
     "source/local-test/components.tsx"
   ],
+  "Payment request": [
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
+  ],
   "Payment terms": [
     "source/local-test/operations-ui.tsx"
   ],
@@ -9276,6 +9453,7 @@
   ],
   "Personal": [
     "source/local-test/groups-ui.tsx",
+    "source/local-test/organization-ui.tsx",
     "source/local-test/tasks-ui.tsx"
   ],
   "Personal Tasks can only contain the owner. Remove other responsible people first.": [
@@ -9356,6 +9534,9 @@
   ],
   "Postings are created on final approval.": [
     "source/local-test/operations-ui.tsx"
+  ],
+  "PowerPoint presentation": [
+    "source/local-test/file-preview.tsx"
   ],
   "Prefer to sign in?": [
     "source/local-test/telegram-ui.tsx"
@@ -9601,7 +9782,8 @@
     "source/local-test/telegram-ui.tsx"
   ],
   "Purchase order": [
-    "source/local-test/operations-ui.tsx"
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Purple": [
     "backend/groups/domain.py"
@@ -9635,7 +9817,9 @@
     "source/local-test/tg-app.tsx"
   ],
   "Quotation": [
-    "source/local-test/crm-workflow.tsx"
+    "source/local-test/crm-workflow.tsx",
+    "source/local-test/operations-ui.tsx",
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Quotation date": [
     "source/local-test/components.tsx",
@@ -9738,6 +9922,9 @@
   "Receivables and payables created by approved Debit Notes and Payment Requests. Record receipts, confirm AP and close months on each Debit Note. This is a transaction register, not a general ledger.": [
     "source/local-test/finance-ui.tsx"
   ],
+  "Received · unconfirmed": [
+    "source/local-test/ui-kit/display.tsx"
+  ],
   "Recent bot activity": [
     "source/local-test/telegram-ui.tsx"
   ],
@@ -9770,8 +9957,14 @@
   "Record AR receipt": [
     "source/local-test/operations-ui.tsx"
   ],
+  "Record added": [
+    "source/local-test/group-live-ui.tsx"
+  ],
   "Record customer acceptance": [
     "source/local-test/crm-ui.tsx"
+  ],
+  "Record deleted": [
+    "source/local-test/group-live-ui.tsx"
   ],
   "Record delivery": [
     "source/local-test/components.tsx",
@@ -9892,6 +10085,7 @@
     "backend/tasks/domain.py",
     "source/local-test/operations-ui.tsx",
     "source/local-test/organization-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -10221,6 +10415,12 @@
   "Reporting branch": [
     "source/local-test/organization-ui.tsx"
   ],
+  "Reporting change": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
+  "Reporting change request": [
+    "source/local-test/organization-ui.tsx"
+  ],
   "Reporting cycles are not allowed.": [
     "backend/organization/governance.py"
   ],
@@ -10254,6 +10454,7 @@
   ],
   "Reports": [
     "source/local-test/erp-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tg-app.tsx",
     "source/local-test/ui.tsx"
   ],
@@ -10387,6 +10588,7 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Requests": [
+    "source/local-test/task-domain.mjs",
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -10624,6 +10826,9 @@
   "Review workspace responsibility, members and pending approvals.": [
     "backend/organization/governance.py"
   ],
+  "Review?": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Reviewer": [
     "backend/tasks/services.py",
     "source/local-test/task-workflow-ui.tsx",
@@ -10834,6 +11039,9 @@
   "Sales orders from the earlier CRM handoff flow (order → delivery → invoice → payment).": [
     "source/local-test/operations-ui.tsx"
   ],
+  "Sales quotation": [
+    "source/local-test/crm-ui.tsx"
+  ],
   "Sales quotations": [
     "source/local-test/crm-config.ts",
     "source/local-test/crm-workflow.tsx"
@@ -11014,6 +11222,7 @@
     "source/local-test/components.tsx"
   ],
   "Schedule meeting": [
+    "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "Scheduled": [
@@ -11804,7 +12013,8 @@
     "backend/groups/service.py"
   ],
   "Someone in your reporting line is in charge": [
-    "backend/tasks/scope.py"
+    "backend/tasks/scope.py",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Something went wrong": [
     "source/local-test/tg-app.tsx"
@@ -11951,6 +12161,7 @@
     "source/local-test/components.tsx",
     "source/local-test/crm-ui.tsx",
     "source/local-test/erp-ui.tsx",
+    "source/local-test/group-domain.mjs",
     "source/local-test/group-sync-ui.tsx",
     "source/local-test/operations-ui.tsx",
     "source/local-test/organization-ui.tsx",
@@ -12049,6 +12260,7 @@
     "backend/compat/reports.py",
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -12150,13 +12362,17 @@
     "backend/organization/governance.py"
   ],
   "Support": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Support rejected: {p0}": [
     "backend/tasks/services.py"
   ],
   "Support request: {p0}": [
     "backend/tasks/services.py"
+  ],
+  "Support?": [
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Supporting": [
     "backend/compat/reports.py",
@@ -12215,6 +12431,9 @@
   "Take back the request": [
     "source/local-test/tg-app.tsx"
   ],
+  "Take charge?": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Tap ": [
     "source/local-test/telegram-ui.tsx"
   ],
@@ -12250,7 +12469,8 @@
   "Task Controlling Management": [
     "backend/accounts/services.py",
     "backend/telegram/bot.py",
-    "source/local-test/access-ui.tsx"
+    "source/local-test/access-ui.tsx",
+    "source/local-test/task-domain.mjs"
   ],
   "Task Controlling Management V5.7.7": [
     "backend/accounts/views.py",
@@ -12368,7 +12588,8 @@
     "backend/accounts/catalog.py"
   ],
   "Task register": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Task rejected": [
     "backend/tasks/domain.py",
@@ -12446,6 +12667,7 @@
   "Tasks": [
     "backend/compat/reports.py",
     "backend/telegram/bot.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/telegram-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -12525,7 +12747,8 @@
   ],
   "Team": [
     "backend/compat/reports.py",
-    "source/local-test/groups-ui.tsx"
+    "source/local-test/groups-ui.tsx",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Team Member": [
     "backend/accounts/catalog.py"
@@ -12555,6 +12778,7 @@
   ],
   "Telegram": [
     "source/local-test/access-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/telegram-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
@@ -12575,6 +12799,9 @@
   ],
   "Telegram answered with HTTP {p0}.": [
     "backend/telegram/bot.py"
+  ],
+  "Telegram app": [
+    "source/local-test/task-domain.mjs"
   ],
   "Telegram connect link replaced": [
     "backend/telegram/services.py"
@@ -12692,10 +12919,14 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Text": [
-    "backend/groups/domain.py"
+    "backend/groups/domain.py",
+    "source/local-test/group-domain.mjs"
   ],
   "Text and number color": [
     "source/local-test/group-cell-format.tsx"
+  ],
+  "Text file": [
+    "source/local-test/file-preview.tsx"
   ],
   "Text in quotes isn’t supported in formulas. Use numbers and column names.": [
     "backend/groups/domain.py"
@@ -12997,6 +13228,9 @@
   "The people who manage the group always see everything. Exports, search, totals, notes and Google Sheets follow the same rule.": [
     "source/local-test/group-tools-ui.tsx"
   ],
+  "The person asked does it": [
+    "source/local-test/task-domain.mjs"
+  ],
   "The person blocked the bot": [
     "backend/telegram/bot.py"
   ],
@@ -13056,6 +13290,9 @@
   "The requester asked for it, so the task starts as accepted.": [
     "source/local-test/task-workflow-ui.tsx"
   ],
+  "The requester does it": [
+    "source/local-test/task-domain.mjs"
+  ],
   "The requester no longer has authority over the requested branch.": [
     "backend/organization/governance.py"
   ],
@@ -13103,6 +13340,12 @@
   ],
   "The selected {p0} and {p1} notes are deleted. This can’t be undone. If any of them changed or can’t be deleted, nothing is deleted.": [
     "source/local-test/groups-ui.tsx"
+  ],
+  "The sheet is a copy of the group. Edits made in the sheet to these columns are replaced at the next sync.": [
+    "source/local-test/group-sync-ui.tsx"
+  ],
+  "The sheet is the source. Its values replace the group’s values in these columns; new sheet rows become group rows.": [
+    "source/local-test/group-sync-ui.tsx"
   ],
   "The sheet needs attention before syncing": [
     "source/local-test/group-sync-ui.tsx"
@@ -13760,6 +14003,9 @@
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
+  "Through Live Data": [
+    "source/local-test/group-live-ui.tsx"
+  ],
   "Through date": [
     "source/local-test/tasks-ui.tsx"
   ],
@@ -13841,9 +14087,11 @@
     "source/local-test/tasks-ui.tsx"
   ],
   "Timesheet detail": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Timesheets": [
+    "source/local-test/task-domain.mjs",
     "source/local-test/tg-app.tsx"
   ],
   "Title": [
@@ -14426,6 +14674,9 @@
   "Usernames are managed in Administration → User accounts.": [
     "source/local-test/tasks-ui.tsx"
   ],
+  "Users": [
+    "source/local-test/task-domain.mjs"
+  ],
   "VAT %": [
     "source/local-test/components.tsx",
     "source/local-test/operations-ui.tsx"
@@ -14544,10 +14795,12 @@
   ],
   "Waiting for answer": [
     "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs",
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "Waiting for approval": [
+    "source/local-test/task-domain.mjs",
     "source/local-test/tasks-ui.tsx"
   ],
   "Waiting for me": [
@@ -14604,6 +14857,9 @@
   ],
   "We couldn’t find that record": [
     "source/local-test/ui.tsx"
+  ],
+  "WebP image": [
+    "source/local-test/file-preview.tsx"
   ],
   "Website, referral…": [
     "source/local-test/components.tsx"
@@ -14800,7 +15056,9 @@
     "source/local-test/task-workflow-ui.tsx"
   ],
   "Withdrawn": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs",
+    "source/local-test/task-workflow-ui.tsx"
   ],
   "Withdrew the request to {p0}{p1}": [
     "backend/tasks/services.py"
@@ -14820,6 +15078,12 @@
   ],
   "Won · pricing and history preserved": [
     "source/local-test/crm-ui.tsx"
+  ],
+  "Word 97–2003 document": [
+    "source/local-test/file-preview.tsx"
+  ],
+  "Word document": [
+    "source/local-test/file-preview.tsx"
   ],
   "Work": [
     "source/local-test/ui.tsx"
@@ -14853,7 +15117,8 @@
     "source/local-test/operations-ui.tsx"
   ],
   "Workload by user": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Workload, time and registers": [
     "source/local-test/tasks-ui.tsx"
@@ -14874,6 +15139,7 @@
     "source/local-test/crm-ui.tsx",
     "source/local-test/groups-ui.tsx",
     "source/local-test/organization-ui.tsx",
+    "source/local-test/task-domain.mjs",
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/telegram-ui.tsx",
@@ -14915,6 +15181,7 @@
   "Workspace governance": [
     "backend/tasks/scope.py",
     "source/local-test/organization-ui.tsx",
+    "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
   "Workspace governance changed": [
@@ -14934,6 +15201,9 @@
     "source/local-test/groups-ui.tsx",
     "source/local-test/tasks-ui.tsx"
   ],
+  "Workspace membership": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Workspace memberships": [
     "source/local-test/organization-ui.tsx"
   ],
@@ -14950,8 +15220,12 @@
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
   ],
+  "Workspace ownership": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "Workspace performance": [
-    "backend/compat/reports.py"
+    "backend/compat/reports.py",
+    "source/local-test/task-domain.mjs"
   ],
   "Workspace privacy classification cannot be changed through an ordinary edit.": [
     "backend/organization/governance.py"
@@ -15496,6 +15770,9 @@
   "You’re all caught up. Task updates for you appear here, and in Telegram if you connect it.": [
     "source/local-test/task-workflow-ui.tsx"
   ],
+  "ZIP archive": [
+    "source/local-test/file-preview.tsx"
+  ],
   "Zoom": [
     "source/local-test/file-preview.tsx"
   ],
@@ -15526,17 +15803,35 @@
   "a column of this group": [
     "source/local-test/groups-ui.tsx"
   ],
+  "a delegation request": [
+    "source/local-test/organization-ui.tsx"
+  ],
   "a level assignment": [
+    "source/local-test/organization-ui.tsx"
+  ],
+  "a membership request": [
     "source/local-test/organization-ui.tsx"
   ],
   "a removed column": [
     "source/local-test/group-live-ui.tsx"
+  ],
+  "a reporting change request": [
+    "source/local-test/organization-ui.tsx"
   ],
   "a request": [
     "source/local-test/organization-ui.tsx"
   ],
   "a workspace you can’t open": [
     "source/local-test/organization-ui.tsx"
+  ],
+  "accepted the task": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "accepted to review": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "accepted to support": [
+    "source/local-test/tg-app.tsx"
   ],
   "access level": [
     "backend/groups/service.py"
@@ -15546,6 +15841,9 @@
   ],
   "add a note for the person who checks or approves it, or send /skip.": [
     "backend/telegram/bot.py"
+  ],
+  "added a file": [
+    "source/local-test/tg-app.tsx"
   ],
   "added {p0} ({p1})": [
     "backend/groups/service.py"
@@ -15580,6 +15878,12 @@
   ],
   "approved completing the task": [
     "backend/tasks/services.py"
+  ],
+  "asked for a new due date": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "asked for approval": [
+    "source/local-test/tg-app.tsx"
   ],
   "asked to complete it. Progress becomes 100% and everyone on the task is told.": [
     "source/local-test/task-workflow-ui.tsx"
@@ -15633,6 +15937,9 @@
   "cancel the task": [
     "backend/telegram/bot.py"
   ],
+  "cancelled it": [
+    "source/local-test/tg-app.tsx"
+  ],
   "cell or row ": [
     "source/local-test/group-sync-ui.tsx"
   ],
@@ -15641,6 +15948,15 @@
   ],
   "change {p0}": [
     "backend/tasks/services.py"
+  ],
+  "changed details": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "changed the due date": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "changed the reminders": [
+    "source/local-test/tg-app.tsx"
   ],
   "characters · Ctrl+Enter saves": [
     "source/local-test/groups-ui.tsx"
@@ -15653,6 +15969,12 @@
   ],
   "chosen · ": [
     "source/local-test/group-import-ui.tsx"
+  ],
+  "closed a request": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "closed it": [
+    "source/local-test/tg-app.tsx"
   ],
   "closed the task": [
     "backend/tasks/services.py"
@@ -15672,6 +15994,9 @@
   "columns · ": [
     "source/local-test/erp-ui.tsx"
   ],
+  "commented": [
+    "source/local-test/tg-app.tsx"
+  ],
   "company time zone": [
     "backend/tasks/services.py"
   ],
@@ -15689,6 +16014,12 @@
   ],
   "copied into the group": [
     "source/local-test/group-sync-ui.tsx"
+  ],
+  "created the task": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "daily": [
+    "source/local-test/task-domain.mjs"
   ],
   "daily reminder time": [
     "backend/telegram/services.py"
@@ -15713,6 +16044,9 @@
     "backend/telegram/bot.py"
   ],
   "decides who does it": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "declined a new due date": [
     "source/local-test/tg-app.tsx"
   ],
   "delegated authority": [
@@ -15770,6 +16104,9 @@
     "backend/groups/service.py"
   ],
   "h · ": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "handed the task over": [
     "source/local-test/tg-app.tsx"
   ],
   "hidden ": [
@@ -15856,6 +16193,9 @@
   "mark it completed": [
     "backend/tasks/services.py"
   ],
+  "marked it stuck": [
+    "source/local-test/tg-app.tsx"
+  ],
   "matching row": [
     "source/local-test/crm-ui.tsx"
   ],
@@ -15877,6 +16217,9 @@
   ],
   "month(s)": [
     "source/local-test/recurrence-ui.tsx"
+  ],
+  "monthly": [
+    "source/local-test/task-domain.mjs"
   ],
   "more in Task Management": [
     "source/local-test/task-workflow-ui.tsx"
@@ -15932,7 +16275,8 @@
     "source/local-test/tasks-ui.tsx"
   ],
   "on weekdays": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-domain.mjs"
   ],
   "option for who does the work": [
     "backend/tasks/services.py"
@@ -15962,6 +16306,9 @@
     "backend/compat/resources.py",
     "backend/organization/governance.py"
   ],
+  "passed it on for approval": [
+    "source/local-test/tg-app.tsx"
+  ],
   "password changed": [
     "backend/accounts/services.py"
   ],
@@ -15972,7 +16319,8 @@
     "source/local-test/task-workflow-ui.tsx"
   ],
   "person in charge": [
-    "backend/tasks/services.py"
+    "backend/tasks/services.py",
+    "source/local-test/task-domain.mjs"
   ],
   "please give a short reason.": [
     "backend/telegram/bot.py"
@@ -15995,17 +16343,33 @@
   "reference constraint": [
     "backend/compat/commands.py"
   ],
+  "rejected a change": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "rejected reviewing": [
+    "source/local-test/tg-app.tsx"
+  ],
   "rejected reviewing:": [
     "source/local-test/tg-app.tsx"
   ],
   "rejected supporting": [
-    "source/local-test/tasks-ui.tsx"
+    "source/local-test/tasks-ui.tsx",
+    "source/local-test/tg-app.tsx"
+  ],
+  "rejected the task": [
+    "source/local-test/tg-app.tsx"
   ],
   "rejected this task:": [
     "source/local-test/tg-app.tsx"
   ],
+  "removed a file": [
+    "source/local-test/tg-app.tsx"
+  ],
   "renamed {p0} → {p1}": [
     "backend/groups/service.py"
+  ],
+  "reopened it": [
+    "source/local-test/tg-app.tsx"
   ],
   "repeat option": [
     "backend/tasks/services.py"
@@ -16021,6 +16385,15 @@
   ],
   "restricted ": [
     "source/local-test/group-sync-ui.tsx"
+  ],
+  "resumed work": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "returned it": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "reviewer": [
+    "source/local-test/task-domain.mjs"
   ],
   "row position": [
     "backend/groups/service.py"
@@ -16079,6 +16452,9 @@
   "send your comment.": [
     "backend/telegram/bot.py"
   ],
+  "sent a reminder": [
+    "source/local-test/tg-app.tsx"
+  ],
   "sent to {p0} for approval": [
     "backend/tasks/services.py"
   ],
@@ -16110,11 +16486,15 @@
   "steps completed": [
     "source/local-test/tasks-ui.tsx"
   ],
+  "submitted for review": [
+    "source/local-test/tg-app.tsx"
+  ],
   "submitted the task to you": [
     "backend/tasks/services.py"
   ],
   "supporting person": [
-    "backend/tasks/services.py"
+    "backend/tasks/services.py",
+    "source/local-test/task-domain.mjs"
   ],
   "task changes and new due dates": [
     "source/local-test/task-workflow-ui.tsx"
@@ -16225,11 +16605,23 @@
     "backend/tasks/services.py",
     "source/local-test/tg-app.tsx"
   ],
+  "to review this task": [
+    "source/local-test/task-workflow-ui.tsx",
+    "source/local-test/tg-app.tsx"
+  ],
   "to support": [
     "backend/tasks/services.py"
   ],
+  "to support this task": [
+    "source/local-test/task-workflow-ui.tsx",
+    "source/local-test/tg-app.tsx"
+  ],
   "to take charge of": [
     "backend/tasks/services.py"
+  ],
+  "to take charge of this task": [
+    "source/local-test/task-workflow-ui.tsx",
+    "source/local-test/tg-app.tsx"
   ],
   "to the sheet": [
     "source/local-test/group-sync-ui.tsx"
@@ -16245,6 +16637,12 @@
   ],
   "until ": [
     "source/local-test/task-workflow-ui.tsx"
+  ],
+  "updated progress": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "updated the steps of work": [
+    "source/local-test/tg-app.tsx"
   ],
   "useSidebar must be used within a SidebarProvider.": [
     "source/components/ui/sidebar.tsx"
@@ -16263,6 +16661,9 @@
   ],
   "week(s)": [
     "source/local-test/recurrence-ui.tsx"
+  ],
+  "weekly": [
+    "source/local-test/task-domain.mjs"
   ],
   "what do you need? Reply with a short title for your request.": [
     "backend/telegram/bot.py"
@@ -16305,6 +16706,12 @@
   ],
   "why do you need {p0}? The person who approves it will see this reason.": [
     "backend/telegram/bot.py"
+  ],
+  "withdrew a due date request": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "withdrew a request": [
+    "source/local-test/tg-app.tsx"
   ],
   "working day(s)": [
     "source/local-test/recurrence-ui.tsx"

@@ -1,4 +1,4 @@
-import { uiText, useLanguage } from "./i18n";
+import { uiText, useLanguage , translatedMap } from "./i18n";
 // In-app preview of attachments (task files, Group attachment cells and the Telegram Mini App).
 //
 // Images and PDFs are shown from the file itself, read through the same authorized address as the download
@@ -32,11 +32,11 @@ const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 const PPTX = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 const IMAGES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/heic'];
 const DATA = ['text/plain', 'text/csv', XLSX, DOCX, PPTX];
-const TYPE_LABEL: Record<string, string> = {
+const TYPE_LABEL: Record<string, string> = translatedMap({
   'application/pdf': 'PDF document', [DOCX]: 'Word document', [XLSX]: 'Excel workbook', [PPTX]: 'PowerPoint presentation', 'text/csv': 'CSV table',
   'text/plain': 'Text file', 'image/png': 'PNG image', 'image/jpeg': 'JPEG image', 'image/webp': 'WebP image', 'image/gif': 'GIF image', 'image/heic': 'HEIC photo',
   'application/zip': 'ZIP archive', 'application/msword': 'Word 97–2003 document', 'application/vnd.ms-excel': 'Excel 97–2003 workbook',
-};
+});
 export type FileNavigation = { index: number; total: number; onSelect: (index: number) => void };
 export type PreviewKind = 'image' | 'pdf' | 'data' | 'none';
 export const previewKind = (mime: string): PreviewKind => (IMAGES.includes(mime) ? 'image' : mime === 'application/pdf' ? 'pdf' : DATA.includes(mime) ? 'data' : 'none');

@@ -1,14 +1,15 @@
-import { uiText, useLanguage } from "./i18n";
+import { uiText, useLanguage , translatedMap } from "./i18n";
 import { CameraAttachment } from './camera-attachment';
 import { fileToBase64 } from './media';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Columns3, Download, FolderOpen, ListFilter, Paperclip, RefreshCw, Send } from 'lucide-react';
 import type { Row } from './components';
-import { cellText, COLUMN_TYPES, statusLabels } from './group-domain.mjs';
+import { cellText, COLUMN_TYPES as EN_COLUMN_TYPES, statusLabels } from './group-domain.mjs';
 import { cellColors, formatColumnNumber } from './group-presentation';
 import { MiniDeliverySheet, fileKind, fileSize } from './group-delivery-ui';
 import { viewColumn } from './group-live-ui';
 import './styles/tg-groups.css';
+const COLUMN_TYPES = translatedMap(EN_COLUMN_TYPES);
 
 type Common = { read: (path: string) => Promise<Row>; command: (action: string, data: Row) => Promise<Row> };
 type Props = Common & { data: Row; me: string; can: (r: string, a?: string) => boolean; name: (id?: string | null) => string;

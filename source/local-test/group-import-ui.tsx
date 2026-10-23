@@ -1,4 +1,4 @@
-import { uiText, useLanguage, dynamicLabels } from "./i18n";
+import { uiText, useLanguage, dynamicLabels , translatedMap } from "./i18n";
 import { InternalImportSource } from './group-sharing-ui';
 // V5.5 Groups · Import data from Excel, in eight steps: upload, worksheets, header rows, rows and columns, mapping,
 // check (the server works out exactly what would happen, nothing is saved), import, and the result. The server checks
@@ -8,11 +8,12 @@ import { AlertTriangle, Check, CheckCircle2, ChevronLeft, ChevronRight, FileSpre
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Row } from './components';
-import { COLUMN_TYPES, GROUP_LIMITS, nameKey } from './group-domain.mjs';
+import { COLUMN_TYPES as EN_COLUMN_TYPES, GROUP_LIMITS, nameKey } from './group-domain.mjs';
 import { groupCommand, groupPost, type GroupError } from './group-api';
 import { fileToBase64 } from './media';
 import { plural } from './format';
 import { Alert, CheckboxField, Field, Picker, useConfirm } from './ui-kit';
+const COLUMN_TYPES = translatedMap(EN_COLUMN_TYPES);
 
 const STEPS = dynamicLabels(["Upload", "Worksheets", "Header rows", "Rows and columns", "Mapping", "Check", "Import", "Result"], { 0: () => uiText("Upload"), 1: () => uiText("Worksheets"), 2: () => uiText("Header rows"), 3: () => uiText("Rows and columns"), 4: () => uiText("Mapping"), 5: () => uiText("Check"), 6: () => uiText("Import"), 7: () => uiText("Result") });
 const IMPORTABLE = ['TEXT', 'NUMBER', 'DATE', 'STATUS', 'IN_CHARGE', 'SUPPORT'];

@@ -1,4 +1,4 @@
-import { uiText, useLanguage } from "./i18n";
+import { uiText, useLanguage , translatedMap } from "./i18n";
 // Share Live Data (connected data), next to Share Data (an independent copy). The server keeps one source of truth and
 // checks every read and write; these dialogs only choose who sees which columns, connect a Live Data column to a
 // group, and show the edit history. Nothing here is a copy of the source values.
@@ -16,9 +16,9 @@ export const LIVE_ERRORS: Record<string, string> = {
   '#DUP!': 'Several shared records match this row, so no value is shown. The source group needs a unique match key.',
   '#REF!': 'The shared column or its match column was removed from the source group.',
 };
-const PERMISSION: Record<string, string> = { VIEW: 'Viewer', EDIT: 'Can edit' };
-const VIA: Record<string, string> = { group: 'In the source group', live: 'Through Live Data', import: 'Excel or group import' };
-const ACTION: Record<string, string> = { EDIT: 'Changed', ADD_ROW: 'Record added', DELETE_ROW: 'Record deleted', IMPORT: 'Imported' };
+const PERMISSION: Record<string, string> = translatedMap({ VIEW: 'Viewer', EDIT: 'Can edit' });
+const VIA: Record<string, string> = translatedMap({ group: 'In the source group', live: 'Through Live Data', import: 'Excel or group import' });
+const ACTION: Record<string, string> = translatedMap({ EDIT: 'Changed', ADD_ROW: 'Record added', DELETE_ROW: 'Record deleted', IMPORT: 'Imported' });
 
 /** A Live Data column as the table shows and edits it: its source's type and settings, with the connection beside it. */
 export function viewColumn(c: Row): Row {

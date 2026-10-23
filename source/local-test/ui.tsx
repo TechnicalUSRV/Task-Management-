@@ -1,4 +1,4 @@
-import { uiText, useLanguage, translatedEntries } from "./i18n";
+import { uiText, useLanguage, translatedEntries , translatedMap, getLanguage } from "./i18n";
 import { CalendarDays, Clock3, FolderKanban, Inbox, ListTodo, Network, Table2 } from 'lucide-react';
 import {Identity} from './identity-ui';
 import { apiFetch, apiPath, openCompany } from './api-client';
@@ -24,7 +24,7 @@ import { ERPDashboard, SourceExplorer, CentralReports } from './erp-ui';
 import { AuthGate, Administration } from './access-ui';
 import { TaskManagement, openItem, taskRoute } from './tasks-ui';
 import { SettingsView } from './settings-ui';
-import { TASK_SECTIONS, taskSectionVisible } from './task-domain.mjs';
+import { TASK_SECTIONS as EN_TASK_SECTIONS, taskSectionVisible } from './task-domain.mjs';
 import { NotificationsMenu, decisionsFor, orgPending } from './task-workflow-ui';
 import { TelegramConnectDialog } from './telegram-ui';
 import { MyProfileDialog, sidebarThemeOf } from './profile-ui';
@@ -35,6 +35,7 @@ import { Avatar, AvatarPhotoProvider, ConfirmProvider, EmptyState, ErrorState, I
 import { BrandTitle, LogoIcon, LOGO_ALT } from './brand';
 
 import { TABLES, CRM_TYPES, crmSlug, crmType } from './crm-config';
+const TASK_SECTIONS = translatedMap(EN_TASK_SECTIONS);
 export { TABLES, CRM_TYPES, crmSlug };
 
 export type Workspace = {
@@ -204,7 +205,7 @@ function ERPWorkspace({ user, signOut }: { user: Row; signOut: () => Promise<voi
       ] },
     ];
     return groups.map(g => ({ ...g, items: g.items.filter(i => i.visible) })).filter(g => g.items.length);
-  }, [data, can, actor]);
+  }, [data, can, actor, getLanguage()]);
 
   // Redirect an unknown or unauthorised address to the first permitted area.
   const visibleIds = nav.flatMap(g => g.items.map(i => i.id));

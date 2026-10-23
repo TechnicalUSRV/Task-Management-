@@ -1,4 +1,4 @@
-import { uiText, useLanguage, dynamicLabels } from "./i18n";
+import { uiText, useLanguage, dynamicLabels , translatedMap } from "./i18n";
 import {Identity} from './identity-ui';
 import {Badge,Bar,Btn,Empty,FilterChips,FilterPick,Pager,SearchBox,Toggle,WorkspaceSections,cx} from './workspace-sections';
 import {useEffect,useId,useRef,useState,type FormEvent,type ReactNode} from 'react';
@@ -11,10 +11,10 @@ type Props={data:Row;actor:string;read:(params:Row)=>Promise<Row>;perform:(actio
 type Edit={kind:string;title:string;data:Row};
 
 // V5.6.8: sentence-case labels for stored codes (statuses, kinds, roles) instead of lower-cased codes.
-const KIND:Record<string,string>={PERSONAL:'Personal',ORGANIZATIONAL:'Organizational',LEGACY:'Legacy'};
-const ROLE:Record<string,string>={MEMBER:'Member',VIEWER:'Viewer'};
-const REQUEST_KIND:Record<string,string>={MEMBERSHIP:'Membership request',DELEGATION:'Delegation request',STRUCTURE:'Reporting change request'};
-const REQUEST_NOUN:Record<string,string>={MEMBERSHIP:'a membership request',DELEGATION:'a delegation request',STRUCTURE:'a reporting change request'};
+const KIND:Record<string,string>=translatedMap({PERSONAL:'Personal',ORGANIZATIONAL:'Organizational',LEGACY:'Legacy'});
+const ROLE:Record<string,string>=translatedMap({MEMBER:'Member',VIEWER:'Viewer'});
+const REQUEST_KIND:Record<string,string>=translatedMap({MEMBERSHIP:'Membership request',DELEGATION:'Delegation request',STRUCTURE:'Reporting change request'});
+const REQUEST_NOUN:Record<string,string>=translatedMap({MEMBERSHIP:'a membership request',DELEGATION:'a delegation request',STRUCTURE:'a reporting change request'});
 const STATUS:Record<string,[string,string]>={PENDING:dynamicLabels(["Pending", 'warning'], { 0: () => uiText("Pending") }),REVIEW:dynamicLabels(["Needs Level 1 review", 'warning'], { 0: () => uiText("Needs Level 1 review") }),APPROVED:dynamicLabels(["Approved", 'success'], { 0: () => uiText("Approved") }),REJECTED:dynamicLabels(["Rejected", 'danger'], { 0: () => uiText("Rejected") }),CANCELLED:dynamicLabels(["Cancelled", 'neutral'], { 0: () => uiText("Cancelled") }),ACTIVE:dynamicLabels(["Active", 'success'], { 0: () => uiText("Active") }),SUSPENDED:dynamicLabels(["Suspended", 'neutral'], { 0: () => uiText("Suspended") }),REVOKED:dynamicLabels(["Revoked", 'neutral'], { 0: () => uiText("Revoked") }),ARCHIVED:dynamicLabels(["Archived", 'neutral'], { 0: () => uiText("Archived") })};
 const sentence=(v:unknown)=>{const s=String(v??'').replaceAll('_',' ').replaceAll('.',' ').trim().toLowerCase();return s.charAt(0).toUpperCase()+s.slice(1);};
 const statusOf=(v:string):[string,string]=>STATUS[v]||[sentence(v),'neutral'];

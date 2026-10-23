@@ -17,7 +17,8 @@
     "review:organization": "node local-test/organization-review.mjs",
     "test:historical": "node local-test/test.mjs && node local-test/operations-test.mjs && node local-test/tasks-access-test.mjs && node local-test/erp-test.mjs && node local-test/fixes-test.mjs && node local-test/telegram-test.mjs && node local-test/v53-test.mjs && node local-test/v54-test.mjs && node local-test/v54-security-test.mjs && node local-test/share-test.mjs && node local-test/admin-access-test.mjs && node local-test/v55-test.mjs && node local-test/v55-security-test.mjs && node local-test/v551-test.mjs && node local-test/task-visibility-test.mjs && npm run test:organization",
     "test:release": "node local-test/test.mjs && node local-test/operations-test.mjs && node local-test/organization-test.mjs && node local-test/v569-test.mjs && node local-test/v570-test.mjs && node local-test/v570-migration-test.mjs && node local-test/v570-sync-test.mjs && node local-test/v571-test.mjs && node local-test/v571-migration-test.mjs && node local-test/empty-start-test.mjs && node local-test/v577-access-test.mjs && node local-test/v577-migration-test.mjs",
-    "test:browser": "node local-test/v570-browser-test.mjs && node local-test/v571-browser-test.mjs && node local-test/v576-mini-app-test.mjs && node local-test/v577-browser-test.mjs"
+    "test:browser": "node local-test/v570-browser-test.mjs && node local-test/v571-browser-test.mjs && node local-test/v576-mini-app-test.mjs && node local-test/v577-browser-test.mjs",
+    "test:language": "node local-test/language-test.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
@@ -40,6 +41,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
+    "jsdom": "26.1.0",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vite": "8.0.16"

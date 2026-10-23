@@ -57,3 +57,18 @@ export function dynamicLabels<T extends readonly unknown[]>(items: T, labels: Re
 export function translatedEntries(values: Record<string, string>): [string, string][] {
   return Object.keys(values).map(key => dynamicLabels([key, values[key]] as [string, string], { 1: () => uiText(values[key]) }));
 }
+
+/** Only for developer-owned label maps. Never wrap data returned by an API. */
+export function translatedMap<T extends Record<string, string>>(values: T): T {
+  return new Proxy(values, {
+    get(target, key, receiver) {
+      const value = Reflect.get(target, key, receiver);
+      return typeof value === 'string' ? uiText(value) : value;
+    },
+  });
+}
+
+/** Label is the second item; identifiers and other tuple values stay intact. */
+export function translatedTuples<T extends readonly (readonly unknown[])[]>(values: T): T {
+  return values.map(row => dynamicLabels([...row], { 1: () => uiText(String(row[1])) })) as unknown as T;
+}

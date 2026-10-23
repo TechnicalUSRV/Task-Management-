@@ -1,4 +1,4 @@
-import { uiText, useLanguage } from "../i18n";
+import { uiText, useLanguage , translatedMap } from "../i18n";
 import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ComponentProps, type CSSProperties, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Check, CheckCircle2, Clock3, Info, Minus, X } from 'lucide-react';
@@ -64,11 +64,11 @@ const STATUS_TONES: Record<string, Tone> = {
   DRAFT: 'neutral', INACTIVE: 'neutral', DISQUALIFIED: 'neutral', SUSPENDED: 'neutral', CANCELLED: 'neutral', DISABLED: 'neutral',
   ARCHIVED: 'neutral', NOT_STARTED: 'neutral', NOT_RECEIVED: 'neutral', LOW: 'neutral', COLD: 'neutral', EXPIRED: 'neutral', NO: 'neutral',
 };
-const STATUS_LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<string, string> = translatedMap({
   AF_VERIFICATION: 'A/F verification', RECEIVED_UNCONFIRMED: 'Received · unconfirmed', NOT_RECEIVED: 'Not received',
   FINANCE_VERIFIED: 'Finance verified', ARRIVED_PORT: 'Arrived at port', IN_TRANSIT: 'In transit', AFTER_SALE: 'After sale',
   OPS_LEGACY: 'Earlier handoff', PR: 'Payment request', DN: 'Debit note', PO: 'Purchase order', JOB: 'Job file', QUOTATION: 'Quotation',
-};
+});
 export const statusKey = (value: unknown) => String(value ?? '').trim().toUpperCase().replace(/[\s/-]+/g, '_');
 export const statusTone = (value: unknown): Tone => STATUS_TONES[statusKey(value)] || 'neutral';
 export const statusLabel = (value: unknown) => uiText(STATUS_LABELS[statusKey(value)] || humanize(value));

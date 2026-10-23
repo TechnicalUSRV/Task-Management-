@@ -1,4 +1,4 @@
-import { uiText, useLanguage, dynamicLabels, translatedEntries } from "./i18n";
+import { uiText, useLanguage, dynamicLabels, translatedEntries , translatedMap } from "./i18n";
 import {Identity} from './identity-ui';
 import {timeRange,rangeDays} from './time-range.mjs';
 import {MeetingApprovals} from './meeting-approval-ui';
@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import type { Row } from './components';
 import type { PersonOption } from './ui-kit';
 import type { Workspace } from './ui';
-import { TASK_SECTIONS, TASK_STATUS, TASK_COLORS, TASK_REPORTS, MONTHLY_REPORTS, OPEN_TASK_STATUSES, RECURRENCE, RECURRENCE_SHORT, enrichedTasks, workspaceStats, formatMinutes, taskToday, weekStart, addDays, taskActions, editApprovalTarget, reminderDays, REMINDER_PRESETS, assignedByMe, toReviewOrApprove, canManageMeeting } from './task-domain.mjs';
+import { TASK_SECTIONS as EN_TASK_SECTIONS, TASK_STATUS as EN_TASK_STATUS, TASK_COLORS, TASK_REPORTS as EN_TASK_REPORTS, MONTHLY_REPORTS as EN_MONTHLY_REPORTS, OPEN_TASK_STATUSES, RECURRENCE as EN_RECURRENCE, RECURRENCE_SHORT as EN_RECURRENCE_SHORT, enrichedTasks, workspaceStats, formatMinutes, taskToday, weekStart, addDays, taskActions, editApprovalTarget, reminderDays, REMINDER_PRESETS, assignedByMe, toReviewOrApprove, canManageMeeting } from './task-domain.mjs';
 import { TaskCategories, TaskVisibility } from './task-access-ui';
 import { TaskDetail, TaskStateBadge, RequestsView, RequestDialog, RequestEditor, MonthlyTaskReport, requestDraft, useTasks, peopleOptions, profileOptions, SupportNote, firstName, canApproveOn, mayDecideDue, SCOPE_NOTE, SCOPE_CHIP } from './task-workflow-ui';
 import { CalendarView, FollowMeeting, OffsetChooser, parseOffsets } from './calendar-ui';
@@ -32,12 +32,18 @@ import {
   FilterBar, FilterSelect, FormSection, IconButton, NoAccess, PageHeader, PeoplePicker, PersonPicker, Picker, PriorityBadge, ProgressBar, SearchInput, Segmented,
   StatCard, StatusBadge, ToggleFilter, buildChips, statusLabel, useConfirm, useFormErrors, type Column, type DateRange,
 } from './ui-kit';
+const TASK_SECTIONS = translatedMap(EN_TASK_SECTIONS);
+const TASK_STATUS = translatedMap(EN_TASK_STATUS);
+const TASK_REPORTS = translatedMap(EN_TASK_REPORTS);
+const MONTHLY_REPORTS = translatedMap(EN_MONTHLY_REPORTS);
+const RECURRENCE = translatedMap(EN_RECURRENCE);
+const RECURRENCE_SHORT = translatedMap(EN_RECURRENCE_SHORT);
 
 const organizationRead = async (params: Row) => { const res = await apiFetch('/api/organization?' + new URLSearchParams(params as Record<string,string>)); const data = await res.json(); if (!res.ok) throw new Error(data.error || uiText("Unable to load organization")); return data; };
 const entries = (o: Record<string, string>): [string, string][] => translatedEntries(o);
 type Kind = 'workspace' | 'profile' | 'task' | 'time' | 'meeting';
 type TaskModal = { kind: Kind; data: Row };
-const CREATE_LABEL: Record<string, string> = { workspace: 'New workspace', users: 'Add team member', tasks: 'New task', timesheets: 'Log time', calendar: 'Schedule meeting' };
+const CREATE_LABEL: Record<string, string> = translatedMap({ workspace: 'New workspace', users: 'Add team member', tasks: 'New task', timesheets: 'Log time', calendar: 'Schedule meeting' });
 const CREATE_KIND: Record<string, Kind> = { workspace: 'workspace', users: 'profile', tasks: 'task', timesheets: 'time', calendar: 'meeting' };
 const CREATE_RESOURCE: Record<string, string> = { calendar: 'tasks.meetings' };
 const STATUS_ORDER = Object.keys(TASK_STATUS);
