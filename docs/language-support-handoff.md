@@ -72,3 +72,13 @@ Validation: **22 focused language/Telegram tests passed**, React language tests,
 type checking and production build passed. Earlier screenshots belong to the
 browser checkpoint; they have not yet been regenerated for this batch.
 Still unfinished; do not deploy.
+
+### Short interface translation batch — 23 October 2026
+
+Added Khmer and Simplified Chinese interface labels for navigation, files,
+CRM, finance, groups and reminders. Reviewed ambiguous labels against their
+source usage; “Won sales” is a count, not a monetary amount.
+Current inventory: **5,563 templates; 2,322 translated; 3,241 pending**.
+Validation: 22 focused backend language/Telegram tests and the React language
+test passed. Screenshots are still from the earlier browser checkpoint.
+Translation coverage remains incomplete; do not deploy.
