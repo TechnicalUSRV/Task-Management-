@@ -15,7 +15,11 @@ const check=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
 const req=async(url,{cookie='',data,method,origin:headerOrigin=origin}={})=>{const response=await fetch(origin+url,{method:method||(data?'POST':'GET'),headers:{Origin:headerOrigin,'Content-Type':'application/json',Cookie:cookie},...(data?{body:JSON.stringify(data)}:{})}),raw=await response.text();let body;try{body=JSON.parse(raw);}catch{body=raw;}return {status:response.status,body,cookie:response.headers.get('set-cookie')?.split(';')[0],headers:response.headers};};
 let admin,primaryCookie,companyId,secondaryCookie,member,memberCookie,roleId;
 const post=(cookie,action,data,company='default')=>req(`/c/${company}/api/command`,{cookie,data:{action,data}});
-const signin=async(email,password,company='default')=>req(`/c/${company}/api/auth/login`,{data:{email,password}});
+const signin=async(email,password,company='default')=>{
+ // Fixtures identify users by email; the current login contract accepts username.
+ const username=hub.get(company).get('SELECT username FROM access_users WHERE email=?',email)?.username||email;
+ return req(`/c/${company}/api/auth/login`,{data:{username,password}});
+};
 const detail=id=>s.get('SELECT * FROM access_users WHERE id=?',id);
 try{
  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});

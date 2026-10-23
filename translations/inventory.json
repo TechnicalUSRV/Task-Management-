@@ -59,6 +59,9 @@
   " - columns {p0}/{p1}": [
     "source/local-test/report-pdf.mjs"
   ],
+  " Also tasks you can see through {p0} (viewing only).": [
+    "source/local-test/tg-app.tsx"
+  ],
   " Choose a new reviewer with Edit details.": [
     "source/local-test/task-workflow-ui.tsx",
     "source/local-test/tg-app.tsx"
@@ -94,6 +97,9 @@
   ],
   " and also to {p0}": [
     "source/local-test/organization-ui.tsx"
+  ],
+  " and due dates": [
+    "source/local-test/tg-app.tsx"
   ],
   " and on Google change notifications": [
     "source/local-test/group-sync-ui.tsx"
@@ -348,6 +354,9 @@
     "source/local-test/telegram-ui.tsx"
   ],
   ", done": [
+    "source/local-test/tg-app.tsx"
+  ],
+  ", due dates and organization approvals": [
     "source/local-test/tg-app.tsx"
   ],
   ", or scan the code with your phone.": [
@@ -720,6 +729,9 @@
   "A/F verified": [
     "source/local-test/finance-ui.tsx"
   ],
+  "AM": [
+    "source/local-test/i18n.ts"
+  ],
   "AP estimate": [
     "source/local-test/finance-ui.tsx",
     "source/local-test/operations-ui.tsx"
@@ -1081,6 +1093,9 @@
   ],
   "Add step": [
     "source/local-test/task-workflow-ui.tsx",
+    "source/local-test/tasks-ui.tsx"
+  ],
+  "Add supporting person": [
     "source/local-test/tasks-ui.tsx"
   ],
   "Add team member": [
@@ -1635,11 +1650,13 @@
   "Apr": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "April": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Archive group": [
@@ -1868,11 +1885,13 @@
   "Aug": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "August": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Authority revoked. Dependent grants were re-evaluated and invalid grants suspended.": [
@@ -2929,6 +2948,9 @@
   "Choose {p0}": [
     "source/local-test/groups-ui.tsx"
   ],
+  "Choose {p0}.": [
+    "source/local-test/task-display.ts"
+  ],
   "Choose “Allow existing spreadsheets” above first.": [
     "source/local-test/group-sync-ui.tsx"
   ],
@@ -3308,6 +3330,9 @@
   ],
   "Company time zone · {p0} ({p1})": [
     "source/local-test/profile-ui.tsx"
+  ],
+  "Company-wide": [
+    "source/local-test/tg-app.tsx"
   ],
   "Company-wide task access": [
     "backend/tasks/scope.py",
@@ -3999,11 +4024,13 @@
   "Dec": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "December": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Decide or withdraw the pending meeting change first.": [
@@ -5203,11 +5230,13 @@
   "Feb": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "February": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Fewer filters": [
@@ -5268,6 +5297,12 @@
   ],
   "Files over 20 MB must be uploaded from the Telegram Mini App or web system (up to 30 MB per file).": [
     "backend/telegram/bot.py"
+  ],
+  "Fill in {p0}, and choose {p1}.": [
+    "source/local-test/task-display.ts"
+  ],
+  "Fill in {p0}.": [
+    "source/local-test/task-display.ts"
   ],
   "Filter": [
     "source/local-test/groups-ui.tsx",
@@ -5458,8 +5493,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Friday": [
+    "source/local-test/i18n.ts"
   ],
   "From": [
     "source/local-test/group-live-ui.tsx",
@@ -6243,11 +6282,13 @@
   "Jan": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "January": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Job File deadlines count Monday–Friday plus configured holidays. Late issuance needs a reason and is flagged.": [
@@ -6287,21 +6328,25 @@
   "Jul": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "July": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Jun": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "June": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Just now": [
@@ -6829,11 +6874,13 @@
   "Mar": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "March": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Margin": [
@@ -6898,6 +6945,7 @@
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
     "source/local-test/format.ts",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Medium": [
@@ -7103,8 +7151,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Monday": [
+    "source/local-test/i18n.ts"
   ],
   "Month": [
     "source/local-test/calendar-ui.tsx",
@@ -7802,6 +7854,7 @@
   ],
   "No reminders": [
     "backend/tasks/domain.py",
+    "source/local-test/task-display.ts",
     "source/local-test/tg-app.tsx"
   ],
   "No reminders before the due date.": [
@@ -8327,11 +8380,13 @@
   "Nov": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "November": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Number": [
@@ -8353,11 +8408,13 @@
   "Oct": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "October": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Off": [
@@ -9187,6 +9244,9 @@
   ],
   "PDF, PNG, JPG, XLSX, DOCX, CSV or TXT, up to 5 MB each. Upload A/F evidence to the Debit Note before verification.": [
     "source/local-test/operations-ui.tsx"
+  ],
+  "PM": [
+    "source/local-test/i18n.ts"
   ],
   "PNG image": [
     "source/local-test/file-preview.tsx"
@@ -10819,6 +10879,9 @@
   "Review classification": [
     "source/local-test/organization-ui.tsx"
   ],
+  "Review it? Accept or reject": [
+    "source/local-test/tg-app.tsx"
+  ],
   "Review migration": [
     "source/local-test/organization-ui.tsx"
   ],
@@ -11083,8 +11146,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Saturday": [
+    "source/local-test/i18n.ts"
   ],
   "Save": [
     "source/local-test/group-sync-ui.tsx",
@@ -11644,7 +11711,8 @@
   "Sep": [
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
-    "source/local-test/format.ts"
+    "source/local-test/format.ts",
+    "source/local-test/i18n.ts"
   ],
   "Separate the values in a function with commas, for example SUM({A}, {B}).": [
     "backend/groups/domain.py"
@@ -11652,6 +11720,7 @@
   "September": [
     "backend/tasks/domain.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/tg-app.tsx"
   ],
   "Series": [
@@ -12370,8 +12439,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Sunday": [
+    "source/local-test/i18n.ts"
   ],
   "Sunny-Task Controlling Management-Report.csv": [
     "backend/compat/views.py",
@@ -12398,6 +12471,9 @@
   ],
   "Support request: {p0}": [
     "backend/tasks/services.py"
+  ],
+  "Support {p0}? Accept or reject": [
+    "source/local-test/tg-app.tsx"
   ],
   "Support?": [
     "source/local-test/task-workflow-ui.tsx"
@@ -12461,6 +12537,9 @@
   ],
   "Take charge?": [
     "source/local-test/task-workflow-ui.tsx"
+  ],
+  "Take charge? Accept or reject": [
+    "source/local-test/tg-app.tsx"
   ],
   "Tap ": [
     "source/local-test/telegram-ui.tsx"
@@ -14047,8 +14126,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Thursday": [
+    "source/local-test/i18n.ts"
   ],
   "Ticking a step tells the assigner. Steps don’t change progress or close the task.": [
     "source/local-test/tasks-ui.tsx"
@@ -14283,8 +14366,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Tuesday": [
+    "source/local-test/i18n.ts"
   ],
   "Turn Task Controlling Management areas on or off for this company. Records and saved permissions are kept while a module is off, and come back when it is turned on again.": [
     "source/local-test/admin-functions.tsx"
@@ -14896,8 +14983,12 @@
     "backend/tasks/domain.py",
     "backend/telegram/bot.py",
     "source/local-test/calendar-ui.tsx",
+    "source/local-test/i18n.ts",
     "source/local-test/recurrence-ui.tsx",
     "source/local-test/tg-app.tsx"
+  ],
+  "Wednesday": [
+    "source/local-test/i18n.ts"
   ],
   "Week": [
     "source/local-test/calendar-ui.tsx",
@@ -15765,6 +15856,12 @@
   "Your tasks": [
     "backend/telegram/bot.py"
   ],
+  "Your tasks and those led by the {p0} people in your reporting line.": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "Your tasks and those led by the {p0} person in your reporting line.": [
+    "source/local-test/tg-app.tsx"
+  ],
   "Your tasks and your team’s": [
     "backend/telegram/bot.py"
   ],
@@ -15900,6 +15997,9 @@
   ],
   "another value": [
     "backend/groups/service.py"
+  ],
+  "approval": [
+    "source/local-test/tg-app.tsx"
   ],
   "approved by {p0}": [
     "backend/tasks/services.py"
@@ -16184,7 +16284,8 @@
     "source/local-test/erp-ui.tsx"
   ],
   "in {p0} days": [
-    "backend/telegram/bot.py"
+    "backend/telegram/bot.py",
+    "source/local-test/task-display.ts"
   ],
   "including Telegram": [
     "backend/accounts/services.py"
@@ -16272,9 +16373,6 @@
   "none assigned": [
     "source/local-test/operations-ui.tsx"
   ],
-  "not answered yet. Use “Send a reminder” to remind them.": [
-    "source/local-test/task-workflow-ui.tsx"
-  ],
   "nothing is waiting for you": [
     "source/local-test/tg-app.tsx"
   ],
@@ -16344,12 +16442,6 @@
   ],
   "password changed": [
     "backend/accounts/services.py"
-  ],
-  "people have": [
-    "source/local-test/task-workflow-ui.tsx"
-  ],
-  "person has": [
-    "source/local-test/task-workflow-ui.tsx"
   ],
   "person in charge": [
     "backend/tasks/services.py",
@@ -16423,6 +16515,9 @@
     "source/local-test/tg-app.tsx"
   ],
   "returned it": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "review": [
     "source/local-test/tg-app.tsx"
   ],
   "reviewer": [
@@ -16529,8 +16624,12 @@
     "backend/tasks/services.py",
     "source/local-test/task-domain.mjs"
   ],
+  "supporting role": [
+    "source/local-test/tg-app.tsx"
+  ],
   "task": [
-    "source/local-test/tasks-ui.tsx"
+    "source/local-test/tasks-ui.tsx",
+    "source/local-test/tg-app.tsx"
   ],
   "task changes and new due dates": [
     "source/local-test/task-workflow-ui.tsx"
@@ -16666,10 +16765,12 @@
     "source/local-test/group-sync-ui.tsx"
   ],
   "today": [
-    "backend/telegram/bot.py"
+    "backend/telegram/bot.py",
+    "source/local-test/task-display.ts"
   ],
   "tomorrow": [
-    "backend/telegram/bot.py"
+    "backend/telegram/bot.py",
+    "source/local-test/task-display.ts"
   ],
   "too large": [
     "backend/telegram/bot.py"
@@ -16790,7 +16891,8 @@
     "source/local-test/tg-app.tsx"
   ],
   "yesterday": [
-    "backend/telegram/bot.py"
+    "backend/telegram/bot.py",
+    "source/local-test/task-display.ts"
   ],
   "you are in charge": [
     "backend/tasks/services.py"
@@ -16865,7 +16967,8 @@
     "backend/groups/imports.py"
   ],
   "{p0} and {p1}": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-display.ts"
   ],
   "{p0} approval alert{p1}": [
     "source/local-test/ui.tsx"
@@ -16926,6 +17029,9 @@
   ],
   "{p0} asks to {p1}{p2} · approve or reject": [
     "backend/tasks/services.py"
+  ],
+  "{p0} asks you to approve completing this task.": [
+    "source/local-test/tg-app.tsx"
   ],
   "{p0} asks you to approve: {p1}": [
     "source/local-test/task-workflow-ui.tsx",
@@ -16995,16 +17101,19 @@
     "backend/meetings/services.py"
   ],
   "{p0} day before the due date": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-display.ts"
   ],
   "{p0} days ago": [
-    "backend/telegram/bot.py"
+    "backend/telegram/bot.py",
+    "source/local-test/task-display.ts"
   ],
   "{p0} days before": [
     "backend/meetings/services.py"
   ],
   "{p0} days before the due date": [
-    "backend/tasks/domain.py"
+    "backend/tasks/domain.py",
+    "source/local-test/task-display.ts"
   ],
   "{p0} day{p1} before": [
     "source/local-test/tasks-ui.tsx"
@@ -17185,6 +17294,12 @@
   "{p0} pending": [
     "source/local-test/ui.tsx"
   ],
+  "{p0} people have not answered yet. Use “Send a reminder” to remind them.": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
+  "{p0} person has not answered yet. Use “Send a reminder” to remind them.": [
+    "source/local-test/task-workflow-ui.tsx"
+  ],
   "{p0} priority": [
     "source/local-test/ui-kit/display.tsx"
   ],
@@ -17261,6 +17376,9 @@
   "{p0} step{p1}, in order": [
     "source/local-test/operations-ui.tsx"
   ],
+  "{p0} submitted this to you.": [
+    "source/local-test/tg-app.tsx"
+  ],
   "{p0} table": [
     "source/local-test/groups-ui.tsx"
   ],
@@ -17272,6 +17390,12 @@
   ],
   "{p0} team’s": [
     "source/local-test/calendar-ui.tsx"
+  ],
+  "{p0} thing needs you": [
+    "source/local-test/tg-app.tsx"
+  ],
+  "{p0} things need you": [
+    "source/local-test/tg-app.tsx"
   ],
   "{p0} time": [
     "backend/meetings/services.py",
@@ -17353,9 +17477,6 @@
   "{p0} {p1} this column in {p2}. Change {p3} first.": [
     "backend/groups/service.py"
   ],
-  "{p0} {p1} you": [
-    "source/local-test/tg-app.tsx"
-  ],
   "{p0} {p1} your decision": [
     "source/local-test/tasks-ui.tsx"
   ],
@@ -17409,6 +17530,9 @@
   ],
   "{p0} · view only": [
     "source/local-test/tasks-ui.tsx"
+  ],
+  "{p0} · viewing only": [
+    "source/local-test/tg-app.tsx"
   ],
   "{p0} · visible to {p1}": [
     "backend/groups/service.py"

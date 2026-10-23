@@ -64,10 +64,10 @@ try{
   const outside=task(C,wsC,'Outside participant',{pic_id:Y,supporter_ids:[E]});assert.ok(state(Y).tm_tasks.some(t=>t.id===outside));assert.ok(!state(D).tm_tasks.some(t=>t.id===outside));
   assert.ok(!s.get('SELECT 1 FROM tm_members WHERE workspace_id=? AND staff_id=?',wsC,Y));assert.ok(!state(Y).tm_workspaces.some(w=>w.id===wsC));
  });
- check('sharing a Personal workspace is owner-controlled and converts visibility to Public',()=>{
+ check('sharing a Personal workspace is owner-controlled and preserves Personal visibility',()=>{
   deny(()=>cmd('org.membership.request',{workspace_id:personal,beneficiary_id:A,reason:'Admin tries sharing'},A),403);
   cmd('org.membership.request',{workspace_id:personal,beneficiary_id:Y,reason:'Owner shares'},E);
-  assert.ok(state(Y).tm_tasks.some(t=>t.id===privateTask));assert.equal(s.get('SELECT visibility FROM tm_workspaces WHERE id=?',personal).visibility,'PUBLIC');
+  assert.ok(state(Y).tm_tasks.some(t=>t.id===privateTask));assert.equal(s.get('SELECT visibility FROM tm_workspaces WHERE id=?',personal).visibility,'PERSONAL');
   cmd('org.membership.remove',{workspace_id:personal,beneficiary_id:Y,reason:'Owner revokes',expected_revision:rev()},E);assert.ok(!state(Y).tm_tasks.some(t=>t.id===privateTask));
  });
  check('rejected delegation gives no access; branch/scope extension and stale revision are rejected',()=>{

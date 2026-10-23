@@ -72,3 +72,57 @@ export function translatedMap<T extends Record<string, string>>(values: T): T {
 export function translatedTuples<T extends readonly (readonly unknown[])[]>(values: T): T {
   return values.map(row => dynamicLabels([...row], { 1: () => uiText(String(row[1])) })) as unknown as T;
 }
+
+// Some Telegram WebViews/Chromium builds omit Khmer ICU locale data. Translate
+// only Intl-owned date parts in that case; time zone and numeric values remain exact.
+const dateWords: Record<string, () => string> = {
+  Mon: () => uiText('Mon'),
+  Tue: () => uiText('Tue'),
+  Wed: () => uiText('Wed'),
+  Thu: () => uiText('Thu'),
+  Fri: () => uiText('Fri'),
+  Sat: () => uiText('Sat'),
+  Sun: () => uiText('Sun'),
+  Monday: () => uiText('Monday'),
+  Tuesday: () => uiText('Tuesday'),
+  Wednesday: () => uiText('Wednesday'),
+  Thursday: () => uiText('Thursday'),
+  Friday: () => uiText('Friday'),
+  Saturday: () => uiText('Saturday'),
+  Sunday: () => uiText('Sunday'),
+  Jan: () => uiText('Jan'),
+  Feb: () => uiText('Feb'),
+  Mar: () => uiText('Mar'),
+  Apr: () => uiText('Apr'),
+  Jun: () => uiText('Jun'),
+  Jul: () => uiText('Jul'),
+  Aug: () => uiText('Aug'),
+  Sep: () => uiText('Sep'),
+  Oct: () => uiText('Oct'),
+  Nov: () => uiText('Nov'),
+  Dec: () => uiText('Dec'),
+  January: () => uiText('January'),
+  February: () => uiText('February'),
+  March: () => uiText('March'),
+  April: () => uiText('April'),
+  May: () => uiText('May'),
+  June: () => uiText('June'),
+  July: () => uiText('July'),
+  August: () => uiText('August'),
+  September: () => uiText('September'),
+  October: () => uiText('October'),
+  November: () => uiText('November'),
+  December: () => uiText('December'),
+  AM: () => uiText('AM'),
+  PM: () => uiText('PM'),
+  Sept: () => uiText('Sep'),
+};
+export function formatDisplayDate(value: Date, options: Intl.DateTimeFormatOptions) {
+  const locale = getLocale();
+  const hasKhmer = current !== 'km' || Intl.DateTimeFormat.supportedLocalesOf(['km-KH']).length > 0;
+  const formatter = new Intl.DateTimeFormat(hasKhmer ? locale : 'en-GB', options);
+  if (hasKhmer) return formatter.format(value);
+  return formatter.formatToParts(value).map(part =>
+    ['month', 'weekday', 'dayPeriod'].includes(part.type) ? dateWords[part.value]?.() ?? part.value : part.value
+  ).join('');
+}

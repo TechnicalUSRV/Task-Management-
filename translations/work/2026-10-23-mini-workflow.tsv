@@ -1,0 +1,180 @@
+Ask for a new due date	ស្នើសុំកាលបរិច្ឆេទកំណត់ថ្មី	申请新的截止日期
+Ask for a new due date…	ស្នើសុំកាលបរិច្ឆេទកំណត់ថ្មី…	申请新的截止日期…
+Ask to cancel…	ស្នើសុំបោះបង់…	申请取消…
+Ask to complete…	ស្នើសុំបញ្ចប់…	申请完成…
+Ask to reopen…	ស្នើសុំបើកឡើងវិញ…	申请重新打开…
+Approve completing this task?	អនុម័តការបញ្ចប់កិច្ចការនេះ?	批准完成此任务？
+Ask {p0} to approve cancelling it?	ស្នើសុំឱ្យ {p0} អនុម័តការបោះបង់កិច្ចការនេះ?	请求 {p0} 批准取消此任务？
+Ask {p0} to approve completing it?	ស្នើសុំឱ្យ {p0} អនុម័តការបញ្ចប់កិច្ចការនេះ?	请求 {p0} 批准完成此任务？
+Ask {p0} to approve reopening it?	ស្នើសុំឱ្យ {p0} អនុម័តការបើកកិច្ចការនេះឡើងវិញ?	请求 {p0} 批准重新打开此任务？
+Accept to start the work, or reject it with a reason so it can be given to someone else.	ទទួលយកដើម្បីចាប់ផ្តើមការងារ ឬបដិសេធដោយបញ្ជាក់មូលហេតុ ដើម្បីអាចប្រគល់ឱ្យអ្នកផ្សេង។	接受后开始工作，或说明原因并拒绝，以便将任务交给其他人。
+Assigned by {p0}.	ចាត់តាំងដោយ {p0}។	由 {p0} 指派。
+Assigned the task	បានចាត់តាំងកិច្ចការ	已指派任务
+Change the filters to see more.	ផ្លាស់ប្តូរតម្រងដើម្បីមើលបន្ថែម។	更改筛选条件以查看更多内容。
+Change waiting for approval	ការផ្លាស់ប្តូរកំពុងរង់ចាំការអនុម័ត	变更等待批准
+Changes, completion and cancellation need both {p0} and {p1}.	ការផ្លាស់ប្តូរ ការបញ្ចប់ និងការបោះបង់ ត្រូវការការយល់ព្រមពីទាំង {p0} និង {p1}។	变更、完成和取消均需 {p0} 与 {p1} 双方同意。
+Check the work, then pass it to {p0} for approval, or return it with notes.	ពិនិត្យការងារ រួចបញ្ជូនទៅ {p0} ដើម្បីអនុម័ត ឬបញ្ជូនត្រឡប់ដោយភ្ជាប់កំណត់ចំណាំ។	检查工作后，转交 {p0} 批准，或附上备注退回。
+Check the work, then send it on or return it with notes.	ពិនិត្យការងារ រួចបញ្ជូនបន្ត ឬបញ្ជូនត្រឡប់ដោយភ្ជាប់កំណត់ចំណាំ។	检查工作后继续转交，或附上备注退回。
+Choose who takes charge. You review it.	ជ្រើសរើសអ្នកទទួលបន្ទុក។ អ្នកជាអ្នកពិនិត្យការងារ។	选择负责人，由你审核。
+Chosen when accepted	ជ្រើសរើសនៅពេលទទួលយក	接受时选择
+Close as completed	បិទដោយសម្គាល់ថាបានបញ្ចប់	标记为完成并关闭
+Close it if the work is complete, or return it with notes.	បិទកិច្ចការប្រសិនបើការងារបានបញ្ចប់ ឬបញ្ជូនត្រឡប់ដោយភ្ជាប់កំណត់ចំណាំ។	工作完成后关闭任务，或附上备注退回。
+Deadline reminders	ការរំលឹកកាលកំណត់	截止日期提醒
+Delete “{p0}”?	លុប “{p0}”?	删除“{p0}”？
+Department note	កំណត់ចំណាំសម្រាប់ផ្នែក	部门备注
+Discard your changes?	បោះបង់ការផ្លាស់ប្តូររបស់អ្នក?	放弃更改？
+Due in the next 3 days	ដល់កំណត់ក្នុងរយៈពេល 3 ថ្ងៃខាងមុខ	未来 3 天内到期
+Each supporting person is asked to accept or reject.	អ្នកគាំទ្រម្នាក់ៗត្រូវបានស្នើសុំឱ្យទទួលយក ឬបដិសេធ។	每位协助人都会收到接受或拒绝的请求。
+Edit notes and decisions	កែសម្រួលកំណត់ចំណាំ និងសេចក្តីសម្រេច	编辑备注和决议
+Edit or remove “{p0}”	កែសម្រួល ឬដក “{p0}” ចេញ	编辑或移除“{p0}”
+Edit, reschedule or invite	កែសម្រួល កំណត់ពេលឡើងវិញ ឬអញ្ជើញ	编辑、改期或邀请
+Ends on a later day	បញ្ចប់នៅថ្ងៃបន្ទាប់	在之后的日期结束
+Everyone on the task is reminded {p0}.	អ្នកគ្រប់គ្នាដែលចូលរួមកិច្ចការទទួលបានការរំលឹក {p0}។	任务中的所有人都会在{p0}收到提醒。
+Everyone on the task is told. Cancelled tasks stay in the history and reports.	អ្នកគ្រប់គ្នាដែលចូលរួមកិច្ចការត្រូវបានជូនដំណឹង។ កិច្ចការដែលបានបោះបង់នៅតែមានក្នុងប្រវត្តិ និងរបាយការណ៍។	任务中的所有人都会收到通知。已取消的任务仍保留在历史记录和报表中。
+Everyone on the task is told. It stays stuck until someone resumes it.	អ្នកគ្រប់គ្នាដែលចូលរួមកិច្ចការត្រូវបានជូនដំណឹង។ កិច្ចការនៅតែជាប់គាំងរហូតដល់មានអ្នកបន្តវាឡើងវិញ។	任务中的所有人都会收到通知。任务会保持受阻状态，直到有人恢复工作。
+Expectation *	លទ្ធផលរំពឹងទុក *	预期结果 *
+Expectation is required.	ត្រូវបំពេញលទ្ធផលរំពឹងទុក។	请填写预期结果。
+Fewer filters	បង្ហាញតម្រងតិចជាងនេះ	收起筛选条件
+For example 7, or 5, 10	ឧទាហរណ៍ 7 ឬ 5, 10	例如 7，或 5, 10
+For regular work, such as a weekly report.	សម្រាប់ការងារទៀងទាត់ ដូចជារបាយការណ៍ប្រចាំសប្តាហ៍។	适用于定期工作，例如周报。
+Hand this task over	ប្រគល់កិច្ចការនេះបន្ត	移交此任务
+High priority	អាទិភាពខ្ពស់	高优先级
+Low priority	អាទិភាពទាប	低优先级
+Medium priority	អាទិភាពមធ្យម	中优先级
+Invite people	អញ្ជើញមនុស្ស	邀请人员
+It goes back to {p0}{p1}.	វាត្រូវបានបញ្ជូនត្រឡប់ទៅ {p0}{p1}។	将退回给 {p0}{p1}。
+It may have been deleted.	វាអាចត្រូវបានលុបរួចហើយ។	可能已被删除。
+It may have been removed, or it is no longer shared with you.	វាអាចត្រូវបានដកចេញ ឬលែងចែករំលែកជាមួយអ្នកទៀតហើយ។	可能已被移除，或已不再与你共享。
+It may have been removed, or your role no longer includes it.	វាអាចត្រូវបានដកចេញ ឬតួនាទីរបស់អ្នកលែងមានសិទ្ធិចូលប្រើវា។	可能已被移除，或你的角色已不再具有访问权限。
+Keep me on the task as a supporting person	រក្សាខ្ញុំជាអ្នកគាំទ្រកិច្ចការនេះ	让我继续作为此任务的协助人
+Keep the repeating series	រក្សាស៊េរីកិច្ចការដដែលៗ	保留重复任务系列
+Loading your tasks…	កំពុងផ្ទុកកិច្ចការរបស់អ្នក…	正在加载你的任务…
+More filters{p0}	តម្រងបន្ថែម{p0}	更多筛选条件{p0}
+Move the whole series to this date	ផ្លាស់ទីស៊េរីទាំងមូលទៅកាលបរិច្ឆេទនេះ	将整个系列移至此日期
+Move “{p0}” down	ផ្លាស់ទី “{p0}” ចុះក្រោម	下移“{p0}”
+Move “{p0}” up	ផ្លាស់ទី “{p0}” ឡើងលើ	上移“{p0}”
+New date {p0} asked by {p1}	កាលបរិច្ឆេទថ្មី {p0} ស្នើសុំដោយ {p1}	新日期 {p0}，由 {p1} 申请
+New tasks, reviews, requests and changes to your tasks appear here.	កិច្ចការថ្មី ការពិនិត្យ សំណើ និងការផ្លាស់ប្តូរកិច្ចការរបស់អ្នកបង្ហាញនៅទីនេះ។	新任务、审核、请求和任务变更会显示在这里。
+No matching tasks	គ្មានកិច្ចការដែលត្រូវគ្នា	没有匹配的任务
+No reminders before the due date.	គ្មានការរំលឹកមុនកាលបរិច្ឆេទកំណត់។	截止日期前不提醒。
+No requests are waiting for you	គ្មានសំណើកំពុងរង់ចាំអ្នក	没有等待你处理的请求
+No tasks in this category	គ្មានកិច្ចការក្នុងប្រភេទនេះ	此类别中没有任务
+No time recorded in this period.	គ្មានពេលវេលាដែលបានកត់ត្រាក្នុងរយៈពេលនេះ។	此期间没有工时记录。
+Nobody can be chosen yet	មិនទាន់មានអ្នកណាដែលអាចជ្រើសរើសបាន	暂无可选择的人员
+Nobody has sent you a request yet	មិនទាន់មានអ្នកណាផ្ញើសំណើមកអ្នកទេ	还没有人向你发送请求
+Nobody matches your search	គ្មានអ្នកណាត្រូវនឹងការស្វែងរករបស់អ្នក	没有匹配搜索条件的人员
+Nobody to choose here yet	មិនទាន់មានអ្នកណាសម្រាប់ជ្រើសរើសនៅទីនេះ	此处暂无可选择的人员
+None (not scheduled)	គ្មាន (មិនបានកំណត់ពេល)	无（未排期）
+Note for the approver (optional)	កំណត់ចំណាំសម្រាប់អ្នកអនុម័ត (មិនចាំបាច់)	给批准人的备注（可选）
+Note for the reviewer (optional)	កំណត់ចំណាំសម្រាប់អ្នកពិនិត្យ (មិនចាំបាច់)	给审核人的备注（可选）
+Note for them (optional)	កំណត់ចំណាំសម្រាប់ពួកគេ (មិនចាំបាច់)	给对方的备注（可选）
+Nothing changes until {p0} approves.	គ្មានអ្វីផ្លាស់ប្តូរទេ រហូតដល់ {p0} អនុម័ត។	在 {p0} 批准之前，不会发生任何更改。
+Off: only this task moves; the following ones keep their planned dates.	បិទ៖ ផ្លាស់ទីតែកិច្ចការនេះប៉ុណ្ណោះ។ កិច្ចការបន្ទាប់រក្សាកាលបរិច្ឆេទដែលបានគ្រោងទុក។	关闭：仅移动此任务，后续任务保留原计划日期。
+Other reminder, days before the due date	ការរំលឹកផ្សេងទៀត ចំនួនថ្ងៃមុនកាលបរិច្ឆេទកំណត់	其他提醒：截止日期前的天数
+Other: days before	ផ្សេងទៀត៖ ចំនួនថ្ងៃមុន	其他：提前天数
+Pass for approval…	បញ្ជូនបន្តដើម្បីអនុម័ត…	转交批准…
+Pass this request to someone else	បញ្ជូនសំណើនេះបន្តទៅអ្នកផ្សេង	将此请求转交给其他人
+Pass to someone else…	បញ្ជូនបន្តទៅអ្នកផ្សេង…	转交给其他人…
+Pass to {p0} for approval	បញ្ជូនបន្តទៅ {p0} ដើម្បីអនុម័ត	转交 {p0} 批准
+Progress becomes 100% and everyone on the task is told.{p0}	វឌ្ឍនភាពក្លាយជា 100% ហើយអ្នកគ្រប់គ្នាដែលចូលរួមកិច្ចការត្រូវបានជូនដំណឹង។{p0}	进度将变为 100%，任务中的所有人都会收到通知。{p0}
+Quick due dates	កាលបរិច្ឆេទកំណត់រហ័ស	快捷截止日期
+Reason for rejecting	មូលហេតុនៃការបដិសេធ	拒绝原因
+Reason for the change (for {p0})	មូលហេតុនៃការផ្លាស់ប្តូរ (សម្រាប់ {p0})	变更原因（供 {p0} 查看）
+Reject reviewing this task?	បដិសេធការពិនិត្យកិច្ចការនេះ?	拒绝审核此任务？
+Reject supporting this task?	បដិសេធការគាំទ្រកិច្ចការនេះ?	拒绝协助此任务？
+Remind before the due date	រំលឹកមុនកាលបរិច្ឆេទកំណត់	在截止日期前提醒
+Remove the step “{p0}”?	ដកជំហាន “{p0}” ចេញ?	移除步骤“{p0}”？
+Remove “{p0}”	ដក “{p0}” ចេញ	移除“{p0}”
+Resume this task	បន្តកិច្ចការនេះឡើងវិញ	恢复此任务
+Return (don’t approve)…	បញ្ជូនត្រឡប់ (មិនអនុម័ត)…	退回（不批准）…
+Return for more work…	បញ្ជូនត្រឡប់ដើម្បីធ្វើការបន្ថែម…	退回继续完善…
+Reviews the work when it is submitted and decides due date requests.	ពិនិត្យការងារនៅពេលបានដាក់ស្នើ និងសម្រេចលើសំណើផ្លាស់ប្តូរកាលបរិច្ឆេទកំណត់។	审核提交的工作，并决定是否批准截止日期变更请求。
+Search by name or department	ស្វែងរកតាមឈ្មោះ ឬផ្នែក	按姓名或部门搜索
+Search company tasks	ស្វែងរកកិច្ចការរបស់ក្រុមហ៊ុន	搜索公司任务
+Search tasks or people…	ស្វែងរកកិច្ចការ ឬមនុស្ស…	搜索任务或人员…
+Send to reviewer…	បញ្ជូនទៅអ្នកពិនិត្យ…	发送给审核人…
+Showing the first 200. Narrow the filters to see the rest.	កំពុងបង្ហាញ 200 ដំបូង។ បង្រួមតម្រងដើម្បីមើលធាតុផ្សេងទៀត។	正在显示前 200 项。请缩小筛选范围以查看其他项目。
+Something went wrong	មានបញ្ហាកើតឡើង	出现错误
+Submit for approval	ដាក់ស្នើដើម្បីអនុម័ត	提交批准
+Submit for approval…	ដាក់ស្នើដើម្បីអនុម័ត…	提交批准…
+Submit for review…	ដាក់ស្នើដើម្បីពិនិត្យ…	提交审核…
+Take back the request	ដកសំណើត្រឡប់មកវិញ	撤回请求
+Task actions	សកម្មភាពកិច្ចការ	任务操作
+Tasks where you are the person in charge appear here.	កិច្ចការដែលអ្នកជាអ្នកទទួលបន្ទុកបង្ហាញនៅទីនេះ។	你负责的任务会显示在这里。
+Tasks within your visibility scope	កិច្ចការក្នុងវិសាលភាពដែលអ្នកអាចមើលឃើញ	你有权查看的任务
+Tasks you are in charge of or supporting	កិច្ចការដែលអ្នកទទួលបន្ទុក ឬគាំទ្រ	你负责或协助的任务
+The file is deleted from the task. The history keeps a note that it was removed.	ឯកសារត្រូវបានលុបចេញពីកិច្ចការ។ ប្រវត្តិរក្សាកំណត់ត្រានៃការដកចេញនេះ។	文件会从任务中删除，历史记录会保留移除记录。
+The following tasks are planned from this date.	កិច្ចការបន្ទាប់ត្រូវបានគ្រោងទុកចាប់ពីកាលបរិច្ឆេទនេះ។	后续任务将从此日期开始安排。
+The history keeps a note that it was removed.	ប្រវត្តិរក្សាកំណត់ត្រានៃការដកចេញនេះ។	历史记录会保留移除记录。
+The people on the task will see your reason.	អ្នកដែលចូលរួមកិច្ចការនឹងឃើញមូលហេតុរបស់អ្នក។	任务参与者会看到你的原因。
+The person in charge can send it on for approval, or return it.	អ្នកទទួលបន្ទុកអាចបញ្ជូនបន្តដើម្បីអនុម័ត ឬបញ្ជូនត្រឡប់។	负责人可以继续转交批准，也可以退回。
+The person you ask chooses who takes charge when they accept.	អ្នកដែលអ្នកស្នើសុំជ្រើសរើសអ្នកទទួលបន្ទុកនៅពេលពួកគេទទួលយក។	收到请求的人会在接受时选择负责人。
+The person you ask takes charge when they accept. You review the work.	អ្នកដែលអ្នកស្នើសុំក្លាយជាអ្នកទទួលបន្ទុកនៅពេលពួកគេទទួលយក។ អ្នកជាអ្នកពិនិត្យការងារ។	收到请求的人接受后成为负责人，由你审核工作。
+The result you expect, and how you’ll know it is done	លទ្ធផលដែលអ្នករំពឹងទុក និងរបៀបដែលអ្នកដឹងថាវាបានបញ្ចប់	你期望的结果，以及判断完成的标准
+The task stays open until {p0} approves.	កិច្ចការនៅតែបើករហូតដល់ {p0} អនុម័ត។	任务会保持打开状态，直到 {p0} 批准。
+The tasks you are on.	កិច្ចការដែលអ្នកចូលរួម។	你参与的任务。
+They are asked to accept or reject it.	ពួកគេត្រូវបានស្នើសុំឱ្យទទួលយក ឬបដិសេធ។	他们会收到接受或拒绝的请求。
+They can close it or return it with notes.	ពួកគេអាចបិទវា ឬបញ្ជូនត្រឡប់ដោយភ្ជាប់កំណត់ចំណាំ។	他们可以关闭任务，或附上备注退回。
+They decide who does it	ពួកគេសម្រេចថាអ្នកណាអនុវត្ត	由对方决定执行人
+They receive it with your note; the requester is told.	ពួកគេទទួលបានសំណើជាមួយកំណត់ចំណាំរបស់អ្នក ហើយអ្នកស្នើសុំត្រូវបានជូនដំណឹង។	对方会收到请求及你的备注，请求人也会收到通知。
+This request is waiting for your answer.	សំណើនេះកំពុងរង់ចាំចម្លើយរបស់អ្នក។	此请求正在等待你的答复。
+Ticking a step tells the assigner. Steps don’t change progress.	ការធីកជំហានជូនដំណឹងដល់អ្នកចាត់តាំង។ ជំហានមិនផ្លាស់ប្តូរវឌ្ឍនភាពទេ។	勾选步骤会通知指派人，但不会更改任务进度。
+Use 0–99%. Submit or close the task when the work is finished.	ប្រើ 0–99%។ ដាក់ស្នើ ឬបិទកិច្ចការនៅពេលការងារបានបញ្ចប់។	请输入 0–99%。工作完成后，请提交或关闭任务。
+Use whole days from 1 to 90, for example 7 or 5, 10.	ប្រើចំនួនថ្ងៃគត់ពី 1 ដល់ 90 ឧទាហរណ៍ 7 ឬ 5, 10។	请输入 1 至 90 之间的整数天数，例如 7 或 5, 10。
+Viewing only: the people on the task make the changes.	អាចមើលតែប៉ុណ្ណោះ៖ អ្នកចូលរួមកិច្ចការជាអ្នកធ្វើការផ្លាស់ប្តូរ។	仅可查看：由任务参与者进行更改。
+Waiting for answer	កំពុងរង់ចាំចម្លើយ	等待答复
+Waiting for review by {p0}.	កំពុងរង់ចាំការពិនិត្យដោយ {p0}។	等待 {p0} 审核。
+Waiting for {p0}	កំពុងរង់ចាំ {p0}	等待 {p0}
+Waiting for {p0} by {p1}.	កំពុងរង់ចាំ {p1} {p0}។	等待 {p1} {p0}。
+Waiting for {p0} to approve: {p1}	កំពុងរង់ចាំ {p0} អនុម័ត៖ {p1}	等待 {p0} 批准：{p1}
+What is blocking this task?	តើអ្វីកំពុងរាំងស្ទះកិច្ចការនេះ?	是什么阻碍了此任务？
+What still needs to be done?	តើនៅមានអ្វីត្រូវធ្វើទៀត?	还需要完成哪些工作？
+When this task is closed, the next one is created with the same people and steps.	នៅពេលកិច្ចការនេះត្រូវបានបិទ កិច្ចការបន្ទាប់នឹងត្រូវបានបង្កើតដោយមានមនុស្ស និងជំហានដូចគ្នា។	此任务关闭后，将创建人员和步骤相同的下一项任务。
+Which team is involved and anything they should know	ក្រុមណាដែលពាក់ព័ន្ធ និងអ្វីដែលពួកគេគួរដឹង	涉及哪个团队，以及他们需要了解的信息
+Whole days from 1 to 90. Clear everything to turn reminders off.	ចំនួនថ្ងៃគត់ពី 1 ដល់ 90។ សម្អាតទាំងអស់ដើម្បីបិទការរំលឹក។	请输入 1 至 90 之间的整数天数。清空所有值即可关闭提醒。
+Will be asked to accept	នឹងត្រូវបានស្នើសុំឱ្យទទួលយក	将收到接受请求
+You ask to take this on. When they approve, you are in charge and they review it.	អ្នកស្នើសុំទទួលបន្ទុកការងារនេះ។ នៅពេលពួកគេអនុម័ត អ្នកជាអ្នកទទួលបន្ទុក ហើយពួកគេជាអ្នកពិនិត្យ។	你申请承担此任务。对方批准后，由你负责，对方审核。
+You checked the work. {p0} approves completing it or returns it.	អ្នកបានពិនិត្យការងារ។ {p0} អនុម័តការបញ្ចប់ ឬបញ្ជូនត្រឡប់។	你已检查工作。由 {p0} 批准完成或退回。
+You have not requested any tasks	អ្នកមិនទាន់បានស្នើសុំកិច្ចការណាមួយទេ	你尚未请求任何任务
+You take charge and {p0} reviews it.	អ្នកទទួលបន្ទុក ហើយ {p0} ពិនិត្យការងារ។	由你负责，{p0} 审核。
+You would help {p0}, who is in charge.	អ្នកនឹងជួយ {p0} ដែលជាអ្នកទទួលបន្ទុក។	你将协助负责人 {p0}。
+You would review the work when it is submitted and decide due date requests.	អ្នកនឹងពិនិត្យការងារនៅពេលបានដាក់ស្នើ និងសម្រេចលើសំណើផ្លាស់ប្តូរកាលបរិច្ឆេទកំណត់។	你将审核提交的工作，并决定是否批准截止日期变更请求。
+You’re all caught up	អ្នកបានដោះស្រាយអស់ហើយ	所有事项均已处理
+today	ថ្ងៃនេះ	今天
+tomorrow	ថ្ងៃស្អែក	明天
+yesterday	ម្សិលមិញ	昨天
+in {p0} days	ក្នុងរយៈពេល {p0} ថ្ងៃ	{p0} 天后
+{p0} days ago	{p0} ថ្ងៃមុន	{p0} 天前
+Fill in {p0}, and choose {p1}.	បំពេញ {p0} ហើយជ្រើសរើស {p1}។	请填写{p0}，并选择{p1}。
+Fill in {p0}.	បំពេញ {p0}។	请填写{p0}。
+Choose {p0}.	ជ្រើសរើស {p0}។	请选择{p0}。
+Take charge? Accept or reject	ទទួលបន្ទុក? ទទួលយក ឬបដិសេធ	担任负责人？接受或拒绝
+Support {p0}? Accept or reject	គាំទ្រ {p0}? ទទួលយក ឬបដិសេធ	协助 {p0}？接受或拒绝
+Review it? Accept or reject	ពិនិត្យកិច្ចការនេះ? ទទួលយក ឬបដិសេធ	审核此任务？接受或拒绝
+{p0} · viewing only	{p0} · អាចមើលតែប៉ុណ្ណោះ	{p0} · 仅可查看
+{p0} asks you to approve completing this task.	{p0} ស្នើសុំឱ្យអ្នកអនុម័តការបញ្ចប់កិច្ចការនេះ។	{p0} 请求你批准完成此任务。
+{p0} submitted this to you.	{p0} បានដាក់ស្នើកិច្ចការនេះមកអ្នក។	{p0} 向你提交了此任务。
+approval	ការអនុម័ត	批准
+review	ការពិនិត្យ	审核
+supporting role	តួនាទីគាំទ្រ	协助角色
+Your tasks and those led by the {p0} person in your reporting line.	កិច្ចការរបស់អ្នក និងកិច្ចការដែលដឹកនាំដោយមនុស្ស {p0} នាក់ក្នុងខ្សែរាយការណ៍របស់អ្នក។	你的任务，以及汇报关系中 {p0} 位人员负责的任务。
+Your tasks and those led by the {p0} people in your reporting line.	កិច្ចការរបស់អ្នក និងកិច្ចការដែលដឹកនាំដោយមនុស្ស {p0} នាក់ក្នុងខ្សែរាយការណ៍របស់អ្នក។	你的任务，以及汇报关系中 {p0} 位人员负责的任务。
+ Also tasks you can see through {p0} (viewing only).	 ក៏មានកិច្ចការដែលអ្នកអាចមើលឃើញតាមរយៈ {p0} (អាចមើលតែប៉ុណ្ណោះ)។	 还包括通过{p0}可查看的任务（仅可查看）。
+{p0} person has not answered yet. Use “Send a reminder” to remind them.	មនុស្ស {p0} នាក់មិនទាន់ឆ្លើយតប។ ប្រើ “ផ្ញើការរំលឹក” ដើម្បីរំលឹកពួកគេ។	{p0} 人尚未答复。使用“发送提醒”提醒对方。
+{p0} people have not answered yet. Use “Send a reminder” to remind them.	មនុស្ស {p0} នាក់មិនទាន់ឆ្លើយតប។ ប្រើ “ផ្ញើការរំលឹក” ដើម្បីរំលឹកពួកគេ។	{p0} 人尚未答复。使用“发送提醒”提醒对方。
+Monday	ចន្ទ	星期一
+Tuesday	អង្គារ	星期二
+Wednesday	ពុធ	星期三
+Thursday	ព្រហស្បតិ៍	星期四
+Friday	សុក្រ	星期五
+Saturday	សៅរ៍	星期六
+Sunday	អាទិត្យ	星期日
+AM	ព្រឹក	上午
+PM	ល្ងាច	下午
+nothing is waiting for you	គ្មានអ្វីកំពុងរង់ចាំអ្នកទេ	没有待处理事项
+{p0} thing needs you	មាន {p0} រឿងត្រូវការអ្នក	有 {p0} 项需要你处理
+{p0} things need you	មាន {p0} រឿងត្រូវការអ្នក	有 {p0} 项需要你处理
+Tasks to accept, work to review, changes to approve, task requests{p0} appear here.	កិច្ចការដែលត្រូវទទួលយក ការងារដែលត្រូវពិនិត្យ ការផ្លាស់ប្តូរដែលត្រូវអនុម័ត សំណើកិច្ចការ{p0} បង្ហាញនៅទីនេះ។	待接受的任务、待审核的工作、待批准的变更、任务请求{p0}会显示在这里。
+, due dates and organization approvals	 កាលបរិច្ឆេទកំណត់ និងការអនុម័តផ្នែកអង្គការ	、截止日期及组织审批
+ and due dates	 និងកាលបរិច្ឆេទកំណត់	及截止日期
+Add supporting person	បន្ថែមអ្នកគាំទ្រ	添加协助人

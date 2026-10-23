@@ -20,3 +20,9 @@ html:lang(km) :is(h1,h2,h3,h4,label,legend) { line-height: 1.8; letter-spacing: 
   .language-setting select { max-width: 100%; font-size: 16px; }
 }
 @media print { body { font-family: var(--language-font); } }
+
+/* Visibility descriptions need their own line in both clients and all languages. */
+.task-visibility-fields { display: grid; gap: 1rem; min-width: 0; }
+.task-visibility-fields > label { display: grid; gap: .5rem; min-width: 0; }
+.task-visibility-fields select { width: 100%; min-width: 0; min-height: 2.75rem; padding: .5rem; color: inherit; background: var(--background, Canvas); border: 1px solid var(--border, #cbd5e1); border-radius: .5rem; }
+.task-visibility-fields small { display: block; line-height: 1.7; overflow-wrap: anywhere; }

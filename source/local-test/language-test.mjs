@@ -9,7 +9,7 @@ import ts from 'typescript';
 import { JSDOM } from 'jsdom';
 const require = createRequire(import.meta.url), dir = await mkdtemp(path.join(tmpdir(), 'task-language-'));
 try {
-  for (const file of ['i18n.ts', 'language-selector.tsx']) {
+  for (const file of ['i18n.ts', 'language-selector.tsx', 'task-display.ts']) {
     let code = ts.transpileModule(await readFile(new URL(file, import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX } }).outputText;
     code = code.replace(/^import (.+) from ['"](.+?)['"];?$/gm, (all, binding, spec) => {
       if (spec.endsWith('.json')) return `const ${binding} = ${JSON.stringify(require(path.resolve(import.meta.dirname, spec)))};`;
@@ -22,6 +22,7 @@ try {
   const { act, createElement: h, useState } = await import('react'), { createRoot } = await import('react-dom/client');
   const i18n = await import(pathToFileURL(path.join(dir, 'i18n.mjs')));
   const { LanguageSelector } = await import(pathToFileURL(path.join(dir, 'language-selector.mjs')));
+  const display = await import(pathToFileURL(path.join(dir, 'task-display.mjs')));
   let accept, reject;
   const save = () => new Promise((resolve, fail) => { accept = resolve; reject = fail; });
   function Form() { i18n.useLanguage(); const [draft, setDraft] = useState('Employee Save កិច្ចការ 中文'); return h('form', null, h('textarea', { value: draft, onChange: e => setDraft(e.target.value) }), h(LanguageSelector, { save })); }
@@ -37,6 +38,12 @@ try {
     await act(async () => accept({ ok: true }));
     assert.equal(document.documentElement.lang, locale); assert.equal(select.disabled, false);
     assert.equal(document.querySelector('textarea'), input); assert.equal(input.value, 'Employee Save កិច្ចការ 中文');
+    const names = ['Save ភាសាខ្មែរ 中文', 'Delete <keep>'];
+    assert.equal(display.joinDisplayNames(names), i18n.uiText('{p0} and {p1}', { p0: names[0], p1: names[1] }));
+    assert.equal(display.relativeDays(0), i18n.uiText('today'));
+    assert.equal(display.relativeDays(5), i18n.uiText('in {p0} days', { p0: 5 }));
+    assert.equal(display.reminderText([7, 1]), i18n.uiText('{p0} days before the due date', { p0: i18n.uiText('{p0} and {p1}', { p0: '7', p1: '1' }) }));
+    if (locale !== 'en') { assert.ok(!display.reminderText([7, 1]).includes(' and ')); assert.notEqual(display.missingFieldsText(['Title'], ['Reviewer']), 'Fill in Title, and choose Reviewer.'); }
     assert.equal(map.SAVE, i18n.uiText('Save')); assert.deepEqual(Object.keys(map), ['SAVE']);
     assert.deepEqual([...entries[0]], ['SAVE', i18n.uiText('Save')]);
     assert.deepEqual([...tuples[0]], ['save', i18n.uiText('Save'), 'action']);
@@ -45,6 +52,14 @@ try {
   await act(async () => { select.value = 'km'; select.dispatchEvent(new window.Event('change', { bubbles: true })); });
   await act(async () => reject(new Error('Could not save')));
   assert.equal(i18n.getLanguage(), 'en'); assert.equal(select.value, 'en'); assert.equal(document.querySelector('[role=alert]').textContent, 'Could not save');
+  await act(async () => i18n.setLanguage('km'));
+  const supportedLocalesOf = Intl.DateTimeFormat.supportedLocalesOf;
+  try {
+    Intl.DateTimeFormat.supportedLocalesOf = () => [];
+    const date = i18n.formatDisplayDate(new Date('2026-10-23T23:30:00Z'), { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Phnom_Penh' });
+    assert.ok(date.includes(i18n.uiText('Saturday')) && date.includes(i18n.uiText('October')) && date.includes('24') && date.includes('06:30'));
+    assert.ok(!/Saturday|October/.test(date));
+  } finally { Intl.DateTimeFormat.supportedLocalesOf = supportedLocalesOf; }
   const old = i18n.getLanguageRevision();
   await act(async () => i18n.setLanguage('zh-CN'));
   await act(async () => i18n.receiveLanguage(new Response('', { headers: { 'X-Account-Language': 'km' } }), old));

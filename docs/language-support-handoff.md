@@ -95,3 +95,38 @@ Validation: **24 focused language/Telegram tests passed**, including generated
 reminders and persisted nested metadata. Production build passed.
 Inventory: **5,580 templates; 2,342 translated; 3,238 pending**.
 Still incomplete; do not deploy.
+
+### Mini App workflow and date review — 24 October 2026
+
+- Added whole Khmer and Simplified Chinese phrases for task approvals, handovers,
+  requests, reminder settings, empty states and form guidance. Shared display
+  helpers translate relative dates, reminder lists and missing-field prompts.
+  Canonical task values and employee content are unchanged.
+- Fixed English-only approval prompts and form defaults. Waiting-person wording
+  now uses whole singular/plural sentences rather than translated fragments.
+- Chromium 134 in this environment reports no Khmer Intl date locale support.
+  A display-only fallback translates Intl-owned weekday/month parts while
+  retaining the original instant, time zone and numeric values. Unit coverage
+  simulates missing ICU data and checks a date crossing midnight in Cambodia.
+- Task visibility labels, selects and descriptions now occupy separate lines
+  so translated descriptions do not crowd the selector.
+- Current inventory: **5,608 templates; 2,526 translated; 3,082 pending**.
+  Native-speaker review and complete coverage remain required.
+
+Regression investigation: the Telegram legacy parity scenario fails at workspace
+creation on both this branch and the isolated pre-language baseline
+`2023d9f178726cde3d5b51aba87af9c152f8f65b`. Its employee fixture has no organizational
+level, so Django correctly denies workspace creation. The parity adapter now
+asserts the new account language is English before excluding that additive field
+from legacy comparison. Permissions were not relaxed.
+
+The organization test incorrectly expected sharing a Personal workspace to change
+its visibility to Public; the same failure occurs on the baseline. Its assertion
+now checks preserved Personal visibility and still checks sharing/revocation.
+The ERP test used an obsolete email login payload; it now resolves the fixture's
+username and uses the current login contract. Both suites pass **13 checks each**.
+React language tests, type checking and production build pass. The preceding
+broad backend run had **160 passed, 102 subtests passed, 1 legacy parity failure**.
+Screenshots are being refreshed separately. SQL Server migration verification
+and remaining legacy release-gate reconciliation are still outstanding.
+**Not ready for deployment; do not deploy.**

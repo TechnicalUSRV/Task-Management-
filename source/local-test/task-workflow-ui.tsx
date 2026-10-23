@@ -1,3 +1,4 @@
+import { reminderText } from './task-display';
 import { uiText, useLanguage, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from "./i18n";
 import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
@@ -17,7 +18,7 @@ import type { Row } from './components';
 import type { Workspace } from './ui';
 import {
   TASK_STATUS as EN_TASK_STATUS, REQUEST_STATUS as EN_REQUEST_STATUS, TASK_SOURCES as EN_TASK_SOURCES, MONTHLY_CATEGORIES as EN_MONTHLY_CATEGORIES, RECURRENCE_SHORT as EN_RECURRENCE_SHORT, ROLE_LABEL as EN_ROLE_LABEL, TASK_FILE_ACCEPT, PREVIEW_TYPES, OPEN_TASK_STATUSES, enrichedTasks, taskActions, waitingFor, taskStateLabel, taskToday, addDays, currentMonth, monthBounds, shiftMonth, formatMinutes,
-  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, assignerOf, completionApprover, completionPath, reminderDays, reminderText, twoSided, canDecideDue, reopenNeedsApproval,
+  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, assignerOf, completionApprover, completionPath, reminderDays, twoSided, canDecideDue, reopenNeedsApproval,
 } from './task-domain.mjs';
 import { CameraAttachment } from './camera-attachment';
 import { TaskSharing, TaskVisibility } from './task-access-ui';
@@ -405,7 +406,7 @@ export function TaskDetail({ w, taskId, onClose, onEdit }: { w: Workspace; taskI
                   {(t.support || []).map((x: Row) => personRow(x.staff_id, uiText("Supporting"), x.status, x.status === 'DECLINED' && x.response_note ? <small className="muted">“{x.response_note}”</small> : null))}
                   {t.reviewer_id && t.reviewer_id !== t.pic_id && personRow(t.reviewer_id, uiText("Reviewer"), t.reviewer_status, t.reviewer_status === 'DECLINED' && t.reviewer_note ? <small className="muted">“{t.reviewer_note}”</small> : null)}
                 </ul>
-                {allowed.includes('remind') && <p className="muted small">{t.waiting.filter((x: Row) => x.staff_id !== me).length} {plural(t.waiting.filter((x: Row) => x.staff_id !== me).length, uiText("person has"), uiText("people have"))} {uiText("not answered yet. Use “Send a reminder” to remind them.")}</p>}
+                {allowed.includes('remind') && <p className="muted small">{t.waiting.filter((x: Row) => x.staff_id !== me).length === 1 ? uiText("{p0} person has not answered yet. Use “Send a reminder” to remind them.", { p0: 1 }) : uiText("{p0} people have not answered yet. Use “Send a reminder” to remind them.", { p0: t.waiting.filter((x: Row) => x.staff_id !== me).length })}</p>}
               </section>
               <KeyValues items={facts} dense />
             </div>

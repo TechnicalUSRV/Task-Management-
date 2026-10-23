@@ -1,3 +1,5 @@
+import { formatDisplayDate } from './i18n';
+import { reminderText, relativeDays, joinDisplayNames as andList, missingFieldsText as missingText } from './task-display';
 import { getLocale, getLanguage, getLanguageRevision, receiveLanguage, useLanguage, uiText, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from './i18n';
 import { LanguageSelector } from './language-selector';
 import { CameraAttachment } from './camera-attachment';
@@ -20,7 +22,7 @@ import {
 import {
   enrichedTasks, taskActions, taskStateLabel, waitingFor, dueDecider, REQUEST_STATUS as EN_REQUEST_STATUS, OPEN_TASK_STATUSES, RECURRENCE as EN_RECURRENCE, RECURRENCE_SHORT as EN_RECURRENCE_SHORT, TASK_FILE_ACCEPT, PREVIEW_TYPES,
   formatMinutes, taskToday, addDays, daysBetween, currentMonth, monthBounds, shiftMonth, MONTHLY_CATEGORIES as EN_MONTHLY_CATEGORIES,
-  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, editApprovalTarget, assignerOf, assignedByMe, completionApprover, completionPath, reminderDays, reminderText, toReviewOrApprove, twoSided,
+  CHANGE_KIND as EN_CHANGE_KIND, CHANGE_STATUS as EN_CHANGE_STATUS, REMINDER_PRESETS, approvalTarget, editApprovalTarget, assignerOf, assignedByMe, completionApprover, completionPath, reminderDays, toReviewOrApprove, twoSided,
   canDecideDue, canManageMeeting, reopenNeedsApproval,
 } from './task-domain.mjs';
 import { fileToBase64, photoFromFile } from './media';
@@ -55,17 +57,16 @@ async function call(path: string, body?: Row): Promise<Row> {
 }
 const organizationRead = (params: Row) => call('/organization?' + new URLSearchParams(params as Record<string,string>));
 const haptic = (kind: 'success' | 'error' | 'warning') => { try { tgApp()?.HapticFeedback?.notificationOccurred(kind); } catch { /* older Telegram versions */ } };
-const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-const fmtDay = (d?: string | null) => (d ? new Intl.DateTimeFormat(getLocale(), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${d.slice(0, 10)}T12:00:00Z`)) : '—');
+const fmtDay = (d?: string | null) => (d ? formatDisplayDate(new Date(`${d.slice(0, 10)}T12:00:00Z`), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }) : '—');
 // V5.5: times are shown in the person's own time zone (their profile, else the company's, else Cambodia's).
 let TIME = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Phnom_Penh' }), TIME_ZONE = 'Asia/Phnom_Penh';
 const useZone = (zone?: string) => { if (!zone || zone === TIME_ZONE) return; try { TIME = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: zone }); TIME_ZONE = zone; } catch { /* keep the previous zone */ } };
-const fmtTime = (v?: string | null) => (v ? new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE }).format(new Date(v)) : '');
+const fmtTime = (v?: string | null) => (v ? formatDisplayDate(new Date(v), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: TIME_ZONE }) : '');
 /** The calendar day and the time of a moment, in the person's time zone. */
 const dayOf = (iso: string) => zonedInput(iso).slice(0, 10);
 const hm = (iso?: string | null) => (iso ? zonedInput(iso).slice(11, 16) : '');
 const calToday = () => dayOf(new Date().toISOString());
-const relDay = (d: string) => { const n = daysBetween(taskToday(), d); return n === 0 ? 'today' : n === 1 ? 'tomorrow' : n === -1 ? 'yesterday' : n > 0 ? `in ${n} days` : `${-n} days ago`; };
+const relDay = (d: string) => relativeDays(daysBetween(taskToday(), d));
 /** A chosen date in words under a date field ("Wed, 14 Oct · in 7 days"), since phones show date inputs as numbers. */
 const dayInWords = (d?: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${fmtDay(d)} · ${relDay(d)}` : '');
 const first = (name: string) => String(name || '').split(' · ')[0];
@@ -78,12 +79,12 @@ const PRIORITY: Record<string, [string, string]> = { HIGH: dynamicLabels(["High 
 /** V5.6.8: how a task is visible to someone who is not on it. Every reason other than 'involved' is viewing only.
  *  [short label for lists, how it reads in "You can see this task through …"] */
 const ACCESS: Record<string, [string, string]> = {
-  team: dynamicLabels(["In your team", "management oversight"], { 0: () => uiText("In your team"), 1: () => uiText("management oversight") }), company: dynamicLabels(['Company-wide', "company-wide access"], { 1: () => uiText("company-wide access") }), organization: dynamicLabels(["Organization administration", "organization administration"], { 0: () => uiText("Organization administration"), 1: () => uiText("organization administration") }),
+  team: dynamicLabels(["In your team", "management oversight"], { 0: () => uiText("In your team"), 1: () => uiText("management oversight") }), company: dynamicLabels(['Company-wide', "company-wide access"], { 0: () => uiText('Company-wide'), 1: () => uiText("company-wide access") }), organization: dynamicLabels(["Organization administration", "organization administration"], { 0: () => uiText("Organization administration"), 1: () => uiText("organization administration") }),
   owner: dynamicLabels(["Workspace owner", "workspace ownership"], { 0: () => uiText("Workspace owner"), 1: () => uiText("workspace ownership") }), membership: dynamicLabels(["Workspace member", "workspace membership"], { 0: () => uiText("Workspace member"), 1: () => uiText("workspace membership") }), governance: dynamicLabels(["Workspace governance", "workspace governance"], { 0: () => uiText("Workspace governance"), 1: () => uiText("workspace governance") }),
 };
-const accessNote = (t: Row) => (!t.access_reason || t.access_reason === 'involved' ? undefined : `${ACCESS[t.access_reason]?.[0] || uiText("Authorized access")} · viewing only`);
+const accessNote = (t: Row) => (!t.access_reason || t.access_reason === 'involved' ? undefined : uiText('{p0} · viewing only', { p0: ACCESS[t.access_reason]?.[0] || uiText('Authorized access') }));
 /** Joins words as a sentence list: "a", "a and b", "a, b and c". */
-const andList = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}` : l[0] || '');
+
 /** "Please fill in: Reason" without doubled punctuation when the label is a question. */
 const fieldName = (label: string) => label.replace(/\s*\(optional\)$/i, '').replace(/[.:]+$/, '');
 const alertError = (message: string) => { try { const app = tgApp(); if (typeof app?.showAlert === 'function') { app.showAlert(message); return; } } catch { /* fall back */ } window.alert(message); };
@@ -130,9 +131,9 @@ const requestMemory = { tab: '' };
 const reportMemory: { month: string; scope: 'me' | 'all'; cat: string } = { month: '', scope: 'me', cat: 'in_progress' };
 let reportCache: { key: string; data: Row; revision?: string } | null = null;
 const ASK_NOTE: Record<string, (c: Ctx, t: Row) => string> = {
-  pic: () => 'Take charge? Accept or reject',
-  supporter: (c, t) => `Support ${first(c.name(t.pic_id))}? Accept or reject`,
-  reviewer: () => 'Review it? Accept or reject',
+  pic: () => uiText('Take charge? Accept or reject'),
+  supporter: (c, t) => uiText('Support {p0}? Accept or reject', { p0: first(c.name(t.pic_id)) }),
+  reviewer: () => uiText('Review it? Accept or reject'),
 };
 
 // V5.4 two-party approval: what a change request asks for, field by field.
@@ -637,10 +638,7 @@ function focusField(root: Element | null | undefined, key: string) {
   el.scrollIntoView({ block: 'center', behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? 'auto' : 'smooth' });
 }
 /** "Fill in the title and the due date, and choose the reviewer." for the fields still missing. */
-function missingText(fill: string[], choose: string[]) {
-  const parts = [fill.length ? `fill in ${andList(fill)}` : '', choose.length ? `choose ${andList(choose)}` : ''].filter(Boolean).join(fill.length > 1 && choose.length ? ", and " : " and ");
-  return parts ? `${parts.charAt(0).toUpperCase()}${parts.slice(1)}.` : '';
-}
+
 /** The save button of a long form, kept in reach at the bottom of the screen, with the form's message above it. */
 function FormFoot({ error, children }: { error?: string; children: ReactNode }) {
   useLanguage();
@@ -794,7 +792,7 @@ function HomeView({ c }: { c: Ctx }) {
         <div className="hero-text">
           <p className="hint brand-line"><LogoIcon size={28} className="brand-mark" alt="" /><span><BrandTitle /></span></p>
           <h1>{uiText("Hi, ")}{first(c.name(me))}</h1>
-          <p className="hint">{fmtDay(taskToday())} · {w.total ? uiText("{p0} {p1} you", { p0: w.total, p1: w.total === 1 ? 'thing needs' : 'things need' }) : uiText("nothing is waiting for you")}</p>
+          <p className="hint">{fmtDay(taskToday())} · {w.total ? w.total === 1 ? uiText('{p0} thing needs you', { p0: w.total }) : uiText('{p0} things need you', { p0: w.total }) : uiText("nothing is waiting for you")}</p>
         </div>
         <button type="button" className="avatar-btn" onClick={() => c.open({ kind: 'settings' })} aria-label={uiText("My profile and settings")}><Avatar name={c.name(me)} src={c.photo(me)} size="lg" /></button>
       </header>
@@ -816,7 +814,7 @@ function HomeView({ c }: { c: Ctx }) {
           {w.approvals.map((cr: Row) => { const t = tasks.find(x => x.id === cr.task_id); return t ? <TaskRow key={`c-${cr.id}`} c={c} t={t} note={uiText("Approve: {p0} · from {p1}", { p0: changeTitle(cr).toLowerCase(), p1: c.who(cr.requested_by) })} named={[cr.requested_by]} /> : null; })}
           {w.requests.map((q: Row) => <button key={q.id} type="button" className="list-row" onClick={() => c.open({ kind: 'request', id: q.id })}><Avatar name={c.name(q.requested_by)} src={c.photo(q.requested_by)} size="sm" /><span className="row-main"><span className="row-title">{q.title}</span><span className="row-meta">{uiText("Task request from ")}{c.who(q.requested_by)}{q.proposed_due_date ? uiText(" · needed by {p0}", { p0: fmtDay(q.proposed_due_date) }) : ''}</span></span><ChevronRight className="chev" aria-hidden="true" /></button>)}
           {w.due.map((d: Row) => { const t = tasks.find(x => x.id === d.task_id); return t ? <TaskRow key={`d-${d.id}`} c={c} t={t} note={uiText("New date {p0} asked by {p1}", { p0: fmtDay(d.proposed_due_date), p1: c.who(d.requested_by, true) })} named={[d.requested_by]} /> : null; })}
-        </div> : <Empty icon={CheckCheck} title={uiText("You’re all caught up")} text={uiText("Tasks to accept, work to review, changes to approve, task requests{p0} appear here.", { p0: c.can('tasks.organization') ? ', due dates and organization approvals' : ' and due dates' })} />}
+        </div> : <Empty icon={CheckCheck} title={uiText("You’re all caught up")} text={uiText("Tasks to accept, work to review, changes to approve, task requests{p0} appear here.", { p0: c.can('tasks.organization') ? uiText(', due dates and organization approvals') : uiText(' and due dates') })} />}
       </Section>
       {agenda.length > 0 && <Section title={uiText("Today in your calendar")} count={agenda.length} action={<button type="button" className="link-btn" onClick={() => c.setTab('calendar')}>{uiText("Open calendar")}</button>}>
         <div className="list">{agenda.slice(0, 4).map(i => <CalRow key={i.key} c={c} i={i} day={day} />)}</div>
@@ -887,8 +885,8 @@ function CompanyTasks({ c, area, setArea }: { c: Ctx; area: 'mine' | 'company'; 
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const active = [f.ws, f.person, f.priority, f.from, f.to].filter(Boolean).length + (f.status !== 'OPEN' ? 1 : 0);
   const others = [...new Set<string>(c.tasks.map(t => t.access_reason).filter((r: string) => r && !['involved', 'team', 'company'].includes(r)))].map(r => ACCESS[r]?.[1]).filter(Boolean) as string[];
-  const reach = (scope.company ? uiText("Every task in the company (company-wide access).") : scope.team?.length ? `Your tasks and those led by the ${scope.team.length} ${scope.team.length === 1 ? 'person' : 'people'} in your reporting line.` : uiText("The tasks you are on."))
-    + (!scope.company && others.length ? ` Also tasks you can see through ${andList(others)} (viewing only).` : '');
+  const reach = (scope.company ? uiText("Every task in the company (company-wide access).") : scope.team?.length ? scope.team.length === 1 ? uiText('Your tasks and those led by the {p0} person in your reporting line.', { p0: scope.team.length }) : uiText('Your tasks and those led by the {p0} people in your reporting line.', { p0: scope.team.length }) : uiText("The tasks you are on."))
+    + (!scope.company && others.length ? uiText(' Also tasks you can see through {p0} (viewing only).', { p0: andList(others) }) : '');
   return (
     <>
       <Header title={uiText("Tasks")} subtitle={reach} /><TaskActions c={c} />
@@ -1023,15 +1021,15 @@ function TaskView({ c, id }: { c: Ctx; id: string }) {
       </header>
       {!involved(t) && <div className="callout tone-neutral">{t.access_reason === 'team' ? uiText("{p0} is in your reporting line, so you can follow this task.", { p0: first(c.name(t.pic_id)) }) : uiText("You can see this task through {p0}.", { p0: ACCESS[t.access_reason]?.[1] || 'authorized access' })} {uiText("Viewing only: the people on the task make the changes.")}</div>}
       {answers.length > 0 && <div className="callout tone-info">
-        <strong>{first(c.name(asker))} {uiText("asked you ")}{answers.map(r => ASKED[r]).join(' and ')}.</strong> {answers.includes('pic') ? uiText("Accept to start the work, or reject it with a reason so it can be given to someone else.") : answers.includes('supporter') ? uiText("You would help {p0}, who is in charge.", { p0: first(c.name(t.pic_id)) }) : uiText("You would review the work when it is submitted and decide due date requests.")}
+        <strong>{first(c.name(asker))} {uiText("asked you ")}{andList(answers.map(r => ASKED[r]))}.</strong> {answers.includes('pic') ? uiText("Accept to start the work, or reject it with a reason so it can be given to someone else.") : answers.includes('supporter') ? uiText("You would help {p0}, who is in charge.", { p0: first(c.name(t.pic_id)) }) : uiText("You would review the work when it is submitted and decide due date requests.")}
         <div className="callout-actions"><button type="button" className="btn primary small" disabled={busy} onClick={() => void quick(() => act('accept'))}><UserCheck aria-hidden="true" />{uiText("Accept")}</button><button type="button" className="btn small" disabled={busy} onClick={() => c.sheet(specs.decline[2] as SheetSpec)}><XCircle aria-hidden="true" />{uiText("Reject…")}</button></div>
       </div>}
-      {!answers.length && rejected.length > 0 && open && <div className="callout tone-neutral">{uiText("You rejected this ")}{rejected.map(r => (r === 'pic' ? 'task' : r === 'supporter' ? "supporting role" : 'review')).join(' and ')}.{allowed.includes('accept') ? uiText(" If you can help after all, you can still accept.") : ''}</div>}
+      {!answers.length && rejected.length > 0 && open && <div className="callout tone-neutral">{uiText("You rejected this ")}{andList(rejected.map(r => (r === 'pic' ? uiText('task') : r === 'supporter' ? uiText('supporting role') : uiText('review'))))}.{allowed.includes('accept') ? uiText(" If you can help after all, you can still accept.") : ''}</div>}
       {t.awaiting && !roles.isPic && <div className="callout tone-neutral">{uiText("Waiting for ")}{first(c.name(t.pic_id))} {uiText("to accept.")}</div>}
       {t.declined && <div className="callout tone-warning"><strong>{first(c.name(t.pic_id))} {uiText("rejected this task:")}</strong> {t.declined_reason}{roles.isGovernor ? uiText(" Choose another person in charge with Edit details, or cancel the task.") : ''}</div>}
       {t.reviewer_status === 'DECLINED' && open && <div className="callout tone-warning"><strong>{first(c.name(t.reviewer_id))} {uiText("rejected reviewing:")}</strong> {t.reviewer_note}{roles.isGovernor ? uiText(" Choose a new reviewer with Edit details.") : ''}</div>}
       {t.stuck && <div className="callout tone-danger"><strong>{uiText("Stuck since ")}{fmtDay(dayOf(t.stuck_at))}:</strong> {t.stuck_reason}</div>}
-      {t.status === 'IN_REVIEW' && <div className="callout tone-purple"><strong>{roles.isSubmittedTo ? (approvingCompletion ? `${first(c.name(t.submitted_by))} asks you to approve completing this task.` : `${first(c.name(t.submitted_by))} submitted this to you.`) : completionAsked ? uiText("Waiting for {p0} by {p1}.", { p0: t.submitted_to === finalApprover ? 'approval' : 'review', p1: first(c.name(t.submitted_to)) }) : uiText("Waiting for review by {p0}.", { p0: first(c.name(t.submitted_to)) })}</strong>{t.submit_note ? uiText(" “{p0}”", { p0: t.submit_note }) : ''}
+      {t.status === 'IN_REVIEW' && <div className="callout tone-purple"><strong>{roles.isSubmittedTo ? (approvingCompletion ? uiText('{p0} asks you to approve completing this task.', { p0: first(c.name(t.submitted_by)) }) : uiText('{p0} submitted this to you.', { p0: first(c.name(t.submitted_by)) })) : completionAsked ? uiText("Waiting for {p0} by {p1}.", { p0: t.submitted_to === finalApprover ? uiText('approval') : uiText('review'), p1: first(c.name(t.submitted_to)) }) : uiText("Waiting for review by {p0}.", { p0: first(c.name(t.submitted_to)) })}</strong>{t.submit_note ? uiText(" “{p0}”", { p0: t.submit_note }) : ''}
         {completionAsked && t.submitted_to !== finalApprover && !roles.isSubmittedTo ? uiText(" {p0} then approves completing it.", { p0: first(c.name(finalApprover)) }) : ''}
         {roles.isSubmittedTo && !approvingCompletion && <p className="small">{allowed.includes('pass') ? uiText("Check the work, then pass it to {p0} for approval, or return it with notes.", { p0: first(c.name(finalApprover)) }) : roles.isPic ? uiText("Check the work, then send it on or return it with notes.") : uiText("Close it if the work is complete, or return it with notes.")}</p>}
         {completionAsked && cr?.requested_by === c.me && <div className="callout-actions"><button type="button" className="btn small" disabled={busy} onClick={() => void quick(() => c.perform('tm.change.withdraw', { id: cr.id }))}>{uiText("Take back the request")}</button></div>}
@@ -1397,8 +1395,7 @@ const CAL_ICON: Record<CalKind, LucideIcon> = { meeting: Video, task: ClipboardC
 const calMemory: { day: string; view: 'month' | 'agenda'; kinds: CalKind[]; mine: boolean } = { day: '', view: 'month', kinds: ['meeting', 'task', 'note'], mine: false };
 const WEEK = dynamicLabels(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], { 0: () => uiText("Mon"), 1: () => uiText("Tue"), 2: () => uiText("Wed"), 3: () => uiText("Thu"), 4: () => uiText("Fri"), 5: () => uiText("Sat"), 6: () => uiText("Sun") });
 const MONTH_NAMES = dynamicLabels(["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], { 0: () => uiText("January"), 1: () => uiText("February"), 2: () => uiText("March"), 3: () => uiText("April"), 4: () => uiText("May"), 5: () => uiText("June"), 6: () => uiText("July"), 7: () => uiText("August"), 8: () => uiText("September"), 9: () => uiText("October"), 10: () => uiText("November"), 11: () => uiText("December") });
-const LONG_DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-const longDay = (d: string) => LONG_DAY.format(new Date(`${d}T12:00:00Z`));
+const longDay = (d: string) => formatDisplayDate(new Date(`${d}T12:00:00Z`), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const weekdayOf = (d: string) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
 const monthOf = (d: string) => `${d.slice(0, 7)}-01`;
 const shiftMonths = (d: string, n: number) => { const [y, m] = d.split('-').map(Number), i = y * 12 + m - 1 + n; return `${Math.floor(i / 12)}-${String(i % 12 + 1).padStart(2, '0')}-01`; };

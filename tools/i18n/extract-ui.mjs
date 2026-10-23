@@ -20,5 +20,5 @@ function scan(file){
  }
  visit(sf);
 }
-function walk(dir){for(const entry of fs.readdirSync(dir)){const f=path.join(dir,entry);if(fs.statSync(f).isDirectory()){if(!['node_modules','public','vendor'].includes(entry))walk(f)}else if(/\.(tsx?|mjs)$/.test(f)&&!/(test|server|seed|migration)/.test(entry)&&entry!=='i18n.ts')scan(f)}}
+function walk(dir){for(const entry of fs.readdirSync(dir)){const f=path.join(dir,entry);if(fs.statSync(f).isDirectory()){if(!['node_modules','public','vendor'].includes(entry))walk(f)}else if(/\.(tsx?|mjs)$/.test(f)&&!/(test|server|seed|migration)/.test(entry))scan(f)}}
 walk(root+'/source/local-test');walk(root+'/source/components');console.log(JSON.stringify(keys));

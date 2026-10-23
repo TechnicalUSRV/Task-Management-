@@ -36,6 +36,11 @@ def node_run(scenario):
 
 def masked(value, volatile=()):
     if isinstance(value, dict):
+        # The legacy server has no account language. Assert the new default
+        # before excluding this additive field from the legacy comparison.
+        if {'username', 'staff_id', 'role_id', 'language'} <= value.keys():
+            assert value['language'] == 'en', 'Legacy scenarios must keep English as their default'
+            value = {k: v for k, v in value.items() if k != 'language'}
         return {k: ('<t>' if (k.endswith('_at') or k in volatile) and v is not None else masked(v, volatile)) for k, v in value.items()}
     if isinstance(value, list):
         return [masked(v, volatile) for v in value]

@@ -1,3 +1,4 @@
+import { formatDisplayDate } from './i18n';
 import { uiText, useLanguage, dynamicLabels } from "./i18n";
 // V5.5 Calendar: meetings, task deadlines, personal notes and CRM activities in one place (Month, Week, Day and
 // Agenda), in the signed-in person's time zone. Everything shown comes from the server already limited to what this
@@ -36,8 +37,8 @@ const weekday = (d: string) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7;
 const weekStart = (d: string) => addDays(d, -weekday(d));
 const monthStart = (d: string) => `${d.slice(0, 7)}-01`;
 const addMonths = (d: string, n: number) => { const [y, m] = d.split('-').map(Number), i = y * 12 + m - 1 + n; return `${Math.floor(i / 12)}-${String(i % 12 + 1).padStart(2, '0')}-01`; };
-const dayLong = (d: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
-const dayShort = (d: string) => new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${d}T12:00:00Z`));
+const dayLong = (d: string) => formatDisplayDate(new Date(`${d}T12:00:00Z`), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const dayShort = (d: string) => formatDisplayDate(new Date(`${d}T12:00:00Z`), { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 /** The calendar day of a timestamp in the display time zone. */
 const dayOf = (iso: string) => zonedInput(iso).slice(0, 10);
 const todayKey = () => dayOf(new Date().toISOString());
