@@ -729,7 +729,7 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
   const assignedIds = assignmentOptions.filter((a: Row) => a.task_id === d.task_id && a.status !== 'DECLINED').map((a: Row) => a.staff_id);
   const history = w.data.tm_events.filter((e: Row) => e.entity_id === (d.id || d.staff_id)).slice().reverse();
   const isEdit = !!(d.id || (k === 'profile' && d.staff_id));
-  const noun = ({ workspace: 'workspace', profile: 'team member', task: 'task', time: 'time entry', meeting: 'meeting' } as Row)[k];
+  const noun = ({ workspace: uiText('workspace'), profile: uiText('team member'), task: uiText('task'), time: uiText('time entry'), meeting: uiText('meeting') } as Row)[k];
   let body: ReactNode;
   // Responsible managers (management scope) and, for an Organizational workspace you own, members from your approved
   // branch. Creator, owner, responsible managers and members stay separate; the server checks every choice again.
@@ -921,7 +921,7 @@ function TaskEditor({ w, model, onClose, onCreated }: { w: Workspace; model: Tas
     <Dialog open onOpenChange={v => { if (!v) void close(); }}>
       <DialogContent className={k === 'time' || k === 'profile' ? 'dialog-md' : 'dialog-lg'} onInteractOutside={e => e.preventDefault()} onEscapeKeyDown={e => { if (dirty) { e.preventDefault(); void close(); } }}>
         <DialogHeader>
-          <DialogTitle>{isEdit ? (canSave ? `Edit ${noun}` : `${noun.charAt(0).toUpperCase()}${noun.slice(1)} details`) : uiText("New {p0}", { p0: noun })}</DialogTitle>
+          <DialogTitle>{isEdit ? (canSave ? uiText('Edit {p0}', { p0: noun }) : uiText('{p0} details', { p0: noun })) : uiText("New {p0}", { p0: noun })}</DialogTitle>
           <DialogDescription>{k === 'profile' ? uiText("Work profile and team information. Administration manages login access.") : k === 'time' ? uiText("Durations use H:MM.") : isEdit ? uiText("{p0}{p1}", { p0: d.id, p1: canSave ? '' : ' · read-only for your account' }) : uiText("{p0} · fields marked * are required", { p0: w.data.company.name })}</DialogDescription>
         </DialogHeader>
         <form className="dialog-form" onSubmit={submit} noValidate>

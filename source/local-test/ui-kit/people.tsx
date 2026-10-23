@@ -56,7 +56,7 @@ type PersonPickerProps = {
   wide?: boolean; className?: string; fieldKey?: string; placeholder?: string; allowNone?: boolean; noneLabel?: string; hideLabel?: boolean;
 };
 /** One person, chosen from a searchable list with photos. */
-export function PersonPicker({ label, value, onChange, people, required, disabled, hint, error, wide, className, fieldKey, placeholder = 'Choose a person…', allowNone, noneLabel = 'Nobody', hideLabel }: PersonPickerProps) {
+export function PersonPicker({ label, value, onChange, people, required, disabled, hint, error, wide, className, fieldKey, placeholder = uiText('Choose a person…'), allowNone, noneLabel = uiText('Nobody'), hideLabel }: PersonPickerProps) {
   useLanguage();
   const [open, setOpen] = useState(false), id = useId(), hintId = hint ? `${id}-hint` : undefined, errorId = error ? `${id}-error` : undefined;
   const current = value ? people.find(p => p.id === value) || { id: value, name: value } : null;
@@ -91,7 +91,7 @@ type PeoplePickerProps = {
   addLabel?: string; empty?: ReactNode; max?: number; note?: (id: string) => ReactNode; disabled?: boolean; locked?: string[];
 };
 /** Several people, shown as removable chips with photos, added from a searchable list. */
-export function PeoplePicker({ label, value, onChange, people, hint, error, className, addLabel = 'Add a person', empty, max, note, disabled, locked = [] }: PeoplePickerProps) {
+export function PeoplePicker({ label, value, onChange, people, hint, error, className, addLabel = uiText('Add a person'), empty, max, note, disabled, locked = [] }: PeoplePickerProps) {
   useLanguage();
   const [open, setOpen] = useState(false);
   const byId = new Map(people.map(p => [p.id, p]));

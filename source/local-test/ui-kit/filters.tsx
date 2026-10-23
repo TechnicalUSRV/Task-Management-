@@ -11,7 +11,7 @@ import { Avatar } from './display';
 
 // ---------------------------------------------------------------- search
 
-export function SearchInput({ value, onChange, placeholder = 'Search…', label = 'Search', className }: { value: string; onChange: (v: string) => void; placeholder?: string; label?: string; className?: string }) {
+export function SearchInput({ value, onChange, placeholder = uiText('Search…'), label = uiText('Search'), className }: { value: string; onChange: (v: string) => void; placeholder?: string; label?: string; className?: string }) {
   useLanguage();
   return (
     <div className={cn('search-input', className)}>
@@ -24,7 +24,7 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', label 
 
 // ---------------------------------------------------------------- single select
 
-export function FilterSelect({ label, value, onChange, options, allLabel = 'All', className, people }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][]; allLabel?: string; className?: string; people?: boolean }) {
+export function FilterSelect({ label, value, onChange, options, allLabel = uiText('All'), className, people }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][]; allLabel?: string; className?: string; people?: boolean }) {
   useLanguage();
   // A combobox takes its name from a label, not its content, so name it explicitly ("Status: Open").
   const shown = (value && options.find(([v]) => v === value)?.[1]) || (value ? value : allLabel);
@@ -45,7 +45,7 @@ export function FilterSelect({ label, value, onChange, options, allLabel = 'All'
 // ---------------------------------------------------------------- multi select
 
 export type Option = { id: string; label: string; meta?: string };
-export function FilterMulti({ label, values, onChange, options, searchable, className, emptyText = 'No values available.' }: {
+export function FilterMulti({ label, values, onChange, options, searchable, className, emptyText = uiText('No values available.') }: {
   label: string; values: string[]; onChange: (v: string[]) => void; options: Option[]; searchable?: boolean; className?: string; emptyText?: string;
 }) {
   useLanguage();

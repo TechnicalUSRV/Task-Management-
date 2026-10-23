@@ -59,3 +59,16 @@ The branch remains unfinished and **must not be deployed**.
 - Latest broad backend run: **158 passed, 102 subtests passed, 1 failed**. The remaining failure is the legacy Telegram parity scenario at bootstrap, because Django adds `language: en` to the user response. Full parity investigation and SQL Server migration verification remain outstanding.
 
 The branch is not ready for deployment. Do not merge or deploy.
+
+### Profile and sharing translation batch — 23 October 2026
+
+Added complete Khmer and Simplified Chinese phrases for profile settings,
+Telegram notification preferences, task visibility and sharing explanations,
+management categories and task-form guidance. Display-only form nouns and
+component defaults now translate without changing submitted values.
+
+Current inventory: **5,563 templates; 2,139 translated; 3,424 pending**.
+Validation: **22 focused language/Telegram tests passed**, React language tests,
+type checking and production build passed. Earlier screenshots belong to the
+browser checkpoint; they have not yet been regenerated for this batch.
+Still unfinished; do not deploy.

@@ -976,6 +976,9 @@
   "Add a note, remark or progress update…": [
     "source/local-test/group-tools-ui.tsx"
   ],
+  "Add a person": [
+    "source/local-test/ui-kit/people.tsx"
+  ],
   "Add a personal note, or schedule a meeting.": [
     "source/local-test/calendar-ui.tsx"
   ],
@@ -2593,6 +2596,9 @@
     "source/local-test/group-live-ui.tsx",
     "source/local-test/group-sharing-ui.tsx",
     "source/local-test/task-access-ui.tsx"
+  ],
+  "Choose a person…": [
+    "source/local-test/ui-kit/people.tsx"
   ],
   "Choose a photo (JPEG, PNG or WebP).": [
     "source/local-test/media.ts"
@@ -7906,6 +7912,9 @@
   "No valid approver is configured. A Level 1 administrator must correct governance; no access is active.": [
     "backend/organization/governance.py"
   ],
+  "No values available.": [
+    "source/local-test/ui-kit/filters.tsx"
+  ],
   "No visible memberships.": [
     "source/local-test/organization-ui.tsx"
   ],
@@ -7939,7 +7948,8 @@
   ],
   "Nobody": [
     "backend/tasks/services.py",
-    "source/local-test/groups-ui.tsx"
+    "source/local-test/groups-ui.tsx",
+    "source/local-test/ui-kit/people.tsx"
   ],
   "Nobody (top of the organization)": [
     "source/local-test/organization-ui.tsx"
@@ -8079,6 +8089,9 @@
   ],
   "Not mapped to a level": [
     "source/local-test/organization-ui.tsx"
+  ],
+  "Not provided": [
+    "source/local-test/ui-kit/display.tsx"
   ],
   "Not reached": [
     "source/local-test/crm-ui.tsx",
@@ -11247,7 +11260,8 @@
     "source/local-test/erp-ui.tsx",
     "source/local-test/finance-ui.tsx",
     "source/local-test/operations-ui.tsx",
-    "source/local-test/tasks-ui.tsx"
+    "source/local-test/tasks-ui.tsx",
+    "source/local-test/ui-kit/filters.tsx"
   ],
   "Search Group records": [
     "source/local-test/tg-groups.tsx"
@@ -11384,7 +11398,8 @@
     "source/local-test/erp-ui.tsx"
   ],
   "Search…": [
-    "source/local-test/tg-groups.tsx"
+    "source/local-test/tg-groups.tsx",
+    "source/local-test/ui-kit/filters.tsx"
   ],
   "Secure access to your workspace": [
     "source/local-test/access-ui.tsx"
@@ -16203,6 +16218,9 @@
     "source/local-test/groups-ui.tsx",
     "source/local-test/tasks-ui.tsx"
   ],
+  "meeting": [
+    "source/local-test/tasks-ui.tsx"
+  ],
   "meeting status": [
     "backend/meetings/services.py"
   ],
@@ -16496,6 +16514,9 @@
     "backend/tasks/services.py",
     "source/local-test/task-domain.mjs"
   ],
+  "task": [
+    "source/local-test/tasks-ui.tsx"
+  ],
   "task changes and new due dates": [
     "source/local-test/task-workflow-ui.tsx"
   ],
@@ -16581,6 +16602,9 @@
   ],
   "those formulas": [
     "source/local-test/groups-ui.tsx"
+  ],
+  "time entry": [
+    "source/local-test/tasks-ui.tsx"
   ],
   "to ": [
     "source/local-test/groups-ui.tsx",
@@ -16715,6 +16739,9 @@
   ],
   "working day(s)": [
     "source/local-test/recurrence-ui.tsx"
+  ],
+  "workspace": [
+    "source/local-test/tasks-ui.tsx"
   ],
   "workspace access level": [
     "backend/groups/service.py"
@@ -16956,6 +16983,9 @@
   ],
   "{p0} deleted it. Its tasks, requests and meetings are hidden until it is restored.": [
     "backend/organization/governance.py"
+  ],
+  "{p0} details": [
+    "source/local-test/tasks-ui.tsx"
   ],
   "{p0} documents, one after another": [
     "source/local-test/group-delivery-ui.tsx"

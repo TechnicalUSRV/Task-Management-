@@ -12,7 +12,7 @@ export type Tone = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'purp
 // ---------------------------------------------------------------- values
 
 /** Placeholder for an absent value. Visually "—", announced as "Not provided". */
-export function Missing({ label = 'Not provided' }: { label?: string }) {
+export function Missing({ label = uiText('Not provided') }: { label?: string }) {
   useLanguage();
   return <span className="missing" title={label}><span aria-hidden="true">{MISSING}</span><span className="sr-only">{label}</span></span>;
 }
