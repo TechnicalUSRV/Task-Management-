@@ -37,7 +37,7 @@ MINI_APP_ACTIONS = re.compile(
     r'return|close|cancel|reopen|note|handover|remind|reminders|members\.save|delivery\.(create|confirm|cancel|retry))|change\.(decide|withdraw)|request\.(save|withdraw|forward|decide)|'
     r'due\.(request|decide|withdraw)|check\.(add|toggle|rename|move|remove)|file\.(add|remove)|notification\.read|meeting\.(save|follow|decide|withdraw)|'
     r'time\.(save|delete)|calnote\.(save|delete)|group\.(row\.update|view\.save|file\.(add|remove)|delivery\.(create|confirm|cancel|retry)))|me\.(profile\.save|photo\.(save|remove))|tg\.link\.(notify|unlink))$')
-CSP = (_message("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'"))
+CSP = ("default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'")
 MEDIA_HOURS = 12
 INIT_MAX_AGE = 8 * 3600
 GENERIC = _message('Unable to complete this operation. Nothing was changed.')
@@ -220,7 +220,7 @@ def api(request, rest):
         return send(e.status, {'error': e.message})
     except Exception:   # noqa: BLE001 — never show internal errors to the Telegram app
         import logging
-        logging.getLogger(__name__).exception(_message('Mini App request failed'))
+        logging.getLogger(__name__).exception('Mini App request failed')
         return send(500, {'error': GENERIC})
 
 
@@ -233,7 +233,7 @@ def _api(request, rest):
         raise GatewayError(503, _message('Telegram is turned off for this company.'), 'off')
     if request.method == 'GET' and rest in ('/api/photo', '/api/file', '/api/file-preview', '/api/group-file', '/api/group-file-preview'):
         return _media(request, rest, company, s)
-    raw = re.sub(r'^tma ', '', str(request.headers.get(_message('Authorization'), '')))
+    raw = re.sub(r'^tma ', '', str(request.headers.get('Authorization', '')))
     init = validate_init_data(raw, s['bot_token'], max_age=INIT_MAX_AGE)
     if not init:
         if validate_init_data(raw, s['bot_token']):

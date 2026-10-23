@@ -5,6 +5,7 @@ Unknown sentences remain explicit gaps; they are not assembled word by word.
 """
 from pathlib import Path
 from functools import lru_cache
+from collections import Counter
 import json,re
 ROOT=Path(__file__).resolve().parents[2]; WORK=ROOT/'translations/work'
 terms={}
@@ -81,8 +82,8 @@ output={'km':{},'zh-CN':{}};missing=[]
 for key in keys:
  value=translate(key)
  if not value:missing.append(key);continue
- source_placeholders=set(re.findall(r'\{\w+\}',key))
- if any(set(re.findall(r'\{\w+\}',x))!=source_placeholders for x in value):missing.append(key);continue
+ source_placeholders=Counter(re.findall(r'\{\w+\}',key))
+ if any(Counter(re.findall(r'\{\w+\}',x))!=source_placeholders for x in value):missing.append(key);continue
  lead=re.match(r'^\s*',key)[0];tail=re.search(r'\s*$',key)[0]
  for i,locale in enumerate(output):output[locale][key]=lead+value[i].strip()+tail
 for locale,data in output.items():(ROOT/'translations'/f'{locale}.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')

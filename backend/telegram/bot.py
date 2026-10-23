@@ -325,7 +325,7 @@ class Bot:
                                               'reply_markup': {'inline_keyboard': view.get('keyboard') or []}})
                 return target
             except TelegramError as e:
-                if re.search(_bot_message('not modified'), str(e), re.I):
+                if re.search('not modified', str(e), re.I):
                     return target
         return self.send(ctx, view)['message_id']
 

@@ -14,7 +14,7 @@ def next_id(kind, prefix):
     receive the same number.
     """
     if not transaction.get_connection().in_atomic_block:
-        raise RuntimeError(_message('next_id must be called inside a transaction'))
+        raise RuntimeError('next_id must be called inside a transaction')
     updated = Sequence.objects.filter(kind=kind).update(value=F('value') + 1)
     if not updated:
         try:
@@ -37,7 +37,7 @@ def write_lock(timeout_ms=15000):
     interleave; it is released at commit or rollback. Reads (the app state) do not take it. SQLite serializes writers itself.
     """
     if not transaction.get_connection().in_atomic_block:
-        raise RuntimeError(_message('write_lock must be taken inside a transaction'))
+        raise RuntimeError('write_lock must be taken inside a transaction')
     if connection.vendor != 'microsoft':
         return
     with connection.cursor() as c:

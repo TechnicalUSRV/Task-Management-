@@ -5,6 +5,7 @@ task descriptions, etc.) stay verbatim. English remains the canonical stored wor
 """
 from contextlib import contextmanager
 from contextvars import ContextVar
+from collections import Counter
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -50,7 +51,7 @@ def text(source, params=None, locale=None):
     translated = catalog(locale).get(source) if locale != 'en' else source
     translated = translated or source
     # A broken translation must never hide values or produce broken placeholders.
-    if set(_PARAM.findall(translated)) != set(_PARAM.findall(source)):
+    if Counter(_PARAM.findall(translated)) != Counter(_PARAM.findall(source)):
         translated = source
     values = params or {}
     return _PARAM.sub(lambda m: str(render(values[m[1]], locale)) if m[1] in values else m[0], translated)
@@ -72,6 +73,15 @@ class Message(str):
 
 def msg(source, **params):
     return Message(source, **params)
+
+
+def join_messages(separator, values):
+    """Keep nested message metadata until the recipient's language is known."""
+    values = iter(values)
+    result = next(values, '')
+    for value in values:
+        result = msg('{p0}{p1}{p2}', p0=result, p1=separator, p2=value)
+    return result
 
 
 def render(value, locale=None):

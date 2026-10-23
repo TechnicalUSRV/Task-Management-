@@ -1,5 +1,6 @@
 """Language changes never alter permissions or employee content."""
 import concurrent.futures
+from collections import Counter
 import json
 from pathlib import Path
 import pytest
@@ -40,13 +41,37 @@ def test_catalog_placeholders_are_safe():
     for locale in ('km', 'zh-CN'):
         for key, value in catalog(locale).items():
             assert value and isinstance(value, str)
-            assert set(re.findall(r'\{\w+\}', key)) == set(re.findall(r'\{\w+\}', value)), (locale, key)
+            assert Counter(re.findall(r'\{\w+\}', key)) == Counter(re.findall(r'\{\w+\}', value)), (locale, key)
 
 
 def test_missing_placeholder_in_translation_falls_back(monkeypatch):
     from core import i18n
     monkeypatch.setattr(i18n, 'catalog', lambda locale: {'Hello {name}': 'សួស្តី'})
     assert i18n.text('Hello {name}', {'name': 'Save'}, 'km') == 'Hello Save'
+
+
+def test_repeated_placeholder_falls_back(monkeypatch):
+    from core import i18n
+    monkeypatch.setattr(i18n, 'catalog', lambda locale: {'Hello {name}': 'សួស្តី {name} {name}'})
+    assert i18n.text('Hello {name}', {'name': 'Save'}, 'km') == 'Hello Save'
+
+
+def test_join_preserves_nested_recipient_language():
+    from core.i18n import join_messages
+    value = join_messages(' / ', [msg('Save'), msg('Delete')])
+    assert render(value, 'zh-CN') == '保存 / 删除'
+    assert str(value) == 'Save / Delete'
+
+
+def test_protocol_headers_remain_canonical(admin_api):
+    from telegram.gateway import CSP
+    assert type(CSP) is str
+    for locale in ('en', 'km', 'zh-CN'):
+        admin_api.post('/api/me/language', {'language': locale})
+        response = admin_api.get('/api/state')
+        assert response.status_code == 200
+        assert response['X-Account-Language'] == locale
+        assert admin_api.post('/api/me/language', {'language': locale}, origin='https://other.invalid').status_code == 403
 
 
 @pytest.mark.parametrize('locale,word', [('en','Language saved.'),('km','បានរក្សាទុកភាសា។'),('zh-CN','语言已保存。')])

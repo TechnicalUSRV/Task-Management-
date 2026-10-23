@@ -14,7 +14,7 @@ def check_origin(request):
     """Writes must come from the app's own page (V5.7.7 server.mjs); a missing or foreign Origin is refused."""
     if request.method in SAFE:
         return
-    origin = request.headers.get(_message('Origin'), '')
+    origin = request.headers.get('Origin', '')
     own = f'{request.scheme}://{request.get_host()}'
     if not origin or (origin != own and origin not in settings.TRUSTED_ORIGINS):
         raise InputError(_message('This local action requires the app’s own page.'), 403)
@@ -28,4 +28,4 @@ class SessionTokenAuthentication(BaseAuthentication):
         return (user, None)
 
     def authenticate_header(self, request):
-        return _message('Session')
+        return 'Session'

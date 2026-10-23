@@ -68,7 +68,7 @@ class TrustedOriginCorsMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        origin = request.headers.get(_message('Origin'), '')
+        origin = request.headers.get('Origin', '')
         trusted = origin and origin in settings.TRUSTED_ORIGINS and origin != f'{request.scheme}://{request.get_host()}'
         if trusted and request.method == 'OPTIONS' and request.headers.get('Access-Control-Request-Method'):
             response = HttpResponse(status=204)
@@ -81,5 +81,5 @@ class TrustedOriginCorsMiddleware:
             response['Access-Control-Allow-Origin'] = origin
             response['Access-Control-Allow-Credentials'] = 'true'
             response['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Language, X-Account-Language'
-            response[_message('Vary')] = ', '.join(x for x in (response.get(_message('Vary')), _message('Origin')) if x)
+            response['Vary'] = ', '.join(x for x in (response.get('Vary'), 'Origin') if x)
         return response

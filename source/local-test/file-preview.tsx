@@ -65,7 +65,7 @@ async function failure(res: Response): Promise<Error> {
 // content security policy needs no exception; eval is switched off.
 let pdfjs: Promise<any> | null = null;
 function loadPdfjs() {
-  pdfjs ??= Promise.all([import('pdfjs-dist/legacy/build/pdf.mjs'), import(uiText("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"))]).then(([lib, worker]) => {
+  pdfjs ??= Promise.all([import('pdfjs-dist/legacy/build/pdf.mjs'), import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')]).then(([lib, worker]) => {
     lib.GlobalWorkerOptions.workerSrc = worker.default;
     return lib;
   });

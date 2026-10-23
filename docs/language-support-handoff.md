@@ -19,6 +19,21 @@ This branch starts from the reviewed deployment-candidate commit `2023d9f178726c
 
 ## Remaining, required before release
 
+### Recovery checkpoint — 23 October 2026
+
+Workspace maintenance removed earlier unpushed edits. The current verified
+checkpoint restores the literal PDF worker import and removes protocol headers,
+the CSP, numeric parser tokens, and developer diagnostics from translation
+marking. Placeholder checks now compare occurrence counts, and `join_messages`
+preserves nested translation metadata until the recipient language is known.
+
+Validation at this checkpoint: **21 language/Telegram tests passed**; frontend
+type checking and the production build passed. The rebuilt inventory contains
+**5,448 templates**, **2,056 translated**, and **3,392 pending**. This reduction is
+removal of non-display keys, not completion of the remaining translations.
+No new browser evidence or production SQL Server migration has been verified.
+The branch remains unfinished and **must not be deployed**.
+
 1. Complete and review translations. The latest inventory has **5,459** explicit templates, of which **2,060** have Khmer and Chinese entries; **3,399** still fall back to English. `translations/work/remaining.json` lists missing templates. Re-run `python tools/i18n/extract.py && python tools/i18n/build-catalogs.py` after editing source or TSV terms. Native-speaker review is especially important for approval, privacy, and organizational wording. Some catalog entries are code fragments or identifiers and should be removed from marking rather than translated.
 2. Audit all code-owned display labels not explicitly marked, particularly backend `Create`/`Delete` messages, frontend status/priority option maps, Group controls, Telegram dynamic text and menu labels, and client-side report/PDF print text. Internal status codes, aliases, CSS classes, selectors and field values must remain canonical. Some bot f-strings with message templates still collapse to English. Avoid rendering user names or descriptions through the catalog.
 3. Add focused frontend tests for switching language without unmounting forms, late responses, English fallback, placeholder integrity, and PDF/print rendering. Verify live browser screenshots on web and Telegram mobile widths with Khmer and Chinese, including forms, tables, Group cells, sidebar, and exported documents.

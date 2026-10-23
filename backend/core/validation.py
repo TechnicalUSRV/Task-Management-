@@ -58,7 +58,7 @@ def js_number(value):
                 return int(m.group(2), {'x': 16, 'o': 8, 'b': 2}[m.group(1).lower()])
             except ValueError:
                 return float('nan')
-        if s in (_message('Infinity'), '+Infinity'):
+        if s in ('Infinity', '+Infinity'):
             return float('inf')
         if s == '-Infinity':
             return float('-inf')

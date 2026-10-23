@@ -1854,9 +1854,6 @@
   "Authority revoked. Dependent grants were re-evaluated and invalid grants suspended.": [
     "backend/organization/governance.py"
   ],
-  "Authorization": [
-    "backend/telegram/gateway.py"
-  ],
   "Authorized access": [
     "source/local-test/tg-app.tsx"
   ],
@@ -5897,9 +5894,6 @@
   "Individual settings": [
     "source/local-test/access-ui.tsx"
   ],
-  "Infinity": [
-    "backend/core/validation.py"
-  ],
   "Info": [
     "source/local-test/telegram-ui.tsx"
   ],
@@ -6931,9 +6925,6 @@
   ],
   "Mini App public address (HTTPS)": [
     "source/local-test/telegram-ui.tsx"
-  ],
-  "Mini App request failed": [
-    "backend/telegram/gateway.py"
   ],
   "Minutes": [
     "backend/compat/reports.py"
@@ -8878,10 +8869,6 @@
     "backend/compat/reports.py",
     "source/local-test/tasks-ui.tsx",
     "source/local-test/tg-app.tsx"
-  ],
-  "Origin": [
-    "backend/accounts/authentication.py",
-    "backend/core/middleware.py"
   ],
   "Original AR": [
     "source/local-test/finance-ui.tsx",
@@ -11447,9 +11434,6 @@
   ],
   "Services & materials": [
     "source/local-test/settings-ui.tsx"
-  ],
-  "Session": [
-    "backend/accounts/authentication.py"
   ],
   "Set a lead’s status to Qualified when it is ready for an opportunity.": [
     "source/local-test/crm-workflow.tsx"
@@ -14461,9 +14445,6 @@
     "source/local-test/crm-ui.tsx",
     "source/local-test/crm-workflow.tsx"
   ],
-  "Vary": [
-    "backend/core/middleware.py"
-  ],
   "Verify A/F · clear AR": [
     "source/local-test/operations-ui.tsx"
   ],
@@ -15734,9 +15715,6 @@
   "decides who does it": [
     "source/local-test/tg-app.tsx"
   ],
-  "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org; base-uri 'none'; form-action 'none'": [
-    "backend/telegram/gateway.py"
-  ],
   "delegated authority": [
     "source/local-test/organization-ui.tsx"
   ],
@@ -15909,9 +15887,6 @@
   "name {p0} → {p1}": [
     "backend/tasks/services.py"
   ],
-  "next_id must be called inside a transaction": [
-    "backend/core/services.py"
-  ],
   "no files": [
     "source/local-test/groups-ui.tsx"
   ],
@@ -15923,9 +15898,6 @@
   ],
   "not answered yet. Use “Send a reminder” to remind them.": [
     "source/local-test/task-workflow-ui.tsx"
-  ],
-  "not modified": [
-    "backend/telegram/bot.py"
   ],
   "nothing is waiting for you": [
     "source/local-test/tg-app.tsx"
@@ -15992,9 +15964,6 @@
   ],
   "password changed": [
     "backend/accounts/services.py"
-  ],
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url": [
-    "source/local-test/file-preview.tsx"
   ],
   "people have": [
     "source/local-test/task-workflow-ui.tsx"
@@ -16369,9 +16338,6 @@
   ],
   "would already be in the past. Remove it or choose a later start.": [
     "source/local-test/tg-app.tsx"
-  ],
-  "write_lock must be taken inside a transaction": [
-    "backend/core/services.py"
   ],
   "yesterday": [
     "backend/telegram/bot.py"
