@@ -78,6 +78,11 @@ def test_web_and_mini_app_language(live_server, browser, connected, settings, lo
     mobile.goto(live_server.url + '/c/default/tg/#tgWebAppData=' + quote(init))
     expect(mobile.locator('html')).to_have_attribute('lang', locale)
     mobile.get_by_role('button', name=text('My profile and settings', locale=locale)).wait_for()
+    if locale == 'km':
+        # Chromium may omit Khmer ICU data: the app must still localize date words.
+        heading = mobile.locator('.hero-text > p.hint').last.inner_text()
+        import re
+        assert not re.search(r'\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b', heading)
     capture(mobile, locale + '-mini-home')
     mobile.get_by_role('button', name=text('My profile and settings', locale=locale)).click()
     mobile.locator('.language-setting select').wait_for()

@@ -130,3 +130,22 @@ broad backend run had **160 passed, 102 subtests passed, 1 legacy parity failure
 Screenshots are being refreshed separately. SQL Server migration verification
 and remaining legacy release-gate reconciliation are still outstanding.
 **Not ready for deployment; do not deploy.**
+
+### Refreshed browser and migration evidence — 24 October 2026
+
+- Three Chromium acceptance scenarios passed (English, Khmer, Simplified Chinese),
+  including synchronized preferences, preserved form drafts, loaded language fonts,
+  no horizontal page overflow and no English weekday/month names in the Khmer
+  Mini App heading. All 15 evidence screenshots were refreshed. Visual inspection
+  confirms Khmer dates and the separated task-visibility field layout.
+- A real migration-executor test passed on SQLite with pre-language rows. Account
+  credentials, identifiers, role, active flag and version were preserved; the new
+  preference defaults to English. Legacy notification text is unchanged and gains
+  empty translation metadata. Saving a Khmer preference after migration persists.
+  This is not SQL Server verification; the Windows instance is unavailable here.
+- After correcting the two stale tests above, `test:release` advances to
+  `v570-test.mjs:72`, where an old Personal-task edit scenario expects an exception.
+  The same failure was reproduced on baseline `2023d9f`. It still needs reconciliation
+  with current two-party approval behavior; application approval rules were not changed.
+- Latest focused language/Telegram run: **24 passed**. Translation coverage remains
+  incomplete (**3,082 pending templates**), so this branch is **not deployment ready**.
