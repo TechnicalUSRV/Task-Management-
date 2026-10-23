@@ -89,6 +89,7 @@
     "backend/tasks/services.py"
   ],
   " and ": [
+    "backend/meetings/services.py",
     "source/local-test/groups-ui.tsx"
   ],
   " and also to {p0}": [
@@ -193,6 +194,9 @@
   " · not shared: {p0} restricted {p1}, {p2} restricted {p3}": [
     "source/local-test/group-sync-ui.tsx"
   ],
+  " · online": [
+    "backend/meetings/services.py"
+  ],
   " · overdue": [
     "source/local-test/task-workflow-ui.tsx"
   ],
@@ -217,6 +221,9 @@
   ],
   " · spreadsheets created by Task Controlling Management": [
     "source/local-test/group-sync-ui.tsx"
+  ],
+  " · stuck": [
+    "backend/tasks/services.py"
   ],
   " · the task is {p0}; you are asked to accept it if it is reopened": [
     "backend/tasks/services.py"
@@ -6191,7 +6198,10 @@
   "It stays {p0} until {p1} approves. They can also reject it with a reason.": [
     "source/local-test/task-workflow-ui.tsx"
   ],
-  "It was due {p0} ({p1} day{p2} ago) · {p3}% done": [
+  "It was due {p0} ({p1} day ago) · {p2}% done": [
+    "backend/tasks/services.py"
+  ],
+  "It was due {p0} ({p1} days ago) · {p2}% done": [
     "backend/tasks/services.py"
   ],
   "It was stuck: “{p0}”.": [
@@ -9122,6 +9132,9 @@
     "source/local-test/erp-ui.tsx",
     "source/local-test/tasks-ui.tsx"
   ],
+  "Overdue: {p0}": [
+    "backend/tasks/services.py"
+  ],
   "Overrides": [
     "source/local-test/access-ui.tsx"
   ],
@@ -10150,11 +10163,11 @@
   "Reminded {p0}": [
     "backend/tasks/services.py"
   ],
-  "Reminder": [
-    "backend/meetings/services.py"
-  ],
   "Reminder sent to {p0}.": [
     "backend/tasks/services.py"
+  ],
+  "Reminder: {p0}": [
+    "backend/meetings/services.py"
   ],
   "Reminders": [
     "backend/meetings/services.py",
@@ -12151,7 +12164,7 @@
   "Started": [
     "source/local-test/group-sync-ui.tsx"
   ],
-  "Starting now": [
+  "Starting now: {p0}": [
     "backend/meetings/services.py"
   ],
   "Starting status": [
@@ -16034,6 +16047,7 @@
     "source/local-test/tg-app.tsx"
   ],
   "daily": [
+    "backend/tasks/domain.py",
     "source/local-test/task-domain.mjs"
   ],
   "daily reminder time": [
@@ -16237,6 +16251,7 @@
     "source/local-test/recurrence-ui.tsx"
   ],
   "monthly": [
+    "backend/tasks/domain.py",
     "source/local-test/task-domain.mjs"
   ],
   "more in Task Management": [
@@ -16687,6 +16702,7 @@
     "source/local-test/recurrence-ui.tsx"
   ],
   "weekly": [
+    "backend/tasks/domain.py",
     "source/local-test/task-domain.mjs"
   ],
   "what do you need? Reply with a short title for your request.": [
@@ -16806,8 +16822,14 @@
   "{p0} (slider)": [
     "source/local-test/task-workflow-ui.tsx"
   ],
+  "{p0} ({p1})": [
+    "backend/meetings/services.py"
+  ],
   "{p0} ({p1}). Attendees can’t be double-booked while a meeting is scheduled.": [
     "source/local-test/tasks-ui.tsx"
+  ],
+  "{p0} ({p1}){p2}{p3}": [
+    "backend/meetings/services.py"
   ],
   "{p0} Everyone invited is told and gets the reminders.": [
     "source/local-test/tg-app.tsx"
@@ -16841,6 +16863,9 @@
   ],
   "{p0} already up to date": [
     "backend/groups/imports.py"
+  ],
+  "{p0} and {p1}": [
+    "backend/tasks/domain.py"
   ],
   "{p0} approval alert{p1}": [
     "source/local-test/ui.tsx"
@@ -16966,14 +16991,23 @@
   "{p0} completed “{p1}” · {p2} of {p3} steps completed": [
     "backend/tasks/services.py"
   ],
+  "{p0} day before": [
+    "backend/meetings/services.py"
+  ],
+  "{p0} day before the due date": [
+    "backend/tasks/domain.py"
+  ],
   "{p0} days ago": [
     "backend/telegram/bot.py"
   ],
+  "{p0} days before": [
+    "backend/meetings/services.py"
+  ],
+  "{p0} days before the due date": [
+    "backend/tasks/domain.py"
+  ],
   "{p0} day{p1} before": [
     "source/local-test/tasks-ui.tsx"
-  ],
-  "{p0} day{p1} before the due date": [
-    "backend/tasks/domain.py"
   ],
   "{p0} day{p1} past due": [
     "backend/compat/reports.py"
@@ -17013,6 +17047,12 @@
   ],
   "{p0} hidden in your view (show)": [
     "source/local-test/groups-ui.tsx"
+  ],
+  "{p0} hour before": [
+    "backend/meetings/services.py"
+  ],
+  "{p0} hours before": [
+    "backend/meetings/services.py"
   ],
   "{p0} in percent": [
     "source/local-test/tg-app.tsx"
@@ -17069,6 +17109,12 @@
   ],
   "{p0} made you the person in charge · due {p1}{p2}": [
     "backend/tasks/services.py"
+  ],
+  "{p0} minute before": [
+    "backend/meetings/services.py"
+  ],
+  "{p0} minutes before": [
+    "backend/meetings/services.py"
   ],
   "{p0} moved it to {p1}": [
     "backend/meetings/services.py"
@@ -17228,6 +17274,7 @@
     "source/local-test/calendar-ui.tsx"
   ],
   "{p0} time": [
+    "backend/meetings/services.py",
     "source/local-test/format.ts"
   ],
   "{p0} to {p1}": [
@@ -17287,6 +17334,7 @@
     "backend/organization/governance.py"
   ],
   "{p0} {p1}": [
+    "backend/tasks/domain.py",
     "source/local-test/groups-ui.tsx",
     "source/local-test/operations-ui.tsx",
     "source/local-test/organization-ui.tsx",
@@ -17310,6 +17358,9 @@
   ],
   "{p0} {p1} your decision": [
     "source/local-test/tasks-ui.tsx"
+  ],
+  "{p0} {p1} {p2}, {p3}": [
+    "backend/tasks/domain.py"
   ],
   "{p0} {p1} · visible to {p2}": [
     "backend/groups/service.py"
@@ -17363,6 +17414,7 @@
     "backend/groups/service.py"
   ],
   "{p0} · {p1}": [
+    "backend/tasks/services.py",
     "source/local-test/components.tsx",
     "source/local-test/crm-ui.tsx",
     "source/local-test/erp-ui.tsx",
@@ -17415,11 +17467,17 @@
   "{p0}% complete": [
     "source/local-test/tg-app.tsx"
   ],
+  "{p0}% done": [
+    "backend/tasks/services.py"
+  ],
   "{p0}( is missing its closing ).": [
     "backend/groups/domain.py"
   ],
   "{p0}, {p1} {p2}": [
     "source/local-test/tg-app.tsx"
+  ],
+  "{p0}, {p1} {p2} {p3}": [
+    "backend/tasks/domain.py"
   ],
   "{p0}. ": [
     "source/local-test/tg-app.tsx"
@@ -17464,6 +17522,7 @@
     "source/local-test/group-import-ui.tsx"
   ],
   "{p0}: {p1}": [
+    "backend/tasks/services.py",
     "source/local-test/admin-functions.tsx",
     "source/local-test/crm-ui.tsx",
     "source/local-test/erp-ui.tsx",
@@ -17501,6 +17560,7 @@
     "source/local-test/file-preview.tsx"
   ],
   "{p0}{p1}": [
+    "backend/meetings/services.py",
     "source/local-test/group-sync-ui.tsx",
     "source/local-test/groups-ui.tsx",
     "source/local-test/organization-ui.tsx",

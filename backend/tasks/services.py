@@ -1781,17 +1781,18 @@ class TaskService:
                 key = 'task_due_soon' if n == 1 else f'due_in_{n}'
                 when = _message('Due tomorrow') if days == 1 else _message('Due in {p0} days', p0=days)
                 workers = [x for x in [None if t.get('declined_at') else t['pic_id'], *self.supporters_of(t)] if x]
-                state = (f"{t['progress']}% done" + (_message(' · waiting for review') if t['status'] == 'IN_REVIEW' else ' · stuck' if t.get('stuck_at')
+                state = (_message('{p0}% done', p0=t['progress']) + (_message(' · waiting for review') if t['status'] == 'IN_REVIEW' else _message(' · stuck') if t.get('stuck_at')
                                                      else _message(' · not accepted yet') if not t.get('accepted_at') else ''))
                 for s in dict.fromkeys(workers):
-                    send(t, s, key, 'task_due_soon', f"{when}: {t['title']}", f"{dm.human(t['due_date'])} · {state}")
+                    send(t, s, key, 'task_due_soon', _message('{p0}: {p1}', p0=when, p1=t['title']), _message('{p0} · {p1}', p0=dm.human(t['due_date']), p1=state))
                 for s in dict.fromkeys([dm.assigner_of(t), self.active_reviewer(t)]):
                     if s and s not in workers:
-                        send(t, s, key, 'task_due_soon', f"{when}: {t['title']}", _message('{p0} · {p1} is in charge · {p2}', p0=dm.human(t['due_date']), p1=self.name_of(t['pic_id']), p2=state))
+                        send(t, s, key, 'task_due_soon', _message('{p0}: {p1}', p0=when, p1=t['title']), _message('{p0} · {p1} is in charge · {p2}', p0=dm.human(t['due_date']), p1=self.name_of(t['pic_id']), p2=state))
             elif days < 0:
-                body = _message('It was due {p0} ({p1} day{p2} ago) · {p3}% done', p0=dm.human(t['due_date']), p1=-days, p2='' if days == -1 else 's', p3=t['progress'])
+                body = (_message('It was due {p0} ({p1} day ago) · {p2}% done', p0=dm.human(t['due_date']), p1=-days, p2=t['progress']) if days == -1
+                        else _message('It was due {p0} ({p1} days ago) · {p2}% done', p0=dm.human(t['due_date']), p1=-days, p2=t['progress']))
                 for s in dict.fromkeys([None if t.get('declined_at') else t['pic_id'], dm.assigner_of(t), dm.due_decider(t)]):
-                    send(t, s, 'task_overdue', 'task_overdue', f"Overdue: {t['title']}", body)
+                    send(t, s, 'task_overdue', 'task_overdue', _message('Overdue: {p0}', p0=t['title']), body)
         return sent
 
     # ------------------------------------------------------------ reporting lines and team profiles

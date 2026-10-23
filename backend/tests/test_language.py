@@ -200,3 +200,71 @@ def test_private_bot_menus_follow_account_and_cache(connected):
     count = len(calls)
     bot.refresh_menu()
     assert len(calls) == count
+
+
+def test_dates_and_reminder_offsets_stay_lazy_until_delivery():
+    from core.i18n import pack, unpack
+    from tasks import domain as dm
+    from meetings.services import offset_text
+    values = [dm.human('2026-10-23'), dm.at_text('2026-10-23T04:00:00Z', 'Asia/Phnom_Penh'),
+              dm.month_label('2026-10'), dm.reminder_text([7, 1]),
+              *[offset_text(n) for n in (0, 1, 5, 60, 120, 1440, 2880)]]
+    assert list(map(str, values)) == ['Fri, 23 Oct 2026', 'Fri 23 Oct, 11:00', 'October 2026',
+                                    '7 and 1 days before the due date', 'at the start',
+                                    '1 minute before', '5 minutes before', '1 hour before',
+                                    '2 hours before', '1 day before', '2 days before']
+    for locale in ('km', 'zh-CN'):
+        for value in values:
+            restored = unpack(json.loads(json.dumps(pack(value))))
+            assert render(restored, locale) != str(value)
+            assert render(restored, locale) == render(value, locale)
+        assert ' and ' not in render(values[3], locale)
+
+
+def test_scheduled_task_and_meeting_reminders_preserve_recipient_language(connected):
+    from datetime import datetime, timedelta, timezone as tz
+    from core.rows import row
+    from meetings.models import Meeting, MeetingAttendee, CalendarNote
+    from meetings.services import MeetingService
+    from organization.governance import Governance
+    from tasks.services import TaskService
+    from tasks import domain as dm
+    admin, member = connected
+    me, other = admin.user['staff_id'], member['staff_id']
+    ws = admin.command('tm.workspace.save', {'name': 'Reminders', 'owner_id': me,
+                                            'member_ids': [other]}).json()['result']['id']
+    at = datetime.now(tz.utc).replace(hour=4, minute=0, second=0, microsecond=0)
+    title = 'Save · កិច្ចការ · 中文 <keep>'
+    response = admin.command('tm.task.save', {'workspace_id': ws, 'title': title,
+        'start_date': dm.task_today(), 'due_date': dm.add_days(dm.local_day(at), 1),
+        'pic_id': other, 'description': 'Keep employee wording', 'reminder_days': [1]})
+    assert response.status_code == 200, response.json()
+    task = response.json()['result']['id']
+    tasks = TaskService(Governance())
+    assert tasks.due_reminders(at) >= 1
+    assert tasks.due_reminders(at) == 0
+    start = at + timedelta(minutes=5)
+    meeting = Meeting.objects.create(id='language-meeting', workspace_id=ws, organizer_id=me,
+        title=title, start_at=start, end_at=start + timedelta(hours=1), status='SCHEDULED',
+        reminder_offsets='[5]', created_at=at, updated_at=at, location='Save room', url='https://example.test')
+    MeetingAttendee.objects.create(meeting=meeting, staff_id=other)
+    CalendarNote.objects.create(id='language-note', staff_id=other, title=title, body='Save user note',
+        all_day=False, day=start.date(), start_at=start, end_at=start + timedelta(hours=1),
+        reminder_offsets='[5]', created_at=at, updated_at=at)
+    meetings = MeetingService(tasks)
+    assert meetings.event_reminders(at) == 3
+    assert meetings.event_reminders(at) == 0
+    notices = Notification.objects.filter(kind__in=['task_due_soon', 'meeting_reminder', 'note_reminder'])
+    assert notices.filter(task_id=task).exists()
+    for notice in notices:
+        assert {'title', 'body'} <= notice.translation.keys()
+        for locale in ('km', 'zh-CN'):
+            output = notification_text(row(notice), locale)
+            assert title in output['title']
+            assert output['title'] != notice.title
+            assert output['body'] != notice.body
+            assert 'Fri' not in output['body']
+            if notice.kind == 'meeting_reminder':
+                assert 'Save room' in output['body'] and 'online' not in output['body']
+            if notice.kind == 'note_reminder':
+                assert 'Save user note' in output['body']

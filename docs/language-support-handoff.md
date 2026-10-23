@@ -82,3 +82,16 @@ Current inventory: **5,563 templates; 2,322 translated; 3,241 pending**.
 Validation: 22 focused backend language/Telegram tests and the React language
 test passed. Screenshots are still from the earlier browser checkpoint.
 Translation coverage remains incomplete; do not deploy.
+
+### Scheduled reminder delivery — 23 October 2026
+
+Task, meeting and personal-note reminders now retain nested translation metadata
+through database persistence. Dates, month names, recurrence labels, reminder
+offsets and task state phrases resolve at recipient delivery time. English
+canonical wording and reminder scheduling/deduplication are preserved. Employee
+titles, locations and notes remain literal.
+
+Validation: **24 focused language/Telegram tests passed**, including generated
+reminders and persisted nested metadata. Production build passed.
+Inventory: **5,580 templates; 2,342 translated; 3,238 pending**.
+Still incomplete; do not deploy.

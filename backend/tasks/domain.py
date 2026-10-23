@@ -19,7 +19,7 @@ OPEN_TASK_STATUSES = ['NOT_STARTED', 'IN_PROGRESS', 'IN_REVIEW']
 TASK_COLORS = {'BLUE': '#346be6', 'PURPLE': '#8257ce', 'TEAL': '#178c8e', 'ORANGE': '#bc751b', 'PINK': '#c34483'}
 RECURRENCE = {'': _message('Does not repeat'), 'DAILY': _message('Every day'), 'WEEKDAYS': _message('Every weekday (Mon–Fri)'), 'WEEKLY': _message('Every week'),
               'MONTHLY': _message('Every month')}
-RECURRENCE_SHORT = {'DAILY': 'daily', 'WEEKDAYS': _message('on weekdays'), 'WEEKLY': 'weekly', 'MONTHLY': 'monthly'}
+RECURRENCE_SHORT = {'DAILY': _message('daily'), 'WEEKDAYS': _message('on weekdays'), 'WEEKLY': _message('weekly'), 'MONTHLY': _message('monthly')}
 TASK_FILE_TYPES = {
     'pdf': 'application/pdf', 'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp',
     'gif': 'image/gif', 'heic': 'image/heic',
@@ -84,20 +84,20 @@ def human(day):
     if not day:
         return ''
     d = date.fromisoformat(day[:10])
-    return f'{_DAYS[d.weekday()]}, {d.day} {_MONTHS[d.month - 1]} {d.year}'
+    return _message('{p0}, {p1} {p2} {p3}', p0=_DAYS[d.weekday()], p1=d.day, p2=_MONTHS[d.month - 1], p3=d.year)
 
 
 def at_text(iso_value, zone):
     """'Thu 15 Oct, 09:05' in the given time zone (meeting and note reminders)."""
     moment = datetime.fromisoformat(iso_value.replace('Z', '+00:00')).astimezone(ZoneInfo(zone))
-    return f'{_DAYS[moment.weekday()]} {moment.day} {_MONTHS[moment.month - 1]}, {moment.strftime("%H:%M")}'
+    return _message('{p0} {p1} {p2}, {p3}', p0=_DAYS[moment.weekday()], p1=moment.day, p2=_MONTHS[moment.month - 1], p3=moment.strftime('%H:%M'))
 
 
 def month_label(month):
     names = [_message('January'), _message('February'), _message('March'), _message('April'), _message('May'), _message('June'), _message('July'), _message('August'), _message('September'), _message('October'),
              _message('November'), _message('December')]
     y, m = month.split('-')
-    return f'{names[int(m) - 1]} {y}'
+    return _message('{p0} {p1}', p0=names[int(m) - 1], p1=y)
 
 
 # ---------------------------------------------------------------- people and two-party approval
@@ -150,8 +150,9 @@ def reminder_text(days):
     if not d:
         return _message('No reminders')
     parts = [str(n) for n in d]
-    joined = ', '.join(parts[:-1]) + ' and ' + parts[-1] if len(parts) > 1 else parts[0]
-    return _message('{p0} day{p1} before the due date', p0=joined, p1='' if len(d) == 1 and d[0] == 1 else 's')
+    joined = _message('{p0} and {p1}', p0=', '.join(parts[:-1]), p1=parts[-1]) if len(parts) > 1 else parts[0]
+    return (_message('{p0} day before the due date', p0=joined) if d == [1]
+            else _message('{p0} days before the due date', p0=joined))
 
 
 def task_roles(t, staff, support=None, can_approve=False):

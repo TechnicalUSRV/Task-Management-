@@ -1,0 +1,27 @@
+Due tomorrow	ដល់កំណត់នៅថ្ងៃស្អែក	明天到期
+Due in {p0} days	ដល់កំណត់ក្នុងរយៈពេល {p0} ថ្ងៃ	{p0} 天后到期
+Overdue: {p0}	ហួសកំណត់៖ {p0}	已逾期：{p0}
+Starting now: {p0}	ចាប់ផ្តើមឥឡូវនេះ៖ {p0}	现在开始：{p0}
+Reminder: {p0}	ការរំលឹក៖ {p0}	提醒：{p0}
+{p0}% done	បានបញ្ចប់ {p0}%	已完成 {p0}%
+ · waiting for review	 · កំពុងរង់ចាំការពិនិត្យ	 · 等待审核
+ · not accepted yet	 · មិនទាន់ទទួលយក	 · 尚未接受
+ · stuck	 · ជាប់គាំង	 · 遇到阻碍
+ · online	 · តាមអនឡាញ	 · 线上
+{p0} · {p1} is in charge · {p2}	{p0} · {p1} ជាអ្នកទទួលបន្ទុក · {p2}	{p0} · 负责人：{p1} · {p2}
+It was due {p0} ({p1} day ago) · {p2}% done	បានដល់កំណត់នៅ {p0} ({p1} ថ្ងៃមុន) · បានបញ្ចប់ {p2}%	原定于 {p0} 到期（{p1} 天前）· 已完成 {p2}%
+It was due {p0} ({p1} days ago) · {p2}% done	បានដល់កំណត់នៅ {p0} ({p1} ថ្ងៃមុន) · បានបញ្ចប់ {p2}%	原定于 {p0} 到期（{p1} 天前）· 已完成 {p2}%
+{p0} and {p1}	{p0} និង {p1}	{p0} 和 {p1}
+ and 	 និង 	 和 
+{p0} day before the due date	{p0} ថ្ងៃមុនកាលបរិច្ឆេទកំណត់	截止日期前 {p0} 天
+{p0} days before the due date	{p0} ថ្ងៃមុនកាលបរិច្ឆេទកំណត់	截止日期前 {p0} 天
+{p0} day before	{p0} ថ្ងៃមុន	提前 {p0} 天
+{p0} days before	{p0} ថ្ងៃមុន	提前 {p0} 天
+{p0} hour before	{p0} ម៉ោងមុន	提前 {p0} 小时
+{p0} hours before	{p0} ម៉ោងមុន	提前 {p0} 小时
+{p0} minute before	{p0} នាទីមុន	提前 {p0} 分钟
+{p0} minutes before	{p0} នាទីមុន	提前 {p0} 分钟
+at the start	នៅពេលចាប់ផ្តើម	开始时
+The reminder {p0} would already be in the past. Choose a shorter reminder, or none.	ពេលរំលឹក {p0} បានកន្លងផុតហើយ។ ជ្រើសរើសរយៈពេលរំលឹកខ្លីជាងនេះ ឬមិនកំណត់ការរំលឹក។	提醒时间（{p0}）已经过去。请选择更短的提前时间，或不设置提醒。
+Reminders set: {p0}.	បានកំណត់ការរំលឹក៖ {p0}។	已设置提醒：{p0}。
+Deadline reminders are off for this task.	ការរំលឹកកាលកំណត់ត្រូវបានបិទសម្រាប់កិច្ចការនេះ។	此任务已关闭截止日期提醒。

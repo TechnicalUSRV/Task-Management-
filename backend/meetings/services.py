@@ -4,7 +4,7 @@ A port of the meeting and calendar parts of tasks.mjs and of meeting-workflow.mj
 TaskService of the same command (same governance, scope and helpers), so a meeting command behaves exactly like the
 original inside one transaction.
 """
-from core.i18n import msg as _message
+from core.i18n import msg as _message, join_messages
 import json
 import re
 from datetime import datetime, timedelta, timezone as dt_timezone
@@ -69,14 +69,14 @@ def offset_text(n):
     if n == 0:
         return _message('at the start')
     if n % 1440 == 0:
-        return f"{n // 1440} day{'' if n == 1440 else 's'} before"
+        return _message('{p0} day before', p0=n // 1440) if n == 1440 else _message('{p0} days before', p0=n // 1440)
     if n % 60 == 0:
-        return f"{n // 60} hour{'' if n == 60 else 's'} before"
-    return f"{n} minute{'' if n == 1 else 's'} before"
+        return _message('{p0} hour before', p0=n // 60) if n == 60 else _message('{p0} hours before', p0=n // 60)
+    return _message('{p0} minute before', p0=n) if n == 1 else _message('{p0} minutes before', p0=n)
 
 
 def zone_label(zone):
-    return 'UTC' if zone == 'UTC' else f"{zone.split('/')[-1].replace('_', ' ')} time"
+    return 'UTC' if zone == 'UTC' else _message('{p0} time', p0=zone.split('/')[-1].replace('_', ' '))
 
 
 def past_offsets(start, offsets):
@@ -147,7 +147,7 @@ class MeetingService:
 
     def when(self, start, staff):
         zone = self.t.zone_of(staff)
-        return f'{dm.at_text(start, zone)} ({zone_label(zone)})'
+        return _message('{p0} ({p1})', p0=dm.at_text(start, zone), p1=zone_label(zone))
 
     def tell(self, staff_ids, kind, actor, title, body, meeting_id):
         for staff in dict.fromkeys(x for x in staff_ids if x and x != actor):
@@ -258,7 +258,7 @@ class MeetingService:
         if status == 'SCHEDULED' and timing:
             late = past_offsets(start, offsets)
             if late:
-                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=' and '.join(offset_text(n) for n in late)), 422)
+                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=join_messages(_message(' and '), (offset_text(n) for n in late))), 422)
         values = {'workspace_id': w['id'], 'task_id': (task or {}).get('id'), 'activity_id': None, 'contact_id': (task or {}).get('contact_id'),
                   'title': text(d.get('title'), 'Meeting title', 300, True), 'agenda': text(d.get('agenda'), 'Agenda', 8000), 'organizer_id': organizer,
                   'start_at': start, 'end_at': end, 'location': text(d.get('location'), 'Location', 500), 'url': url, 'status': status,
@@ -360,7 +360,7 @@ class MeetingService:
         if not done and timing:
             late = past_offsets(moment, offsets)
             if late:
-                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=' and '.join(offset_text(n) for n in late)), 422)
+                fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=join_messages(_message(' and '), (offset_text(n) for n in late))), 422)
         key = old['id'] if old else next_id('tm-calnote', 'NOTE')
         values = {'title': text(d.get('title'), 'Title', 200, True), 'body': text(d.get('body'), 'Note', 4000), 'all_day': 1 if all_day else 0, 'day': day,
                   'start_at': start, 'end_at': end, 'reminder_offsets': jtext(offsets), 'done': done, 'version': old['version'] + 1 if old else 0,
@@ -494,8 +494,12 @@ class MeetingService:
                 if not self.t.calendar_reachable(staff) or not self.scope.can_see_meeting(staff, m):
                     continue
                 zone = self.t.zone_of(staff)
-                remind('MEETING', m['id'], staff, n, m['start_at'], f"{_message('Starting now') if n == 0 else _message('Reminder')}: {m['title']}",
-                       f"{dm.at_text(m['start_at'], zone)} ({zone_label(zone)}){' · ' + m['location'] if m['location'] else ''}{' · online' if m['url'] else ''}")
+                title = (_message('Starting now: {p0}', p0=m['title']) if n == 0
+                         else _message('Reminder: {p0}', p0=m['title']))
+                body = _message('{p0} ({p1}){p2}{p3}', p0=dm.at_text(m['start_at'], zone), p1=zone_label(zone),
+                                p2=' · ' + m['location'] if m['location'] else '',
+                                p3=_message(' · online') if m['url'] else '')
+                remind('MEETING', m['id'], staff, n, m['start_at'], title, body)
         since = (now - timedelta(days=2)).strftime('%Y-%m-%d')
         for x in (row(n) for n in CalendarNote.objects.filter(done=False, day__gte=since).exclude(reminder_offsets='[]').order_by('id')):
             start_at = self.note_moment(x['day'], x['staff_id']) if x['all_day'] else x['start_at']
@@ -507,9 +511,9 @@ class MeetingService:
                 continue
             n, zone = min(due), self.t.zone_of(x['staff_id'])
             from tasks.services import clip
-            body = (f"{dm.human(x['day'])}{' · ' + clip(x['body'], 200) if x['body'] else ''}" if x['all_day']
-                    else f"{dm.at_text(start_at, zone)} ({zone_label(zone)}){' · ' + clip(x['body'], 200) if x['body'] else ''}")
-            remind('NOTE', x['id'], x['staff_id'], n, start_at, f"Reminder: {x['title']}", body)
+            moment = dm.human(x['day']) if x['all_day'] else self.when(start_at, x['staff_id'])
+            body = _message('{p0}{p1}', p0=moment, p1=' · ' + clip(x['body'], 200) if x['body'] else '')
+            remind('NOTE', x['id'], x['staff_id'], n, start_at, _message('Reminder: {p0}', p0=x['title']), body)
         return sent
 
     # ------------------------------------------------------------ dispatcher
