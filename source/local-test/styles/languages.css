@@ -2,7 +2,8 @@
 :root { --language-font: "Inter Variable", "Noto Sans Khmer Variable", "Noto Sans SC Variable", sans-serif; }
 html:lang(km) { --language-font: "Noto Sans Khmer Variable", "Inter Variable", "Noto Sans SC Variable", sans-serif; }
 html:lang(zh-CN) { --language-font: "Noto Sans SC Variable", "Inter Variable", "Noto Sans Khmer Variable", sans-serif; }
-body, button, input, select, textarea { font-family: var(--language-font); }
+/* Specificity also wins when the Mini App's font shorthand is bundled later. */
+html body, html button, html input, html select, html textarea { font-family: var(--language-font); }
 html:lang(km) body { line-height: 1.8; }
 html:lang(zh-CN) body { line-height: 1.65; }
 html:lang(km) :is(button, input, select, textarea), html:lang(zh-CN) :is(button, input, select, textarea) { line-height: 1.65; }

@@ -48,3 +48,14 @@ The branch remains unfinished and **must not be deployed**.
 - `npm run test:release` stopped in `organization-test.mjs`: it expects a shared Personal workspace to convert to Public, while current source keeps it Personal. This test and `organization.mjs` were unchanged in this branch; reconcile with current governance rules rather than changing behavior for a stale assertion.
 - The optional legacy `erp-test.mjs` passed its first two checks, then failed reading `view.body.contacts.length` where `contacts` was undefined. Investigate against the unmodified baseline before attributing it to language changes.
 - No browser screenshots, production SQL Server migration, actual Telegram delivery, or server deployment have been performed.
+
+### Verified browser checkpoint — 23 October 2026
+
+- `77e44ac`: private Telegram command descriptions and menu buttons follow the saved account language; cache and retry tests pass.
+- `e8511a8`: code-owned label maps resolve in the current language without changing identifiers; React tests cover failed saves, draft preservation, stale responses and fallback. Type checking and the production build pass.
+- Real Chromium acceptance now passes in English, Khmer and Simplified Chinese. It verifies website-to-Mini-App preference synchronization, Mini-App-to-website synchronization, unchanged unsaved profile text, fonts and page overflow. It uses synthetic records, a locally supplied Telegram bridge and real signed test launch data. No messages were sent to Telegram.
+- Visual inspection found the Mini App's font shorthand overriding the language font. The CSS specificity fix resolves Khmer boxes; browser assertions now check the font family and loaded faces. Fifteen screenshots are in `docs/language-support/screenshots/`.
+- These are **work-in-progress screenshots**, not proof of complete translation coverage. They visibly show English fallback. Current inventory at the screen-label checkpoint: **5,554 templates; 2,073 translated; 3,481 missing**. The larger inventory includes newly found display labels.
+- Latest broad backend run: **158 passed, 102 subtests passed, 1 failed**. The remaining failure is the legacy Telegram parity scenario at bootstrap, because Django adds `language: en` to the user response. Full parity investigation and SQL Server migration verification remain outstanding.
+
+The branch is not ready for deployment. Do not merge or deploy.
