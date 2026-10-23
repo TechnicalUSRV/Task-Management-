@@ -282,6 +282,7 @@ class Bot:
         self.stopped = threading.Event()
         self.me, self.menu_for, self.flushing = None, None, threading.Lock()
         self.link_failures, self.names = {}, {}
+        self.private_menus, self.menu_retries = {}, {}
         self.threads = []
 
     # ------------------------------------------------------------ Telegram API
@@ -2003,14 +2004,37 @@ class Bot:
         self.refresh_menu()
 
     def refresh_menu(self):
+        from accounts.models import User
         app = self.app_url()
-        if app == self.menu_for:
-            return
-        try:
-            self.call('setChatMenuButton', {'menu_button': {'type': 'web_app', 'text': _bot_message('Tasks'), 'web_app': {'url': app}} if app else {'type': 'commands'}})
-            self.menu_for = app
-        except TelegramError as e:
-            tg.log('warn', None, _bot_message('Menu button: {p0}', p0=e))
+        def menu(locale):
+            return {'type': 'web_app', 'text': render(_message('Tasks'), locale), 'web_app': {'url': app}} if app else {'type': 'commands'}
+        if app != self.menu_for:
+            try:
+                self.call('setChatMenuButton', {'menu_button': menu('en')})
+                self.menu_for = app
+            except TelegramError as e:
+                tg.log('warn', None, _bot_message('Menu button: {p0}', p0=e))
+        # Account preferences take precedence over Telegram's device language.
+        # The supervisor refreshes this cache; preference requests do not call Telegram.
+        preferences = dict(User.objects.filter(active=True).values_list('staff_id', 'language'))
+        live_chats = set()
+        for staff, chat in TelegramLink.objects.filter(chat_id__gt=0).values_list('staff_id', 'chat_id'):
+            if staff not in preferences:
+                continue
+            live_chats.add(chat)
+            locale = preferences[staff]
+            if self.private_menus.get(chat) == (locale, app) or self.menu_retries.get(chat, 0) > time.monotonic():
+                continue
+            try:
+                self.call('setMyCommands', {'commands': [{'command': c, 'description': render(d, locale)} for c, d in PRIVATE_COMMANDS],
+                                            'scope': {'type': 'chat', 'chat_id': chat}})
+                self.call('setChatMenuButton', {'chat_id': chat, 'menu_button': menu(locale)})
+                self.private_menus[chat] = (locale, app)
+                self.menu_retries.pop(chat, None)
+            except TelegramError:
+                self.menu_retries[chat] = time.monotonic() + 60
+        self.private_menus = {chat: value for chat, value in self.private_menus.items() if chat in live_chats}
+        self.menu_retries = {chat: value for chat, value in self.menu_retries.items() if chat in live_chats}
 
     def connect(self):
         """getMe and configure (one attempt). Returns False when the token was rejected."""

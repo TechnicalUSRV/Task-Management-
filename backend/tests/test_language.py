@@ -166,3 +166,37 @@ def test_bot_uses_recipient_language_at_send_time(connected):
         assert text('New task: {p0}',{'p0':'Save &lt;one&gt;'},locale) in output
         assert 'Original body' in output
     assert current_language()=='en'
+
+
+def test_private_bot_menus_follow_account_and_cache(connected):
+    from telegram.bot import Bot, PRIVATE_COMMANDS, TelegramError
+    from telegram.models import TelegramLink
+    _, member = connected
+    app = MiniApp(launch(6000010))
+    assert app.post('/login', {'username': 'Dara Member', 'password': 'Dara-password-2026'}).status_code == 200
+    TelegramLink.objects.filter(staff_id=member['staff_id']).update(chat_id=6000010)
+    calls = []
+    bot = Bot(TOKEN, app_url=lambda: 'https://example.test/c/default/tg/',
+              transport={'call': lambda method, params, timeout: calls.append((method, params)) or True})
+    for locale in ('en', 'km', 'zh-CN'):
+        User.objects.filter(staff_id=member['staff_id']).update(language=locale)
+        bot.refresh_menu()
+        commands = next(p for method, p in reversed(calls) if method == 'setMyCommands')
+        assert commands['scope'] == {'type': 'chat', 'chat_id': 6000010}
+        assert [c['command'] for c in commands['commands']] == [c for c, _ in PRIVATE_COMMANDS]
+        assert commands['commands'][0]['description'] == render(PRIVATE_COMMANDS[0][1], locale)
+        assert calls[-1][1]['menu_button']['text'] == text('Tasks', locale=locale)
+        count = len(calls)
+        bot.refresh_menu()
+        assert len(calls) == count
+    # A transport failure does not mark the new preference as installed or busy-loop.
+    User.objects.filter(staff_id=member['staff_id']).update(language='en')
+    def fail(method, params, timeout):
+        calls.append((method, params))
+        raise TelegramError('Temporary failure', code=500)
+    bot.transport = {'call': fail}
+    bot.refresh_menu()
+    assert bot.private_menus[6000010][0] == 'zh-CN'
+    count = len(calls)
+    bot.refresh_menu()
+    assert len(calls) == count
