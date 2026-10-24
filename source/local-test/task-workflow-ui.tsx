@@ -1,4 +1,4 @@
-import { reminderText } from './task-display';
+import { reminderText, changeFieldLabel, changeValueText, updateChangeTitle } from './task-display';
 import { uiText, useLanguage, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from "./i18n";
 import { apiFetch, apiPath, uuid } from './api-client';
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react';
@@ -118,14 +118,14 @@ export function ChangeList({ changes }: { changes: Row[] }) {
     <ul className="change-list">
       {changes.map(c => (
         <li key={c.field}>
-          <span className="change-field">{c.label}</span>
-          <span className="change-values"><span className="change-from"><span className="sr-only">{uiText("from ")}</span>{c.from_text}</span><ArrowRight aria-hidden="true" className="change-arrow" /><span className="change-to"><span className="sr-only">{uiText("to ")}</span>{c.to_text}</span></span>
+          <span className="change-field">{changeFieldLabel(c)}</span>
+          <span className="change-values"><span className="change-from"><span className="sr-only">{uiText("from ")}</span>{changeValueText(c, 'from')}</span><ArrowRight aria-hidden="true" className="change-arrow" /><span className="change-to"><span className="sr-only">{uiText("to ")}</span>{changeValueText(c, 'to')}</span></span>
         </li>
       ))}
     </ul>
   );
 }
-export const changeTitle = (c: Row) => c.kind === 'UPDATE' ? `Change ${parseChanges(c).map(x => String(x.label).toLowerCase()).join(', ') || 'details'}` : CHANGE_KIND[c.kind as keyof typeof CHANGE_KIND];
+export const changeTitle = (c: Row) => c.kind === 'UPDATE' ? updateChangeTitle(parseChanges(c)) : CHANGE_KIND[c.kind as keyof typeof CHANGE_KIND];
 /** A change waiting for approval: the other side approves or rejects it; the person who asked can withdraw it. */
 function ChangeRequestAlert({ w, cr, busy, run }: { w: Workspace; cr: Row; busy: boolean; run: (fn: () => Promise<unknown>) => Promise<void> }) {
   useLanguage();

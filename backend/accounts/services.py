@@ -260,7 +260,7 @@ def check_password_policy(value):
 
 
 def email_address(value):
-    email = text(value, 'Contact email', 200).lower()
+    email = text(value, _message('Contact email'), 200).lower()
     if email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
         fail(_message('Enter a valid email address.'))
     return email
@@ -306,7 +306,7 @@ def _unlink_telegram(staff_id, actor, why):
 
 # ---------------------------------------------------------------- user accounts
 def _get_role(key):
-    role = Role.objects.filter(id=text(key, 'Role', 60, True)).first()
+    role = Role.objects.filter(id=text(key, _message('Role'), 60, True)).first()
     if not role:
         fail(_message('Role not found.'), 404)
     return role
@@ -331,7 +331,7 @@ def save_user(d, actor):
     if email and User.objects.filter(email=email).exclude(id=old.id if old else '').exists():
         fail(_message('An account with this email already exists.'), 409)
     raw_name = d.get('username', d.get('name', old.username if old else None))
-    name = text(clean_username(raw_name) if raw_name is not None else None, 'Username', 200, True)
+    name = text(clean_username(raw_name) if raw_name is not None else None, _message('Username'), 200, True)
     key_name = username_key(name)
     if old:
         staff_id = old.staff_id
@@ -384,7 +384,7 @@ def save_user(d, actor):
     else:
         position = d.get('position') or (team.position if team else '')
         department = d.get('department') or (team.department if team else '')
-    position, department = text(position, 'Position', 150), text(department, 'Department', 150)
+    position, department = text(position, _message('Position'), 150), text(department, _message('Department'), 150)
     if team:
         Profile.objects.filter(staff_id=staff_id).update(email=team_email, position=position, department=department,
                                                          version=team.version + 1)
@@ -408,7 +408,7 @@ def disable_user(d, actor):
         fail(_message('User not found.'), 404)
     check_version(old, d.get('expected_version'))
     _keep_last_admin(old, old.role_id, False)
-    reason = text(d.get('reason'), 'Reason', 1000, True)
+    reason = text(d.get('reason'), _message('Reason'), 1000, True)
     User.objects.filter(id=old.id).update(active=False, version=old.version + 1, updated_at=timezone.now())
     _end_sessions(old)
     _unlink_telegram(old.staff_id, actor, _message('account disabled'))
@@ -426,8 +426,8 @@ def save_role(d, actor):
         check_version(old, d.get('expected_version'))
         if old.protected:
             fail(_message('The Administrator role is protected. Create a custom role to change its permissions.'))
-    name = text(d.get('name'), 'Role name', 150, True)
-    description = text(d.get('description'), 'Description', 2000)
+    name = text(d.get('name'), _message('Role name'), 150, True)
+    description = text(d.get('description'), _message('Description'), 2000)
     key = old.id if old else next_id('access-role', 'ROLE')
     if any(r.lower() == name.lower() for r in Role.objects.exclude(id=key).values_list('name', flat=True)):
         fail(_message('A role with this name already exists. Choose a different name.'), 409)
@@ -509,9 +509,9 @@ def bootstrap(d):
                 fail(_message('Choose the staff identity for the first administrator.'))
             staff_id = next_id('staff', 'STAFF')
             raw = d.get('username', d.get('name'))
-            Staff.objects.create(id=staff_id, name=text(clean_username(raw) if raw is not None else None, 'Username', 200, True))
+            Staff.objects.create(id=staff_id, name=text(clean_username(raw) if raw is not None else None, _message('Username'), 200, True))
         if not Company.objects.filter(id=1).exists():
-            Company.objects.create(id=1, name=text(d.get('company_name'), 'Company name', 200) or _message('Task Controlling Management'))
+            Company.objects.create(id=1, name=text(d.get('company_name'), _message('Company name'), 200) or _message('Task Controlling Management'))
         result = save_user({**d, 'staff_id': staff_id, 'role_id': ADMIN_ROLE, 'active': 1}, staff_id)
         return public_user(User.objects.select_related('staff', 'role').get(id=result['id']))
 

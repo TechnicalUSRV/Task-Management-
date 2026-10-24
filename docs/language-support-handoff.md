@@ -149,3 +149,23 @@ and remaining legacy release-gate reconciliation are still outstanding.
   with current two-party approval behavior; application approval rules were not changed.
 - Latest focused language/Telegram run: **24 passed**. Translation coverage remains
   incomplete (**3,082 pending templates**), so this branch is **not deployment ready**.
+
+### Validation, approval details and calendar/access phrases — 24 October 2026
+
+- Marked 104 literal field-label arguments at shared backend validation call sites.
+  Only display labels change; option codes, values, identifiers and validation rules
+  remain canonical. HTTP tests confirm translated error labels and an employee
+  workspace name of “Save” remaining unchanged. Removed JavaScript's internal
+  `[object Object]` coercion token from translation marking.
+- Both clients now translate approval-change labels from known field identifiers,
+  and translate known status/priority/visibility/recurrence codes for display.
+  Titles, descriptions, people, departments and unknown legacy fields remain
+  literal. Meeting reminder offsets use complete singular/plural phrases.
+- Added Khmer/Chinese Mini App account-access, organization, calendar, meeting
+  and reminder phrases. Current inventory: **5,630 templates; 2,642 translated;
+  2,988 pending**. Screenshots in the previous evidence commit predate this batch.
+- Validation: **26 focused backend tests passed**, frontend language tests,
+  type checking and production build passed. A broader rerun was interrupted by
+  an environment disconnect; use the preceding recorded broad run for comparison.
+  Full coverage and native-speaker review remain unfinished; SQL Server is still
+  unverified. **Do not deploy.**

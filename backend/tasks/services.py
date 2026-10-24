@@ -85,7 +85,7 @@ def js_string(value):
     if isinstance(value, list):
         return ','.join('' if v is None else js_string(v) for v in value)
     if isinstance(value, dict):
-        return _message('[object Object]')
+        return '[object Object]'
     return str(value)
 
 
@@ -111,7 +111,7 @@ class TaskService:
 
     # ============================================================ small helpers
     def find(self, model, key):
-        found = model.objects.filter(pk=text(key, 'Record ID', 60, True)).first()
+        found = model.objects.filter(pk=text(key, _message('Record ID'), 60, True)).first()
         if not found:
             fail(NOT_FOUND, 404)
         return row(found, exclude=('content',))
@@ -491,7 +491,7 @@ class TaskService:
             self.check_version(old, d.get('expected_version'))
         creation_key = None
         if not old:
-            creation_key = opts.get('creationKey') or (f"{actor}:{text(d['request_key'], 'Creation key', 100, True)}" if d.get('request_key') else None)
+            creation_key = opts.get('creationKey') or (f"{actor}:{text(d['request_key'], _message('Creation key'), 100, True)}" if d.get('request_key') else None)
         if creation_key:
             duplicate = row(Task.objects.filter(creation_key=creation_key).first())
             if duplicate:
@@ -561,12 +561,12 @@ class TaskService:
         if until and until < due:
             fail(_message('“Repeat until” must be on or after the due date.'))
         description = d['expectation'] if 'description' not in d and 'expectation' in d else d.get('description')
-        values = {'workspace_id': w['id'], 'activity_id': None, **rel, 'title': text(d.get('title'), 'Task title', 300, True),
-                  'description': text(description, 'Expectation', 8000, not old), 'start_date': start, 'due_date': due,
-                  'priority': choice(d.get('priority') or 'MEDIUM', ['HIGH', 'MEDIUM', 'LOW'], 'priority'),
+        values = {'workspace_id': w['id'], 'activity_id': None, **rel, 'title': text(d.get('title'), _message('Task title'), 300, True),
+                  'description': text(description, _message('Expectation'), 8000, not old), 'start_date': start, 'due_date': due,
+                  'priority': choice(d.get('priority') or 'MEDIUM', ['HIGH', 'MEDIUM', 'LOW'], _message('priority')),
                   'estimate_minutes': self.duration(d.get('estimate')), 'pic_id': pic, 'reviewer_id': reviewer,
-                  'department': (old['department'] if old else (w['department'] or '')) if d.get('department') is None else text(d['department'], 'Department', 150),
-                  'department_note': text(nn(d.get('department_note'), (old or {}).get('department_note') or ''), 'Department note', 2000),
+                  'department': (old['department'] if old else (w['department'] or '')) if d.get('department') is None else text(d['department'], _message('Department'), 150),
+                  'department_note': text(nn(d.get('department_note'), (old or {}).get('department_note') or ''), _message('Department note'), 2000),
                   'recurrence': recurrence, 'recurrence_rule': recurrence_rule, 'recurrence_until': until}
         values['visibility'] = visibility
         values['governing_manager_id'] = validate_manager(self.gov, actor, d, old, w, visibility)
@@ -650,7 +650,7 @@ class TaskService:
                     return {'id': key, 'type': 'tm_task', 'message': _message('Nothing was changed.'), 'unchanged': True}
                 if move_series(d):
                     payload['move_series'] = True
-                note = text(d.get('change_note'), 'Reason for the change', 1000)
+                note = text(d.get('change_note'), _message('Reason for the change'), 1000)
                 change_id = self.request_change(old, 'UPDATE', actor, source, approver, diff, payload, note)
                 return {'id': key, 'type': 'tm_task', 'change_id': change_id,
                         'message': _message('Sent to {p0} for approval. Nothing changes until they approve.', p0=self.name_of(approver))}
@@ -734,7 +734,7 @@ class TaskService:
                             _message('{p0} made you the person in charge · due {p1}{p2}', p0=self.name_of(actor), p1=dm.human(due), p2='' if t.get('accepted_at') else ' · please accept or reject'), task=t)
             steps = d['steps'] if isinstance(d.get('steps'), list) else d.get('checklist')
             if isinstance(steps, list):
-                items = [x for x in (text(x, 'Step', 300) for x in steps) if x]
+                items = [x for x in (text(x, _message('Step'), 300) for x in steps) if x]
                 if len(items) > MAX_CHECKS:
                     fail(_message('A task can have up to {p0} steps.', p0=MAX_CHECKS))
                 for i, title in enumerate(items):
@@ -756,7 +756,7 @@ class TaskService:
 
     # ============================================================ accept / reject
     def respond(self, verb, t, roles, d, actor, source):
-        role = choice(d['role'], ['pic', 'supporter', 'reviewer'], 'role') if d.get('role') else None
+        role = choice(d['role'], ['pic', 'supporter', 'reviewer'], _message('role')) if d.get('role') else None
         answer = dm.answer_roles(verb, t, roles, role)
         targets, block = answer['roles'], answer['block']
         if not targets:
@@ -768,7 +768,7 @@ class TaskService:
                 return {'id': t['id'], 'type': 'tm_task', 'message': _message('You already rejected this task.'), 'unchanged': True}
             fail(block['message'], block['status'])
         at, who = now(), self.name_of(actor)
-        note = text(nn(d.get('note'), d.get('reason')), 'Reason for rejecting', 1000, True) if verb == 'decline' else ''
+        note = text(nn(d.get('note'), d.get('reason')), _message('Reason for rejecting'), 1000, True) if verb == 'decline' else ''
         support_row = next((a for a in self.support_rows(t) if a['staff_id'] == actor), None)
         changes, messages, tells, closing = {}, [], [], None
         for r in targets:
@@ -875,7 +875,7 @@ class TaskService:
         if not applying and verb == 'reopen' and dm.reopen_needs_approval(t, actor):
             approver = self.approver_for(t, actor, edit=True)
             if approver:
-                note = text(nn(d.get('note'), d.get('reason')), 'Reason for reopening', 2000, True)
+                note = text(nn(d.get('note'), d.get('reason')), _message('Reason for reopening'), 2000, True)
                 change_id = self.request_change(t, 'UPDATE', actor, source, approver,
                                                 [self.change('status', t['status'], 'REOPENED', dm.task_state_label(t), _message('Reopened'))],
                                                 {'reopen': {'note': note}}, note)
@@ -994,7 +994,7 @@ class TaskService:
             message = _message('Task reopened.')
             tell, kind, title, body = self.everyone(t), 'task_reopened', f"Reopened: {t['title']}", f'{who}: {note}'
         elif verb == 'note':
-            note = text(d.get('note'), 'Comment', 2000, True)
+            note = text(d.get('note'), _message('Comment'), 2000, True)
             message = _message('Comment added.')
             tell, kind, title, body = [*self.everyone(t), t.get('submitted_to')], 'task_note', _message('Comment on {p0}', p0=t['title']), f'{who}: {note}'
         following = t if verb == 'note' else self.save_row(t, {**changes, 'version': t['version'] + 1, 'updated_at': at})
@@ -1114,7 +1114,7 @@ class TaskService:
         if to == t['pic_id']:
             fail(_message('Choose someone other than the current person in charge.'))
         self.gov.check_collaborator(actor, self.workspace(t['workspace_id']), to, existing=self.scope.is_involved(to, t))
-        note, keep, at = text(d.get('note'), 'Note', 1000), flag(d.get('keep')), now()
+        note, keep, at = text(d.get('note'), _message('Note'), 1000), flag(d.get('keep')), now()
         approver = None if applying else self.approver_for(t, actor)
         if approver:
             change_id = self.request_change(t, 'UPDATE', actor, source, approver, [self.change('pic_id', t['pic_id'], to)],
@@ -1187,7 +1187,7 @@ class TaskService:
             if cr['status'] != 'PENDING':
                 fail(_message('This request has already been decided.'), 409)
             self.active_workspace(t['workspace_id'])
-            note = text(d.get('note'), 'Note', 1000)
+            note = text(d.get('note'), _message('Note'), 1000)
             self.settle_change(cr, 'WITHDRAWN', actor, source, note)
             following = t
             back = cr['kind'] == 'COMPLETE' and cr['requester_side'] == 'PIC' and t['status'] == 'IN_REVIEW'
@@ -1201,7 +1201,7 @@ class TaskService:
                     'message': _message('Completion request withdrawn. The task is back in progress.') if back else _message('Request withdrawn. Nothing was changed.')}
         if action != 'tm.change.decide':
             fail(_message('Unknown change request action.'), 404)
-        decision = choice(d.get('decision'), ['APPROVE', 'REJECT'], 'decision')
+        decision = choice(d.get('decision'), ['APPROVE', 'REJECT'], _message('decision'))
         if (cr['status'] == 'APPROVED' and decision == 'APPROVE') or (cr['status'] == 'REJECTED' and decision == 'REJECT'):
             return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': _message('This request was already decided.'), 'unchanged': True}
         if cr['status'] != 'PENDING':
@@ -1228,14 +1228,14 @@ class TaskService:
             result = self.flow('close' if decision == 'APPROVE' else 'return', {'id': t['id'], 'note': d.get('note')}, actor, source)
             return {**result, 'change_id': cr['id']}
         if decision == 'REJECT':
-            note = text(nn(d.get('note'), d.get('reason')), 'Reason for rejecting', 1000, True)
+            note = text(nn(d.get('note'), d.get('reason')), _message('Reason for rejecting'), 1000, True)
             self.settle_change(cr, 'REJECTED', actor, source, note)
             self.history(t, 'change_rejected', t, actor, source, _message('Rejected {p0}’s request to {p1}: {p2}', p0=self.name_of(cr['requested_by']), p1=asked, p2=note))
             self.notify([cr['requested_by']], 'change_rejected', actor, _message('Request rejected: {p0}', p0=t['title']),
                         _message('{p0} rejected your request to {p1}: {p2}', p0=self.name_of(actor), p1=asked, p2=note), task=t)
             self.log(actor, 'task', t['id'], t['workspace_id'], _message('Change rejected'), f"{t['title']} · {CHANGE_WORD[cr['kind']]} · {note}")
             return {'id': cr['id'], 'type': 'tm_change', 'task_id': t['id'], 'message': _message('Request rejected. The task is unchanged.')}
-        note = text(d.get('note'), 'Note', 1000)
+        note = text(d.get('note'), _message('Note'), 1000)
         changes = parse(cr.get('changes_json') or '[]', [])
         payload = parse(cr.get('payload_json') or '{}', {})
         if t['status'] not in dm.OPEN_TASK_STATUSES and not (cr['kind'] == 'UPDATE' and t['version'] == cr['base_version']):
@@ -1295,7 +1295,7 @@ class TaskService:
             self.active_workspace(t['workspace_id'])
             roles = self.roles_for(t, actor)
             self.guard('checklist', t, roles)
-            title = text(d.get('title'), 'Step', 300, True)
+            title = text(d.get('title'), _message('Step'), 300, True)
             twin = ChecklistItem.objects.filter(task_id=t['id'], title=title, created_by_id=actor,
                                                 created_at__gt=timezone.now() - timedelta(seconds=15)).values_list('id', flat=True).first()
             if twin:
@@ -1325,7 +1325,7 @@ class TaskService:
             return {'id': item['id'], 'type': 'tm_check',
                     'message': _message('Step completed ({p0} of {p1}).', p0=c['done'], p1=c['n']) if done else _message('Step reopened ({p0} of {p1} completed).', p0=c['done'], p1=c['n'])}
         if action == 'tm.check.rename':
-            title = text(d.get('title'), 'Step', 300, True)
+            title = text(d.get('title'), _message('Step'), 300, True)
             if title == item['title']:
                 return {'id': item['id'], 'type': 'tm_check', 'message': _message('No change.'), 'unchanged': True}
             ChecklistItem.objects.filter(id=item['id']).update(title=title)
@@ -1393,7 +1393,7 @@ class TaskService:
             self.active_workspace(t['workspace_id'])
             roles = self.roles_for(t, actor)
             self.guard('file', t, roles)
-            name = clean_file_name(text(d.get('name'), 'File name', 160, True))
+            name = clean_file_name(text(d.get('name'), _message('File name'), 160, True))
             ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
             if ext not in dm.TASK_FILE_TYPES:
                 fail(_message('Attach a PDF, image (JPG, PNG, WebP, GIF, HEIC), Word, Excel, PowerPoint, CSV, TXT or ZIP file.'))
@@ -1459,10 +1459,10 @@ class TaskService:
 
     def me(self, action, d, actor):
         if action == 'me.profile.save':
-            if 'name' in d and text(d['name'], 'Display name', 200, True) != self.canonical_name(actor):
+            if 'name' in d and text(d['name'], _message('Display name'), 200, True) != self.canonical_name(actor):
                 fail(_message('Your display name comes from your username. Ask an administrator to change it.'), 403)
             if 'nickname' in d:
-                nickname = text(d['nickname'], 'Nickname', 80)
+                nickname = text(d['nickname'], _message('Nickname'), 80)
                 p = Profile.objects.filter(staff_id=actor).first()
                 self._profile_upsert(actor, nickname=nickname, **({'version': p.version + 1} if p else {}))
                 self.log(actor, 'user', actor, None, _message('Nickname changed'), nickname)
@@ -1518,7 +1518,7 @@ class TaskService:
                     fail(_message('Only the person who made this request can change it.'), 403)
                 if old['status'] != 'PENDING':
                     fail(_message('This request has already been decided.'), 409)
-            creation_key = f"{actor}:{text(d['request_key'], 'Creation key', 100, True)}" if not old and d.get('request_key') else None
+            creation_key = f"{actor}:{text(d['request_key'], _message('Creation key'), 100, True)}" if not old and d.get('request_key') else None
             if creation_key:
                 duplicate = TaskRequest.objects.filter(creation_key=creation_key).values_list('id', flat=True).first()
                 if duplicate:
@@ -1544,11 +1544,11 @@ class TaskService:
                 fail(_message('Choose an Organizational Workspace for this request.'), 422)
             from .policy import validate_manager
             manager_scope = validate_manager(self.gov, actor, {**({'governing_manager_id': old.get('governing_manager_id')} if old else {}), **d}, None, self.workspace(wid) if wid else None, visibility)
-            values = {'governing_manager_id': manager_scope, 'visibility': visibility, 'workspace_id': wid, 'title': text(d.get('title'), 'Request title', 300, True),
-                      'description': text(d.get('description'), 'Expectation', 8000, not old),
-                      'department': text(nn(d.get('department'), ''), 'Department', 150),
-                      'department_note': text(nn(d.get('department_note'), ''), 'Department note', 2000),
-                      'priority': choice(d.get('priority') or 'MEDIUM', ['HIGH', 'MEDIUM', 'LOW'], 'priority'), 'proposed_due_date': proposed,
+            values = {'governing_manager_id': manager_scope, 'visibility': visibility, 'workspace_id': wid, 'title': text(d.get('title'), _message('Request title'), 300, True),
+                      'description': text(d.get('description'), _message('Expectation'), 8000, not old),
+                      'department': text(nn(d.get('department'), ''), _message('Department'), 150),
+                      'department_note': text(nn(d.get('department_note'), ''), _message('Department note'), 2000),
+                      'priority': choice(d.get('priority') or 'MEDIUM', ['HIGH', 'MEDIUM', 'LOW'], _message('priority')), 'proposed_due_date': proposed,
                       'manager_id': receiver, 'doer': doer, 'version': old['version'] + 1 if old else 0, 'updated_at': now()}
             if old:
                 update(TaskRequest, key, values)
@@ -1574,7 +1574,7 @@ class TaskService:
                 fail(_message('This request has already been decided.'), 409)
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
-            update(TaskRequest, q['id'], {'status': 'WITHDRAWN', 'decision_note': text(d.get('note'), 'Note', 1000), 'version': q['version'] + 1, 'updated_at': now()})
+            update(TaskRequest, q['id'], {'status': 'WITHDRAWN', 'decision_note': text(d.get('note'), _message('Note'), 1000), 'version': q['version'] + 1, 'updated_at': now()})
             self.notify([q['manager_id']], 'request_withdrawn', actor, _message('Request withdrawn: {p0}', p0=q['title']), _message('{p0} withdrew the request', p0=self.name_of(actor)), request=q)
             self.log(actor, 'request', q['id'], q['workspace_id'], _message('Task request withdrawn'), q['title'])
             return {'id': q['id'], 'type': 'tm_request', 'message': _message('Request withdrawn.')}
@@ -1595,7 +1595,7 @@ class TaskService:
                 if w['status'] != 'ACTIVE':
                     fail(_message('Restore the workspace before changing its work.'))
                 self.gov.check_collaborator(actor, w, receiver)
-            note = text(d.get('note'), 'Note', 1000)
+            note = text(d.get('note'), _message('Note'), 1000)
             update(TaskRequest, q['id'], {'manager_id': receiver, 'version': q['version'] + 1, 'updated_at': now()})
             self.notify([receiver], 'request_new', actor, _message('Task request: {p0}', p0=q['title']),
                         _message('{p0} passed on a request from {p1}{p2}', p0=self.name_of(actor), p1=self.name_of(q['requested_by']), p2=': ' + note if note else ''), request=q)
@@ -1604,7 +1604,7 @@ class TaskService:
             self.log(actor, 'request', q['id'], q['workspace_id'], _message('Task request passed on'), _message('{p0} · to {p1}', p0=q['title'], p1=self.name_of(receiver)))
             return {'id': q['id'], 'type': 'tm_request', 'message': _message('Request passed to {p0}.', p0=self.name_of(receiver))}
         if action == 'tm.request.decide':
-            decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], 'decision')
+            decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], _message('decision'))
             if q['manager_id'] != actor:
                 fail(_message('Only the person this request was sent to can decide it.'), 403)
             if q['status'] == 'APPROVED' and decision == 'APPROVE':
@@ -1616,7 +1616,7 @@ class TaskService:
             if d.get('expected_version') is not None:
                 self.check_version(q, d['expected_version'])
             if decision == 'DECLINE':
-                note = text(d.get('note'), 'Reason for declining', 1000, True)
+                note = text(d.get('note'), _message('Reason for declining'), 1000, True)
                 update(TaskRequest, q['id'], {'status': 'DECLINED', 'decision_note': note, 'decided_by': actor, 'decided_at': now(),
                                               'version': q['version'] + 1, 'updated_at': now()})
                 self.notify([q['requested_by']], 'request_declined', actor, _message('Request declined: {p0}', p0=q['title']), f'{self.name_of(actor)}: {note}', request=q)
@@ -1649,7 +1649,7 @@ class TaskService:
                                 'memberAuthority': q['requested_by'],
                                 'reviewerAccepted': reviewer if doer == 'RECEIVER' and reviewer == q['requested_by'] else None,
                                 'assignedBy': q['requested_by'] if pic == actor else actor})
-            note = text(d.get('note'), 'Note', 1000)
+            note = text(d.get('note'), _message('Note'), 1000)
             update(TaskRequest, q['id'], {'status': 'APPROVED', 'task_id': created['id'], 'decision_note': note, 'decided_by': actor, 'decided_at': now(),
                                           'version': q['version'] + 1, 'updated_at': now()})
             who = _message('you are in charge') if pic == q['requested_by'] else _message('{p0} will do it', p0=self.name_of(actor)) if pic == actor else _message('in charge: ') + self.name_of(pic)
@@ -1672,7 +1672,7 @@ class TaskService:
                 fail(_message('The new due date cannot be before the start date.'))
             if proposed == t['due_date']:
                 fail(_message('Choose a date that differs from the current due date.'))
-            reason = text(d.get('reason'), 'Reason', 1000, True)
+            reason = text(d.get('reason'), _message('Reason'), 1000, True)
             if roles['isPic'] and dm.two_sided(t):
                 approver = self.approver_for(t, actor)
                 if approver:
@@ -1707,7 +1707,7 @@ class TaskService:
             self.log(actor, 'task', t['id'], t['workspace_id'], _message('Due date request withdrawn'), f"{q['current_due_date']} → {q['proposed_due_date']}")
             return {'id': q['id'], 'type': 'tm_due_request', 'message': _message('Due date request withdrawn.')}
         if action == 'tm.due.decide':
-            decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], 'decision')
+            decision = choice(d.get('decision'), ['APPROVE', 'DECLINE'], _message('decision'))
             if q['decide_by'] != actor and dm.due_decider(t) != actor and not (self.can_approve(actor) and self.scope.is_involved(actor, t)):
                 fail(_message('Only the task’s reviewer or a task approver on this task can decide this request.'), 403)
             if (q['status'] == 'APPROVED' and decision == 'APPROVE') or (q['status'] == 'DECLINED' and decision == 'DECLINE'):
@@ -1826,8 +1826,8 @@ class TaskService:
         canonical = User.objects.filter(staff_id=key).values_list('username', flat=True).first() if d.get('staff_id') else None
         if canonical and 'name' in d and d['name'] != canonical:
             fail(_message('Change usernames in Administration → User accounts.'), 403)
-        name = canonical or text(d.get('name'), 'Full name', 200, True)
-        email = text(d.get('email'), 'Email', 200).lower()
+        name = canonical or text(d.get('name'), _message('Full name'), 200, True)
+        email = text(d.get('email'), _message('Email'), 200).lower()
         if email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', email):
             fail(_message('Enter a valid email address.'))
         if Staff.objects.filter(name=name).exclude(id=key).exists():
@@ -1837,8 +1837,8 @@ class TaskService:
                 TaskAssignee.objects.filter(staff_id=key).exclude(status='DECLINED').exclude(task__status__in=['COMPLETED', 'CANCELLED']).exists()
                 or self._has_scheduled_meeting(key) or TaskRequest.objects.filter(manager_id=key, status='PENDING').exists()):
             fail(_message('Reassign open tasks, scheduled meetings and task requests waiting for this team member before making them inactive.'))
-        values = {'email': email, 'phone': text(d.get('phone'), 'Phone', 50), 'position': text(d.get('position'), 'Position', 150),
-                  'department': text(d.get('department'), 'Department', 150), 'active': active,
+        values = {'email': email, 'phone': text(d.get('phone'), _message('Phone'), 50), 'position': text(d.get('position'), _message('Position'), 150),
+                  'department': text(d.get('department'), _message('Department'), 150), 'active': active,
                   'version': old['version'] + 1 if old else 0,
                   'timezone': (old or {}).get('timezone') or '' if 'timezone' not in d else self.zone_input(d['timezone'])}
         previous_name = self.canonical_name(key) if d.get('staff_id') else ''
@@ -1901,8 +1901,8 @@ class TaskService:
         if day_total + minutes > 1440:
             fail(_message('Total logged time for one person cannot exceed 24 hours in a day.'))
         key = old['id'] if old else next_id('tm-time', 'TIME')
-        values = {'task_id': (t or {}).get('id'), 'workspace_id': wid, 'activity': '' if t else text(nn(d.get('activity'), (old or {}).get('activity')), 'Activity', 300, True),
-                  'staff_id': staff, 'work_date': day, 'minutes': minutes, 'notes': text(d.get('notes'), 'Time entry notes', 2000),
+        values = {'task_id': (t or {}).get('id'), 'workspace_id': wid, 'activity': '' if t else text(nn(d.get('activity'), (old or {}).get('activity')), _message('Activity'), 300, True),
+                  'staff_id': staff, 'work_date': day, 'minutes': minutes, 'notes': text(d.get('notes'), _message('Time entry notes'), 2000),
                   'version': old['version'] + 1 if old else 0, 'updated_at': now()}
         if old:
             update(TimeEntry, key, values)
@@ -1920,7 +1920,7 @@ class TaskService:
         self.check_version(entry, d.get('expected_version'))
         if (t or {}).get('workspace_id') or entry['workspace_id']:
             self.active_workspace((t or {}).get('workspace_id') or entry['workspace_id'])
-        reason = text(d.get('reason'), 'Deletion reason', 1000, True)
+        reason = text(d.get('reason'), _message('Deletion reason'), 1000, True)
         TimeEntry.objects.filter(id=entry['id']).delete()
         self.log(actor, 'timesheet', entry['id'], (t or {}).get('workspace_id') or entry['workspace_id'], _message('Time entry deleted'),
                  f"{entry['task_id']} · {entry['staff_id']} · {entry['work_date']} · {entry['minutes']} minutes · {reason}")
@@ -1935,7 +1935,7 @@ class TaskService:
                 qs = qs.exclude(kind='telegram_connected')
             n = qs.update(read_at=timezone.now())
             return {'message': _message('{p0} notification{p1} marked as read.', p0=n, p1='' if n == 1 else 's') if n else _message('No unread notifications.')}
-        n = Notification.objects.filter(id=integer(d.get('id'), 1, 9007199254740991, 'notification')).first()
+        n = Notification.objects.filter(id=integer(d.get('id'), 1, 9007199254740991, _message('notification'))).first()
         if not n or n.staff_id != actor:
             fail(_message('Notification not found.'), 404)
         if telegram and n.kind == 'telegram_connected':

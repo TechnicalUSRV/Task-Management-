@@ -164,7 +164,7 @@ class MeetingService:
             if not self.is_participant(old, actor):
                 fail(_message('Only the organizer and the attendees can change this meeting. It is shared with you to view.'), 403)
         manager = not old or self.is_participant(old, actor)
-        creation_key = f"{actor}:{text(d['request_key'], 'Creation key', 100, True)}" if not old and d.get('request_key') else None
+        creation_key = f"{actor}:{text(d['request_key'], _message('Creation key'), 100, True)}" if not old and d.get('request_key') else None
         if creation_key:
             duplicate = Meeting.objects.filter(creation_key=creation_key).values('id', 'workspace_id').first()
             if duplicate:
@@ -209,7 +209,7 @@ class MeetingService:
                 if MeetingAttendee.objects.filter(staff_id=staff, meeting__status='SCHEDULED', meeting__start_at__lt=parse(end),
                                                   meeting__end_at__gt=parse(start)).exclude(meeting_id=key).exists():
                     fail(_message('{p0} already has a scheduled meeting during this time.', p0=self.t.name_of(staff)))
-        url = text(d.get('url'), 'Meeting URL', 2000)
+        url = text(d.get('url'), _message('Meeting URL'), 2000)
         if url:
             url = meeting_url(url)
         if d.get('share_scope') is None:
@@ -247,8 +247,8 @@ class MeetingService:
             from tasks.services import same_value
             moved = (not same(organizer, old['organizer_id']) or len(attendees) != len(before) or any(x not in before for x in attendees)
                      or not same(start, old['start_at']) or not same(end, old['end_at'])
-                     or not same(text(d.get('title'), 'Meeting title', 300, True), old['title'])
-                     or not same(text(d.get('agenda'), 'Agenda', 8000), old['agenda']) or not same(text(d.get('location'), 'Location', 500), old['location'])
+                     or not same(text(d.get('title'), _message('Meeting title'), 300, True), old['title'])
+                     or not same(text(d.get('agenda'), _message('Agenda'), 8000), old['agenda']) or not same(text(d.get('location'), _message('Location'), 500), old['location'])
                      or not same(url, old['url']) or share != old['share_scope'] or not same_value(share_ids, share_before if share == 'SELECTED' else [])
                      or not same((task or {}).get('id'), old['task_id']) or status == 'CANCELLED' or (status == 'SCHEDULED' and old['status'] != 'SCHEDULED'))
             if moved:
@@ -260,10 +260,10 @@ class MeetingService:
             if late:
                 fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=join_messages(_message(' and '), (offset_text(n) for n in late))), 422)
         values = {'workspace_id': w['id'], 'task_id': (task or {}).get('id'), 'activity_id': None, 'contact_id': (task or {}).get('contact_id'),
-                  'title': text(d.get('title'), 'Meeting title', 300, True), 'agenda': text(d.get('agenda'), 'Agenda', 8000), 'organizer_id': organizer,
-                  'start_at': start, 'end_at': end, 'location': text(d.get('location'), 'Location', 500), 'url': url, 'status': status,
-                  'minutes_notes': text(d.get('minutes_notes'), 'Meeting notes / decisions', 8000),
-                  'reason': text(d.get('reason'), 'Cancellation reason', 1000, status == 'CANCELLED'), 'share_scope': share,
+                  'title': text(d.get('title'), _message('Meeting title'), 300, True), 'agenda': text(d.get('agenda'), _message('Agenda'), 8000), 'organizer_id': organizer,
+                  'start_at': start, 'end_at': end, 'location': text(d.get('location'), _message('Location'), 500), 'url': url, 'status': status,
+                  'minutes_notes': text(d.get('minutes_notes'), _message('Meeting notes / decisions'), 8000),
+                  'reason': text(d.get('reason'), _message('Cancellation reason'), 1000, status == 'CANCELLED'), 'share_scope': share,
                   'reminder_offsets': jtext(offsets), 'version': old['version'] + 1 if old else 0, 'updated_at': iso(timezone.now())}
         if old:
             update(Meeting, key, values)
@@ -362,7 +362,7 @@ class MeetingService:
             if late:
                 fail(_message('The reminder {p0} would already be in the past. Choose a shorter reminder, or none.', p0=join_messages(_message(' and '), (offset_text(n) for n in late))), 422)
         key = old['id'] if old else next_id('tm-calnote', 'NOTE')
-        values = {'title': text(d.get('title'), 'Title', 200, True), 'body': text(d.get('body'), 'Note', 4000), 'all_day': 1 if all_day else 0, 'day': day,
+        values = {'title': text(d.get('title'), _message('Title'), 200, True), 'body': text(d.get('body'), _message('Note'), 4000), 'all_day': 1 if all_day else 0, 'day': day,
                   'start_at': start, 'end_at': end, 'reminder_offsets': jtext(offsets), 'done': done, 'version': old['version'] + 1 if old else 0,
                   'updated_at': iso(timezone.now())}
         if old:
@@ -426,7 +426,7 @@ class MeetingService:
         key = next_id('tm-meeting-change', 'MCHANGE')
         MeetingChange.objects.create(id=key, meeting_id=m['id'], requested_by_id=actor, approver_id=approver, base_version=m['version'],
                                      payload_json=jtext({'data': d, 'changes': changes}), source=source,
-                                     note=text(d.get('change_note'), 'Reason for change', 1000), created_at=timezone.now())
+                                     note=text(d.get('change_note'), _message('Reason for change'), 1000), created_at=timezone.now())
         self.t.log(actor, 'meeting', m['id'], m['workspace_id'], _message('Meeting change requested'), jtext({'request': key, 'approver': approver, 'changes': changes}))
         self.workflow_tell(m, approver, actor, _message('Meeting change awaiting your approval: {p0}', p0=m['title']))
         return {'id': m['id'], 'type': 'tm_meeting', 'change_id': key,
@@ -448,7 +448,7 @@ class MeetingService:
         if not withdrawing and d.get('decision') not in ('APPROVE', 'REJECT'):
             fail(_message('Choose Approve or Reject.'))
         status = 'WITHDRAWN' if withdrawing else 'APPROVED' if d['decision'] == 'APPROVE' else 'REJECTED'
-        note = text(d.get('note'), 'Decision note', 1000, status == 'REJECTED')
+        note = text(d.get('note'), _message('Decision note'), 1000, status == 'REJECTED')
         if status == 'APPROVED':
             data = json.loads(q['payload_json'])['data']
             invited = actor in (data.get('attendee_ids') or []) or data.get('organizer_id') == actor

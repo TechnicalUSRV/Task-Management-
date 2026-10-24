@@ -96,7 +96,7 @@ class ListView(APIView):
         q = p.get('q', '').strip().lower()
         if q:
             found = [r for r in found if any(q in text_of(r.get(f)) for f in searched)]
-        page = integer(p.get('page') or 1, 1, 1_000_000, 'page')
+        page = integer(p.get('page') or 1, 1, 1_000_000, _message('page'))
         size = integer(p.get('page_size') or 50, 1, 200, _message('page size'))
         part = found[(page - 1) * size:page * size]
         if resource == 'workspaces':

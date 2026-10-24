@@ -89,7 +89,7 @@ class LiveData:
 
     def save(self, d, actor):
         b, caps = self.manager(d.get('group_id'), actor)
-        recipient = text(d.get('recipient_id'), 'Recipient', 60, True)
+        recipient = text(d.get('recipient_id'), _message('Recipient'), 60, True)
         if recipient == actor:
             fail(_message('Choose someone else to share Live Data with.'))
         old = BoardLiveShare.objects.filter(board_id=b['id'], recipient_id=recipient).first()
@@ -331,12 +331,12 @@ class LiveData:
 
     def update_cell(self, d, actor):
         """tm.group.live.update: change one shared cell from the Live Data panel (no local Group needed)."""
-        share = BoardLiveShare.objects.filter(id=text(d.get('share_id'), 'Live Data share', 60, True), recipient_id=actor, active=True).first()
+        share = BoardLiveShare.objects.filter(id=text(d.get('share_id'), _message('Live Data share'), 60, True), recipient_id=actor, active=True).first()
         if not share:
             fail(_message('Live Data not found.'), 404)
         if 'expected' not in d:
             fail(_message('Send the value you started from, so changes by others are not overwritten.'), 400)
-        changed = self.write(actor, share.board_id, text(d.get('row_id'), 'Row', 60, True), text(d.get('column_id'), 'Column', 60, True),
+        changed = self.write(actor, share.board_id, text(d.get('row_id'), _message('Row'), 60, True), text(d.get('column_id'), _message('Column'), 60, True),
                              d.get('value'), d.get('expected'))
         return {'id': d['row_id'], 'type': 'tm_group_live', 'message': _message('Saved to the source group.') if changed else _message('No change.'), 'unchanged': not changed}
 

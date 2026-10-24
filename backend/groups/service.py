@@ -194,7 +194,7 @@ class GroupService:
                              owner=b['owner_id'] == staff, archived=b['status'] == 'ARCHIVED' or ws_archived, ws_archived=ws_archived)
 
     def open_board(self, key, staff):
-        b = self.board_row(text(key, 'Group', 60, True))
+        b = self.board_row(text(key, _message('Group'), 60, True))
         if not b:
             fail(_message('Group not found.'), 404)
         caps = self.caps_for(b, staff)
@@ -326,9 +326,9 @@ class GroupService:
 
         def given(key, fallback):
             return d[key] if d.get(key) is not None else fallback
-        name = text(given('name', b0['name'] if b0 else None), 'Group name', L['name'], True)
-        description = text(given('description', b0['description'] if b0 else ''), 'Description', L['description'])
-        visibility = choice(given('visibility', b0['visibility'] if b0 else 'PERSONAL'), ['PERSONAL', 'TEAM'], 'visibility')
+        name = text(given('name', b0['name'] if b0 else None), _message('Group name'), L['name'], True)
+        description = text(given('description', b0['description'] if b0 else ''), _message('Description'), L['description'])
+        visibility = choice(given('visibility', b0['visibility'] if b0 else 'PERSONAL'), ['PERSONAL', 'TEAM'], _message('visibility'))
         audience = choice(given('audience', b0['audience'] if b0 else 'SELECTED'), ['WORKSPACE', 'SELECTED'], _message('sharing option')) if visibility == 'TEAM' else 'SELECTED'
         workspace_level = choice(given('workspace_level', b0['workspace_level'] if b0 else 'EDIT'), ['VIEW', 'EDIT'], _message('workspace access level'))
         owner = b0['owner_id'] if b0 else actor
@@ -788,7 +788,7 @@ class GroupService:
         b, caps = self.open_board(d.get('group_id'), actor)
         self.archived_check(b)
         self.need(caps, 'editRows', _message('You can’t change records in this group.'))
-        found = BoardRow.objects.filter(id=text(d.get('id'), 'Row', 60, True), board_id=b['id']).first()
+        found = BoardRow.objects.filter(id=text(d.get('id'), _message('Row'), 60, True), board_id=b['id']).first()
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
         if not found or not s['rowOk'](found.id):
@@ -875,7 +875,7 @@ class GroupService:
         self.need(caps, 'editRows', _message('You can’t change records in this group.'))
         all_ = self.columns_of(b['id'])
         s = self.sight(b, actor, caps, all_)
-        found = BoardRow.objects.filter(id=text(d.get('row_id'), 'Row', 60, True), board_id=b['id']).first()
+        found = BoardRow.objects.filter(id=text(d.get('row_id'), _message('Row'), 60, True), board_id=b['id']).first()
         if not found or not s['rowOk'](found.id):
             fail(_message('This row was deleted. Reload the group.'), 404)
         col = next((x for x in s['columns'] if x['id'] == d.get('column_id')), None)
@@ -895,7 +895,7 @@ class GroupService:
 
     def file_add(self, d, actor):
         b, s, all_, col, r, files = self.attachment_cell(d, actor)
-        name = clean_file_name(text(d.get('name'), 'File name', 160, True))
+        name = clean_file_name(text(d.get('name'), _message('File name'), 160, True))
         ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
         if ext not in task_domain.TASK_FILE_TYPES:
             fail(_message('Attach an image (JPG, PNG, WebP, GIF, HEIC), a PDF, a Word, Excel or PowerPoint document, or a CSV, TXT or ZIP file.'))

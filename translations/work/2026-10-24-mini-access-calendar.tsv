@@ -1,0 +1,80 @@
+An administrator has turned off Telegram for this company.	អ្នកគ្រប់គ្រងបានបិទ Telegram សម្រាប់ក្រុមហ៊ុននេះ។	管理员已为此公司关闭 Telegram。
+Ask an administrator to re-activate your login.	សូមស្នើសុំអ្នកគ្រប់គ្រងឱ្យបើកគណនីចូលរបស់អ្នកឡើងវិញ។	请联系管理员重新启用你的登录账号。
+Ask an administrator to create Task Controlling Management logins for your colleagues.	សូមស្នើសុំអ្នកគ្រប់គ្រងឱ្យបង្កើតគណនីចូល Task Controlling Management សម្រាប់មិត្តរួមការងាររបស់អ្នក។	请联系管理员为同事创建 Task Controlling Management 登录账号。
+Ask a workspace owner to add you, or ask someone for the task instead.	សូមស្នើសុំម្ចាស់កន្លែងការងារឱ្យបន្ថែមអ្នក ឬស្នើសុំកិច្ចការពីអ្នកផ្សេង។	请联系工作区所有者添加你，或向他人请求任务。
+Connect your Task Controlling Management account	ភ្ជាប់គណនី Task Controlling Management របស់អ្នក	关联你的 Task Controlling Management 账号
+For your security this session has ended. Close the app and open it again from the company bot.	ដើម្បីសុវត្ថិភាពរបស់អ្នក វគ្គចូលប្រើនេះបានបញ្ចប់ហើយ។ បិទកម្មវិធី រួចបើកវាឡើងវិញតាមបូតរបស់ក្រុមហ៊ុន។	为保障安全，此会话已结束。请关闭应用，再从公司机器人重新打开。
+Forgot your password? Ask an administrator to reset it in the Task Controlling Management.	ភ្លេចពាក្យសម្ងាត់? សូមស្នើសុំអ្នកគ្រប់គ្រងឱ្យកំណត់វាឡើងវិញក្នុង Task Controlling Management។	忘记密码？请联系管理员在 Task Controlling Management 中重置。
+No access to Task Management	គ្មានសិទ្ធិចូលប្រើការគ្រប់គ្រងកិច្ចការ	无权访问任务管理
+Nobody else uses Task Management yet. Ask an administrator to create logins for your colleagues.	មិនទាន់មានអ្នកផ្សេងប្រើការគ្រប់គ្រងកិច្ចការទេ។ សូមស្នើសុំអ្នកគ្រប់គ្រងឱ្យបង្កើតគណនីចូលសម្រាប់មិត្តរួមការងាររបស់អ្នក។	暂无其他任务管理用户。请联系管理员为同事创建登录账号。
+Open the app again	បើកកម្មវិធីឡើងវិញ	重新打开应用
+Open this app from Telegram	បើកកម្មវិធីនេះតាម Telegram	请从 Telegram 打开此应用
+Sign in with Task Controlling Management password	ចូលដោយប្រើពាក្យសម្ងាត់ Task Controlling Management	使用 Task Controlling Management 密码登录
+Task Controlling Management password	ពាក្យសម្ងាត់ Task Controlling Management	Task Controlling Management 密码
+Telegram is turned off	Telegram ត្រូវបានបិទ	Telegram 已关闭
+Your Task Controlling Management account is disabled	គណនី Task Controlling Management របស់អ្នកត្រូវបានបិទ	你的 Task Controlling Management 账号已被停用
+Your Task Controlling Management role does not include Task Management. Ask an administrator.	តួនាទីរបស់អ្នកក្នុង Task Controlling Management មិនមានសិទ្ធិគ្រប់គ្រងកិច្ចការទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រង។	你的 Task Controlling Management 角色不包含任务管理权限。请联系管理员。
+Your account does not have permission to create tasks. Ask an administrator if you need access.	គណនីរបស់អ្នកគ្មានសិទ្ធិបង្កើតកិច្ចការទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រសិនបើអ្នកត្រូវការសិទ្ធិចូលប្រើ។	你的账号无权创建任务。如需此权限，请联系管理员。
+Your account does not have permission to view timesheets. Ask an administrator if you need access.	គណនីរបស់អ្នកគ្មានសិទ្ធិមើលតារាងម៉ោងការងារទេ។ សូមទាក់ទងអ្នកគ្រប់គ្រងប្រសិនបើអ្នកត្រូវការសិទ្ធិចូលប្រើ។	你的账号无权查看工时表。如需此权限，请联系管理员。
+You can’t create tasks in a workspace yet	អ្នកមិនទាន់អាចបង្កើតកិច្ចការក្នុងកន្លែងការងារបានទេ	你暂时无法在工作区中创建任务
+Organization administration	ការគ្រប់គ្រងអង្គការ	组织管理
+Workspace governance	ការគ្រប់គ្រងសិទ្ធិកន្លែងការងារ	工作区治理
+Workspace member	សមាជិកកន្លែងការងារ	工作区成员
+Workspace owner	ម្ចាស់កន្លែងការងារ	工作区所有者
+company-wide access	សិទ្ធិចូលប្រើទូទាំងក្រុមហ៊ុន	全公司访问权限
+management oversight	ការត្រួតពិនិត្យតាមឋានានុក្រមគ្រប់គ្រង	管理监督权限
+organization administration	ការគ្រប់គ្រងអង្គការ	组织管理权限
+workspace governance	ការគ្រប់គ្រងសិទ្ធិកន្លែងការងារ	工作区治理权限
+workspace membership	ភាពជាសមាជិកកន្លែងការងារ	工作区成员身份
+workspace ownership	ភាពជាម្ចាស់កន្លែងការងារ	工作区所有者身份
+You can see this task through {p0}.	អ្នកអាចមើលឃើញកិច្ចការនេះតាមរយៈ {p0}។	你通过{p0}获得此任务的查看权限。
+Every task in the company (company-wide access).	កិច្ចការទាំងអស់ក្នុងក្រុមហ៊ុន (សិទ្ធិចូលប្រើទូទាំងក្រុមហ៊ុន)។	公司中的所有任务（全公司访问权限）。
+Everyone in {p0}	អ្នកគ្រប់គ្នាក្នុង {p0}	{p0} 中的所有人
+Invitations do not add workspace membership.	ការអញ្ជើញមិនបន្ថែមភាពជាសមាជិកកន្លែងការងារទេ។	邀请不会授予工作区成员身份。
+Invitations grant access to this meeting only. Workspace membership is approved separately.	ការអញ្ជើញផ្តល់សិទ្ធិចូលប្រើតែកិច្ចប្រជុំនេះប៉ុណ្ណោះ។ ភាពជាសមាជិកកន្លែងការងារត្រូវបានអនុម័តដោយឡែក។	邀请仅授予此会议的访问权限。工作区成员身份需单独批准。
+Invite to this task only. Workspace membership is approved separately.	អញ្ជើញសម្រាប់តែកិច្ចការនេះប៉ុណ្ណោះ។ ភាពជាសមាជិកកន្លែងការងារត្រូវបានអនុម័តដោយឡែក។	仅邀请参与此任务。工作区成员身份需单独批准。
+Invites are for this task only. Membership requires a separate approval.	ការអញ្ជើញសម្រាប់តែកិច្ចការនេះប៉ុណ្ណោះ។ ភាពជាសមាជិកត្រូវការការអនុម័តដោយឡែក។	邀请仅适用于此任务。成员身份需要单独批准。
+Outside workspace · this meeting only	ក្រៅកន្លែងការងារ · សម្រាប់តែកិច្ចប្រជុំនេះ	工作区外人员 · 仅此会议
+Outside workspace · this task only	ក្រៅកន្លែងការងារ · សម្រាប់តែកិច្ចការនេះ	工作区外人员 · 仅此任务
+You aren’t a member of this workspace: choose its members, or ask its owner to add you.	អ្នកមិនមែនជាសមាជិកកន្លែងការងារនេះទេ៖ ជ្រើសរើសសមាជិករបស់វា ឬស្នើសុំម្ចាស់ឱ្យបន្ថែមអ្នក។	你不是此工作区的成员：请选择其成员，或联系所有者添加你。
+You aren’t a member of this workspace: invite its members, or ask its owner to add you.	អ្នកមិនមែនជាសមាជិកកន្លែងការងារនេះទេ៖ អញ្ជើញសមាជិករបស់វា ឬស្នើសុំម្ចាស់ឱ្យបន្ថែមអ្នក។	你不是此工作区的成员：请邀请其成员，或联系所有者添加你。
+Participants and people I choose	អ្នកចូលរួម និងមនុស្សដែលខ្ញុំជ្រើសរើស	参与者及我选择的人员
+Choose who else can see it below.	ជ្រើសរើសអ្នកផ្សេងដែលអាចមើលវាខាងក្រោម។	在下方选择还可查看此内容的人员。
+Choose who else can see the meeting, or keep it visible to its participants only.	ជ្រើសរើសអ្នកផ្សេងដែលអាចមើលកិច្ចប្រជុំ ឬទុកឱ្យតែអ្នកចូលរួមអាចមើលបាន។	选择其他可查看会议的人员，或仅允许参与者查看。
+Done notes stay in your calendar and send no more reminders.	កំណត់ចំណាំដែលបានបញ្ចប់នៅតែមានក្នុងប្រតិទិនរបស់អ្នក ហើយមិនផ្ញើការរំលឹកទៀតទេ។	已完成的备注会保留在日历中，并停止发送提醒。
+For a meeting over several days (up to seven).	សម្រាប់កិច្ចប្រជុំដែលមានរយៈពេលច្រើនថ្ងៃ (រហូតដល់ប្រាំពីរថ្ងៃ)។	适用于跨多日的会议（最多七天）。
+Get its reminders	ទទួលការរំលឹករបស់វា	接收此会议的提醒
+Its participants get its reminders; you can ask for them too.	អ្នកចូលរួមទទួលបានការរំលឹក ហើយអ្នកក៏អាចស្នើសុំទទួលវាបានដែរ។	参与者会收到提醒，你也可以申请接收。
+Meeting reminders	ការរំលឹកកិច្ចប្រជុំ	会议提醒
+Meetings, task deadlines and your notes appear here.	កិច្ចប្រជុំ កាលកំណត់កិច្ចការ និងកំណត់ចំណាំរបស់អ្នកបង្ហាញនៅទីនេះ។	会议、任务截止日期和你的备注会显示在这里。
+Note what was decided. Everyone who can see the meeting can read it.	កត់ត្រាសេចក្តីសម្រេច។ អ្នកគ្រប់គ្នាដែលអាចមើលកិច្ចប្រជុំក៏អាចអានវាបាន។	记录会议决议。所有有权查看会议的人都可以阅读。
+Notes and decisions	កំណត់ចំណាំ និងសេចក្តីសម្រេច	备注和决议
+Notes and decisions (optional)	កំណត់ចំណាំ និងសេចក្តីសម្រេច (មិនចាំបាច់)	备注和决议（可选）
+Nothing in the next 30 days	គ្មានអ្វីក្នុងរយៈពេល 30 ថ្ងៃខាងមុខ	未来 30 天没有安排
+Online meeting link	តំណកិច្ចប្រជុំអនឡាញ	线上会议链接
+Only you can see your notes and their reminders.	មានតែអ្នកប៉ុណ្ណោះដែលអាចមើលកំណត់ចំណាំ និងការរំលឹករបស់វា។	只有你能查看自己的备注及其提醒。
+Previous month	ខែមុន	上个月
+Previous weekday through today	ពីថ្ងៃធ្វើការមុនរហូតដល់ថ្ងៃនេះ	从上一个工作日至今天
+Reminders count back from 09:00 on this day.	ការរំលឹកគិតថយក្រោយចាប់ពីម៉ោង 09:00 នៅថ្ងៃនេះ។	提醒时间从当天 09:00 向前计算。
+Reminders {p0}, to you only (in the Task Controlling Management and here in Telegram).	ការរំលឹក {p0} ផ្ញើទៅតែអ្នកប៉ុណ្ណោះ (ក្នុង Task Controlling Management និងនៅទីនេះក្នុង Telegram)។	在{p0}仅提醒你本人（通过 Task Controlling Management 和此处的 Telegram）。
+Room, address or “Online”	បន្ទប់ អាសយដ្ឋាន ឬ “អនឡាញ”	会议室、地址或“线上”
+Schedule meeting	កំណត់ពេលប្រជុំ	安排会议
+Show in the calendar	បង្ហាញក្នុងប្រតិទិន	在日历中显示
+Starts ({p0})	ចាប់ផ្តើម ({p0})	开始时间（{p0}）
+Until ({p0})	រហូតដល់ ({p0})	结束时间（{p0}）
+The end must be after the start.	ពេលបញ្ចប់ត្រូវតែនៅក្រោយពេលចាប់ផ្តើម។	结束时间必须晚于开始时间。
+The meeting must end after it starts.	កិច្ចប្រជុំត្រូវបញ្ចប់ក្រោយពេលចាប់ផ្តើម។	会议结束时间必须晚于开始时间。
+The note and its reminders are deleted.	កំណត់ចំណាំ និងការរំលឹករបស់វាត្រូវបានលុប។	备注及其提醒将被删除。
+The organizer and the people invited.	អ្នករៀបចំ និងអ្នកដែលត្រូវបានអញ្ជើញ។	组织者和受邀人员。
+They can see the meeting and ask for its reminders; they can’t change it.	ពួកគេអាចមើលកិច្ចប្រជុំ និងស្នើសុំទទួលការរំលឹក ប៉ុន្តែមិនអាចផ្លាស់ប្តូរវាបានទេ។	他们可以查看会议并申请接收提醒，但不能更改会议。
+This meeting is shared with you.	កិច្ចប្រជុំនេះត្រូវបានចែករំលែកជាមួយអ្នក។	此会议已与你共享。
+Times in {p0}	ពេលវេលាតាម {p0}	时间按{p0}显示
+Today in your calendar	ថ្ងៃនេះក្នុងប្រតិទិនរបស់អ្នក	你的今日日程
+Today · {p0}	ថ្ងៃនេះ · {p0}	今天 · {p0}
+Tomorrow · {p0}	ថ្ងៃស្អែក · {p0}	明天 · {p0}
+Turn on for a note without a time.	បើកសម្រាប់កំណត់ចំណាំដែលគ្មានពេលវេលា។	为不指定时间的备注启用。
+What is the meeting about?	តើកិច្ចប្រជុំនេះអំពីអ្វី?	会议主题是什么？
+What will be discussed	អ្វីដែលនឹងត្រូវពិភាក្សា	将讨论的内容
+You get its reminders.	អ្នកទទួលបានការរំលឹករបស់វា។	你会收到此会议的提醒。
+Everyone invited is told, with your reason. Its reminders stop.	អ្នកដែលត្រូវបានអញ្ជើញទាំងអស់ត្រូវបានជូនដំណឹងជាមួយមូលហេតុរបស់អ្នក។ ការរំលឹករបស់វាឈប់ផ្ញើ។	所有受邀人员都会收到通知及你的原因，会议提醒将停止。
+Everyone taking part is reminded, in the Task Controlling Management and here in Telegram.	អ្នកចូលរួមទាំងអស់ទទួលបានការរំលឹកក្នុង Task Controlling Management និងនៅទីនេះក្នុង Telegram។	所有参与者都会通过 Task Controlling Management 和此处的 Telegram 收到提醒。

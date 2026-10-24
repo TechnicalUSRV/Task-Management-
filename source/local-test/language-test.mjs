@@ -41,6 +41,14 @@ try {
     const names = ['Save ភាសាខ្មែរ 中文', 'Delete <keep>'];
     assert.equal(display.joinDisplayNames(names), i18n.uiText('{p0} and {p1}', { p0: names[0], p1: names[1] }));
     assert.equal(display.relativeDays(0), i18n.uiText('today'));
+    assert.equal(display.offsetText(120), i18n.uiText('{p0} hours before', { p0: 2 }));
+    assert.equal(display.changeFieldLabel({ field: 'priority', label: 'Priority' }), i18n.uiText('Priority'));
+    assert.equal(display.changeValueText({ field: 'priority', from: 'HIGH', from_text: 'High' }, 'from'), i18n.uiText('High'));
+    assert.equal(display.changeValueText({ field: 'status', to: 'COMPLETED', to_text: 'Completed · 100%' }, 'to'), i18n.uiText('Completed') + ' · 100%');
+    for (const field of ['title', 'description', 'pic_id', 'department', 'unknown_custom', 'toString']) assert.equal(display.changeValueText({ field, from: 'HIGH', from_text: 'Save' }, 'from'), 'Save');
+    assert.equal(display.changeFieldLabel({ field: 'unknown_custom', label: 'Save' }), 'Save');
+    assert.equal(display.visibilityLabel('PUBLIC'), i18n.uiText('Public'));
+
     assert.equal(display.relativeDays(5), i18n.uiText('in {p0} days', { p0: 5 }));
     assert.equal(display.reminderText([7, 1]), i18n.uiText('{p0} days before the due date', { p0: i18n.uiText('{p0} and {p1}', { p0: '7', p1: '1' }) }));
     if (locale !== 'en') { assert.ok(!display.reminderText([7, 1]).includes(' and ')); assert.notEqual(display.missingFieldsText(['Title'], ['Reviewer']), 'Fill in Title, and choose Reviewer.'); }

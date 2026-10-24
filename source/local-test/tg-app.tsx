@@ -1,5 +1,5 @@
 import { formatDisplayDate } from './i18n';
-import { reminderText, relativeDays, joinDisplayNames as andList, missingFieldsText as missingText } from './task-display';
+import { reminderText, offsetText, changeFieldLabel, changeValueText, updateChangeTitle, relativeDays, joinDisplayNames as andList, missingFieldsText as missingText } from './task-display';
 import { getLocale, getLanguage, getLanguageRevision, receiveLanguage, useLanguage, uiText, dynamicLabels, translatedEntries , translatedMap, translatedTuples } from './i18n';
 import { LanguageSelector } from './language-selector';
 import { CameraAttachment } from './camera-attachment';
@@ -138,13 +138,13 @@ const ASK_NOTE: Record<string, (c: Ctx, t: Row) => string> = {
 
 // V5.4 two-party approval: what a change request asks for, field by field.
 const changesOf = (cr: Row): Row[] => { try { return JSON.parse(cr.changes_json || '[]'); } catch { return []; } };
-const changeTitle = (cr: Row) => cr.kind === 'UPDATE' ? `Change ${changesOf(cr).map(x => String(x.label).toLowerCase()).join(', ') || 'details'}` : CHANGE_KIND[cr.kind as keyof typeof CHANGE_KIND];
+const changeTitle = (cr: Row) => cr.kind === 'UPDATE' ? updateChangeTitle(changesOf(cr)) : CHANGE_KIND[cr.kind as keyof typeof CHANGE_KIND];
 const CHANGE_TONE: Record<string, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', WITHDRAWN: 'neutral', CLOSED: 'neutral' };
 function Changes({ cr }: { cr: Row }) {
   useLanguage();
   const list = changesOf(cr);
   if (!list.length) return null;
-  return <ul className="change-rows">{list.map(x => <li key={x.field}><span className="label">{x.label}</span><span className="change-vals"><s>{x.from_text}</s><ArrowRight aria-hidden="true" /><strong>{x.to_text}</strong></span></li>)}</ul>;
+  return <ul className="change-rows">{list.map(x => <li key={x.field}><span className="label">{changeFieldLabel(x)}</span><span className="change-vals"><s>{changeValueText(x, 'from')}</s><ArrowRight aria-hidden="true" /><strong>{changeValueText(x, 'to')}</strong></span></li>)}</ul>;
 }
 /** Reminder days chosen in a sheet (1, 2, 3 days before, or other days). */
 function reminderInput(v: Row): number[] {
@@ -1400,7 +1400,7 @@ const weekdayOf = (d: string) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 
 const monthOf = (d: string) => `${d.slice(0, 7)}-01`;
 const shiftMonths = (d: string, n: number) => { const [y, m] = d.split('-').map(Number), i = y * 12 + m - 1 + n; return `${Math.floor(i / 12)}-${String(i % 12 + 1).padStart(2, '0')}-01`; };
 const OFFSETS: [number, string][] = [dynamicLabels([0, "At the start"], { 1: () => uiText("At the start") }), dynamicLabels([15, "15 min before"], { 1: () => uiText("15 min before") }), dynamicLabels([60, "1 hour before"], { 1: () => uiText("1 hour before") }), dynamicLabels([1440, "1 day before"], { 1: () => uiText("1 day before") }), dynamicLabels([2880, "2 days before"], { 1: () => uiText("2 days before") })];
-const offsetText = (n: number) => n === 0 ? uiText("at the start") : n % 1440 === 0 ? `${n / 1440} day${n === 1440 ? '' : 's'} before` : n % 60 === 0 ? `${n / 60} hour${n === 60 ? '' : 's'} before` : `${n} minutes before`;
+
 const offsetsOf = (v: unknown): number[] => { try { const a = typeof v === 'string' ? JSON.parse(v) : v; return Array.isArray(a) ? a.map(Number).filter(n => Number.isInteger(n) && n >= 0) : []; } catch { return []; } };
 const remindersText = (v: unknown) => { const l = [...new Set(offsetsOf(v))].sort((a, b) => b - a); return l.length ? l.map(offsetText).join(', ') : uiText("No reminders"); };
 const attendeesOf = (c: Ctx, id: string): string[] => (c.data.tm_attendees || []).filter((a: Row) => a.meeting_id === id).map((a: Row) => a.staff_id);

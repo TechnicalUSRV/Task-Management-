@@ -22,7 +22,7 @@ NOT_FOUND = _message('Task Management record not found.')
 
 
 def find_workspace(key):
-    w = Workspace.objects.filter(id=text(key, 'Record ID', 60, True)).first()
+    w = Workspace.objects.filter(id=text(key, _message('Record ID'), 60, True)).first()
     if not w:
         fail(NOT_FOUND, 404)
     return row(w)
@@ -84,9 +84,9 @@ def save_legacy(gov, d, actor):
         for staff in WorkspaceMember.objects.filter(workspace_id=key).exclude(staff_id__in=members).values_list('staff_id', flat=True):
             if any(open_work(key, staff) for open_work in hooks.MEMBER_OPEN_WORK):
                 fail(_message('Reassign open work before removing this workspace member.'))
-    name = text(d.get('name'), 'Workspace name', 200, True)
-    values = {'name': name, 'description': text(d.get('description'), 'Description', 5000),
-              'department': text(d.get('department'), 'Department', 150), 'owner_id': owner,
+    name = text(d.get('name'), _message('Workspace name'), 200, True)
+    values = {'name': name, 'description': text(d.get('description'), _message('Description'), 5000),
+              'department': text(d.get('department'), _message('Department'), 150), 'owner_id': owner,
               'color': choice(d.get('color') or 'BLUE', COLORS, _message('workspace color')),
               'status': (old or {}).get('status') or 'ACTIVE', 'version': old['version'] + 1 if old else 0,
               'updated_at': timezone.now()}

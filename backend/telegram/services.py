@@ -69,7 +69,7 @@ def log(level, chat, message):
 
 
 def mini_app_base(value):
-    raw = text(value, 'Mini App address', 300)
+    raw = text(value, _message('Mini App address'), 300)
     if not raw:
         return ''
     try:
@@ -153,7 +153,7 @@ def handle(gov, action, d, actor):
             fail(_message('This record changed. Refresh it before saving again.'), 409)
         workspace = None
         if d.get('workspace_id'):
-            w = row(Workspace.objects.filter(id=text(d['workspace_id'], 'Workspace', 60, True)).first())
+            w = row(Workspace.objects.filter(id=text(d['workspace_id'], _message('Workspace'), 60, True)).first())
             if not w:
                 fail(_message('Workspace not found.'), 404)
             if w['status'] != 'ACTIVE':

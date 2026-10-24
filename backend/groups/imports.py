@@ -128,7 +128,7 @@ class GroupImport:
         b, caps = self.g.open_board(d.get('group_id'), actor)
         self.g.archived_check(b)
         self.g.need(caps, 'import', _message('Importing needs “Can edit records” access to this group and a role that can add records.'))
-        name = text(d.get('name'), 'File name', 200, True).replace('\\', '/').split('/')[-1]
+        name = text(d.get('name'), _message('File name'), 200, True).replace('\\', '/').split('/')[-1]
         if re.search(r'\.(xls|xlsb|xlsm|csv|ods|numbers)$', name, re.IGNORECASE):
             fail(_message('“{p0}” is not an Excel workbook (.xlsx). Open it in Excel (or another spreadsheet program) and save it as “Excel Workbook (*.xlsx)”.', p0=name), 415)
         if not re.search(r'\.xlsx$', name, re.IGNORECASE):

@@ -268,3 +268,18 @@ def test_scheduled_task_and_meeting_reminders_preserve_recipient_language(connec
                 assert 'Save room' in output['body'] and 'online' not in output['body']
             if notice.kind == 'note_reminder':
                 assert 'Save user note' in output['body']
+
+
+@pytest.mark.parametrize('locale', ['km', 'zh-CN'])
+def test_validation_errors_translate_code_owned_field_labels(admin_api, locale):
+    assert admin_api.post('/api/me/language', {'language': locale}).status_code == 200
+    response = admin_api.command('tm.workspace.save', {'name': '', 'owner_id': admin_api.user['staff_id']})
+    assert response.status_code == 400
+    expected = text('{p0} is required.', {'p0': msg('Workspace name')}, locale)
+    assert response.json()['error'] == expected
+    assert 'Workspace name' not in expected
+    # The label translates; a submitted name that happens to match a UI key does not.
+    result = admin_api.command('tm.workspace.save', {'name': 'Save', 'owner_id': admin_api.user['staff_id']})
+    assert result.status_code == 200, result.json()
+    from workspaces.models import Workspace
+    assert Workspace.objects.get(pk=result.json()['result']['id']).name == 'Save'

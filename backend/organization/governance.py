@@ -100,7 +100,7 @@ class Governance:
         return self._cached('ws', key, lambda: row(Workspace.objects.filter(id=key).first()))
 
     def ws(self, key):
-        w = Workspace.objects.filter(id=text(key, 'Workspace', 60, True)).first()
+        w = Workspace.objects.filter(id=text(key, _message('Workspace'), 60, True)).first()
         if not w:
             fail(_message('Workspace not found.'), 404)
         return row(w)
@@ -559,7 +559,7 @@ class Governance:
 
     @staticmethod
     def require_reason(d):
-        return text(d.get('reason'), 'Reason', 2000, True)
+        return text(d.get('reason'), _message('Reason'), 2000, True)
 
     def assign_person(self, staff, org_level, manager):
         if manager and manager == staff:
@@ -708,7 +708,7 @@ class Governance:
         out = []
         for x in value:
             change = {'staff_id': self.require_active(x.get('staff_id')),
-                      'level': None if x.get('level') is None else integer(x.get('level'), 1, 1000, 'level'),
+                      'level': None if x.get('level') is None else integer(x.get('level'), 1, 1000, _message('level')),
                       'manager_id': self.require_active(x['manager_id']) if x.get('manager_id') else None}
             # Additional reporting managers: optional; when the key is left out, the existing additional lines stay.
             if x.get('additional_manager_ids') is not None:
@@ -861,7 +861,7 @@ class Governance:
 
     def make_request(self, kind, p, actor, approve=False, approval_actor=None):
         approver = self.approver_for(kind, p, actor)
-        key = f"{actor}:{kind}:{text(p.get('request_key'), 'Request key', 100, True)}" if p.get('request_key') else None
+        key = f"{actor}:{kind}:{text(p.get('request_key'), _message('Request key'), 100, True)}" if p.get('request_key') else None
         def js_or_null(v):   # JavaScript `value || null`
             return None if v is None or v is False or (not isinstance(v, (list, dict)) and v in ('', 0)) else v
         parts = [kind, actor, *(js_or_null(p.get(k)) for k in ('workspace_id', 'beneficiary_id', 'template_id', 'parent_grant_id', 'capabilities',
@@ -878,7 +878,7 @@ class Governance:
         at = now()
         created = OrgRequest.objects.create(id=next_id('org-request', 'ORGREQ'), kind=kind, workspace_id=p.get('workspace_id') or None,
                                             beneficiary_id=p.get('beneficiary_id') or None, requester_id=actor, approver_id=approver,
-                                            payload_json=jtext(p), reason=text(p.get('reason'), 'Reason', 2000, True),
+                                            payload_json=jtext(p), reason=text(p.get('reason'), _message('Reason'), 2000, True),
                                             status='PENDING' if approver else 'REVIEW', request_key=key, fingerprint=fingerprint,
                                             created_at=at, updated_at=at)
         q = row(created)
@@ -984,7 +984,7 @@ class Governance:
             fail(_message('You are not the current responsible approver.'), 403)
 
     def decide(self, d, actor, administrative=False):
-        q = row(OrgRequest.objects.filter(id=text(d.get('id'), 'Request', 60, True)).first())
+        q = row(OrgRequest.objects.filter(id=text(d.get('id'), _message('Request'), 60, True)).first())
         if not q or not self.request_visible(actor, q):
             fail(_message('Request not found.'), 404)
         decision = d.get('decision')
@@ -1003,7 +1003,7 @@ class Governance:
         if d.get('expected_version') is not None and d['expected_version'] != q['version']:
             fail(_message('This record changed. Refresh it before saving again.'), 409)
         p = parse(q['payload_json'])
-        note = text(d.get('note'), 'Decision note', 2000, decision == 'REJECT')
+        note = text(d.get('note'), _message('Decision note'), 2000, decision == 'REJECT')
         if decision == 'APPROVE':
             if q['kind'] == 'MEMBERSHIP':
                 w = self.ws(q['workspace_id'])
@@ -1128,9 +1128,9 @@ class Governance:
                 fail(_message('This Owner grant is restricted to its approved originating workspace.'), 403)
         joinable = (d['joinable'] if d.get('joinable') is not None else (old or {}).get('joinable'))
         values = {
-            'name': text(d.get('name', (old or {}).get('name')), 'Workspace name', 200, True),
-            'description': text(d.get('description', (old or {}).get('description')), 'Description', 5000),
-            'department': text(d.get('department', (old or {}).get('department')), 'Department', 150),
+            'name': text(d.get('name', (old or {}).get('name')), _message('Workspace name'), 200, True),
+            'description': text(d.get('description', (old or {}).get('description')), _message('Description'), 5000),
+            'department': text(d.get('department', (old or {}).get('department')), _message('Department'), 150),
             'owner_id': self.require_active(owner), 'kind': kind, 'visibility': visibility,
             'governing_manager_id': governing, 'owner_grant_id': grant_id, 'origin_workspace_id': origin,
             'joinable': 1 if kind == 'ORGANIZATIONAL' and joinable else 0,
@@ -1377,7 +1377,7 @@ class Governance:
 
     def remove_member(self, d, actor):
         w = self.ws(d.get('workspace_id'))
-        target = text(d.get('beneficiary_id'), 'Employee', 60, True)
+        target = text(d.get('beneficiary_id'), _message('Employee'), 60, True)
         self.expected(d)
         if not self.can_view_workspace(actor, w):
             fail(_message('Workspace not found.'), 404)
@@ -1571,7 +1571,7 @@ class Governance:
         view = p.get('view')
         if not self.can_manage_structure(actor) and view and view not in ('people', 'employee'):
             fail(_message('Organizational Structure View is read-only. Create permission is required for management views.'), 403)
-        page = integer(p.get('page') or 1, 1, 100000, 'page')
+        page = integer(p.get('page') or 1, 1, 100000, _message('page'))
         limit = integer(p.get('limit') or 50, 1, 200, _message('page size'))
         q = str(p.get('q') or '').strip().lower()
 
@@ -1677,9 +1677,9 @@ class Governance:
         if action == 'org.level.save':
             self.require_admin(actor)
             self.expected(d)
-            key = integer(d.get('level'), 1, 1000, 'level')
+            key = integer(d.get('level'), 1, 1000, _message('level'))
             old = row(OrgLevel.objects.filter(id=key).first())
-            name = text(d.get('name'), 'Level name', 100, True)
+            name = text(d.get('name'), _message('Level name'), 100, True)
             if old:
                 OrgLevel.objects.filter(id=key).update(name=name, version=old['version'] + 1)
             else:
@@ -1694,7 +1694,7 @@ class Governance:
             if d.get('id') and not old:
                 fail(_message('Template not found.'), 404)
             key = d.get('id') or next_id('org-template', 'TITLE')
-            values = {'name': text(d.get('name'), 'Title', 100, True), 'capabilities_json': jtext(self.capabilities(d.get('capabilities'))),
+            values = {'name': text(d.get('name'), _message('Title'), 100, True), 'capabilities_json': jtext(self.capabilities(d.get('capabilities'))),
                       'active': 0 if d.get('active') is False or d.get('active') == 0 else 1, 'version': old['version'] + 1 if old else 0}
             if old:
                 OrgTemplate.objects.filter(id=key).update(**{**values, 'active': bool(values['active'])})

@@ -1,3 +1,4 @@
+import { visibilityLabel } from './task-display';
 import { uiText, useLanguage, dynamicLabels } from "./i18n";
 import { useState } from 'react';
 import type { Row } from './components';
@@ -18,7 +19,7 @@ export function TaskSharing({task,data,command,name}:{task:Row;data:Row;command:
  const [editing,setEditing]=useState(false),[members,setMembers]=useState<Row[]>([]),[person,setPerson]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[version,setVersion]=useState(0);
  const existing:Row[]=(data.tm_task_members||[]).filter((m:Row)=>m.task_id===task.id);
  const save=async()=>{setBusy(true);setError('');try{await command('tm.task.members.save',{id:task.id,expected_version:version,members:members.map(m=>({staff_id:m.staff_id,permission:m.permission}))});setEditing(false);}catch(e){setError((e as Error).message);}finally{setBusy(false);}};
- return <section className="task-sharing"><h3>{uiText("Task sharing")}</h3><p>{uiText("Visibility: ")}{task.visibility||'PUBLIC'}{task.governing_manager_id?uiText(" · Governing manager: {p0}", { p0: name(task.governing_manager_id) }):''}{uiText(". Responsible roles are managed through the existing Task workflow.")}</p>
+ return <section className="task-sharing"><h3>{uiText("Task sharing")}</h3><p>{uiText("Visibility: ")}{visibilityLabel(task.visibility||'PUBLIC')}{task.governing_manager_id?uiText(" · Governing manager: {p0}", { p0: name(task.governing_manager_id) }):''}{uiText(". Responsible roles are managed through the existing Task workflow.")}</p>
  {!editing?<><ul>{existing.map(m=><li key={m.staff_id}>{name(m.staff_id)} · {m.permission==='CONTRIBUTOR'?uiText("Contributor (comments and files)"):uiText("Viewer")}</li>)}</ul>{!existing.length&&<p>{uiText("No additional Task members.")}</p>}
  {task.can_manage_members&&task.visibility!=='PERSONAL'&&<button type="button" className="btn" onClick={()=>{setMembers(existing);setVersion(task.version);setEditing(true);}}>{uiText("Manage Task members")}</button>}</>:
  <><ul>{members.map((m,i)=><li key={m.staff_id}><span>{name(m.staff_id)}</span><select aria-label={uiText("Permission for {p0}", { p0: name(m.staff_id) })} value={m.permission} disabled={busy} onChange={e=>setMembers(s=>s.map((v,j)=>j===i?{...v,permission:e.target.value}:v))}><option value="VIEWER">{uiText("Viewer")}</option><option value="CONTRIBUTOR">{uiText("Contributor: comments and files")}</option></select><button type="button" disabled={busy} onClick={()=>setMembers(s=>s.filter((_,j)=>j!==i))}>{uiText("Remove")}</button></li>)}</ul>

@@ -81,7 +81,7 @@ def merged_name(value, mode):
     if mode != 'MERGED_PDF':
         fail(_message('A file name can be chosen only when PDFs are combined.'))
     import re
-    name = re.sub(r'[<>:"|?*]+', '-', clean_file_name(text(value, 'File name', 120, True))).strip()
+    name = re.sub(r'[<>:"|?*]+', '-', clean_file_name(text(value, _message('File name'), 120, True))).strip()
     name = (name[:-4] if name.lower().endswith('.pdf') else name).strip().strip('.').strip()
     if not name:
         fail(_message('Enter a file name for the combined PDF.'))
