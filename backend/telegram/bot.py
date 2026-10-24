@@ -147,7 +147,7 @@ def strip_tags(text):
 
 def link_help(app):
     return (_bot_message('To use me, connect this Telegram account to your Task Controlling Management login. You only do this once:\n\n• In the Task Controlling Management, click your name (top right) → <b>Connect Telegram</b>, then tap <b>Open Telegram</b> (or scan the QR code with your phone).\n• Or send me <code>/link CODE</code> with the code shown there.')
-            + (_bot_message('\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management email and password.')
+            + (_bot_message('\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management username and password.')
                if app else '') + _bot_message('\n\nYour personal link does not expire. It works once, and only for you.'))
 
 
@@ -395,7 +395,7 @@ class Bot:
         except InputError as e:
             return {'ok': False, 'error': e.message, 'status': e.status}
         except Exception as e:   # noqa: BLE001
-            log.exception(_bot_message('Telegram action failed'))
+            log.exception('Telegram action failed')
             tg.log('error', ctx['chatId'], f'{action}: {e}')
             return {'ok': False, 'error': _bot_message('Something went wrong, so nothing was changed. Please try again.')}
 
@@ -1943,7 +1943,7 @@ class Bot:
             self.digest(s)
         except Exception as e:   # noqa: BLE001
             if not self.stopped.is_set():
-                log.exception(_bot_message('Telegram outbox failed'))
+                log.exception('Telegram outbox failed')
                 tg.log('error', None, str(e))
         finally:
             self.flushing.release()
@@ -2079,7 +2079,7 @@ class Bot:
                     try:
                         self.handle_update(u)
                     except Exception as e:   # noqa: BLE001
-                        log.exception(_bot_message('Telegram update failed'))
+                        log.exception('Telegram update failed')
                         tg.log('error', None, f"Update {u.get('update_id')}: {e}")
                     TelegramSettings.objects.filter(id=1, last_update_id__lt=u['update_id']).update(last_update_id=u['update_id'])
             except TelegramError as e:
@@ -2158,7 +2158,7 @@ class Runtime:
             try:
                 self.supervise()
             except Exception:   # noqa: BLE001
-                log.exception(_bot_message('Telegram supervisor failed'))
+                log.exception('Telegram supervisor failed')
             self.stopped.wait(self.every)
         if self.bot:
             self.bot.stop()

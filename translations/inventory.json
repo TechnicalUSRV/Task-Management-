@@ -17,7 +17,7 @@
   "\nEveryone who wants to use the buttons should first connect their Telegram in a private chat with me (send me /start).": [
     "backend/telegram/bot.py"
   ],
-  "\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management email and password.": [
+  "\n• Or tap <b>Sign in with your Task Controlling Management account</b> below and use your Task Controlling Management username and password.": [
     "backend/telegram/bot.py"
   ],
   " (archived)": [
@@ -13015,9 +13015,6 @@
   "Telegram accounts linked to Task Controlling Management logins. Disabling an Task Controlling Management login blocks its Telegram access at once.": [
     "source/local-test/telegram-ui.tsx"
   ],
-  "Telegram action failed": [
-    "backend/telegram/bot.py"
-  ],
   "Telegram answered with HTTP {p0}.": [
     "backend/telegram/bot.py"
   ],
@@ -13094,9 +13091,6 @@
   "Telegram opens Mini Apps only over HTTPS. Publish the gateway address above with an HTTPS tunnel or your own server, then enter that public address in the settings below.": [
     "source/local-test/telegram-ui.tsx"
   ],
-  "Telegram outbox failed": [
-    "backend/telegram/bot.py"
-  ],
   "Telegram refused the document (possibly busy or blocked). Retry only files not sent.": [
     "backend/groups/delivery.py"
   ],
@@ -13117,12 +13111,6 @@
   ],
   "Telegram settings updated": [
     "backend/telegram/services.py"
-  ],
-  "Telegram supervisor failed": [
-    "backend/telegram/bot.py"
-  ],
-  "Telegram update failed": [
-    "backend/telegram/bot.py"
   ],
   "Telegram · connected": [
     "source/local-test/ui.tsx"

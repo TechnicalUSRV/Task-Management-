@@ -42,6 +42,8 @@ def test_catalog_placeholders_are_safe():
         for key, value in catalog(locale).items():
             assert value and isinstance(value, str)
             assert Counter(re.findall(r'\{\w+\}', key)) == Counter(re.findall(r'\{\w+\}', value)), (locale, key)
+            tags = lambda source: Counter(re.findall(r'</?(?:b|i|u|s|code|pre|a)(?:\s+[^>]*)?>', source))
+            assert tags(key) == tags(value), (locale, key, 'HTML markup changed')
 
 
 def test_missing_placeholder_in_translation_falls_back(monkeypatch):
@@ -283,3 +285,17 @@ def test_validation_errors_translate_code_owned_field_labels(admin_api, locale):
     assert result.status_code == 200, result.json()
     from workspaces.models import Workspace
     assert Workspace.objects.get(pk=result.json()['result']['id']).name == 'Save'
+
+
+def test_translated_bot_connection_help_preserves_commands_and_paragraphs():
+    from telegram.bot import link_help
+    for locale in ('en', 'km', 'zh-CN'):
+        with language(locale):
+            output = link_help(True)
+            assert '<code>/link CODE</code>' in output
+            assert '\n\n' in output and r'\n' not in output
+            assert output.count('<b>') == output.count('</b>') == 3
+            if locale == 'en':
+                assert 'username and password' in output and 'email and password' not in output
+            else:
+                assert 'To use me' not in output and 'Your personal link' not in output

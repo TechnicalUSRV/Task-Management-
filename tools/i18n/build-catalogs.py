@@ -16,7 +16,8 @@ for p in sorted(WORK.glob('*.tsv')):
   if not line or line.startswith('#'):continue
   parts=line.split('\t')
   if len(parts)!=3:raise ValueError((p,line))
-  source,km,zh=parts
+  # TSV cells can contain escaped newlines for multi-paragraph bot messages.
+  source,km,zh=(cell.replace(r"\n", "\n") for cell in parts)
   if source.isdigit():source=labels[int(source)]
   terms[norm(source)]=(km,zh)
 # Immutable brand/product names used in interface text.

@@ -2,6 +2,28 @@
 
 This branch starts from the reviewed deployment-candidate commit `2023d9f178726cde3d5b51aba87af9c152f8f65b`. It is a review branch. **Do not deploy or merge yet.** The office server and production database have not been changed by this work.
 
+## Current status — 24 October 2026
+
+**Unfinished; do not deploy.** Current catalog: **5,626 identified templates,
+2,898 translated into both Khmer and Simplified Chinese, 2,728 still using
+English fallback**. Historical counts and test runs below describe earlier
+checkpoints. The latest screenshots predate the validation and bot conversation
+batches; they demonstrate selected flows, not full translation coverage.
+
+The bot conversation batch supplies translations for all currently marked
+`backend/telegram/bot.py` templates. This does **not** complete the bot audit:
+unmarked interpolated card headings, status fragments and change summaries
+still need explicit display-only handling. Four internal exception diagnostics
+were removed from translation marking. Connection help now describes the
+existing username/password login correctly. Multiline TSV translations preserve
+paragraphs, Telegram HTML markup and literal slash commands.
+
+Validation: **27 focused language/Telegram tests passed**; catalog tests check
+placeholder occurrence counts and HTML tag preservation. React language tests,
+type checking and the production build also passed. SQL Server migration
+verification, native-speaker review, complete UI/report coverage and remaining
+legacy release-gate reconciliation are still outstanding.
+
 ## STEP OF WORK
 
 1. Add the language selector and save each employee’s preference.
